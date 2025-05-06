@@ -125,12 +125,12 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{1, 1}, {0, 0, 1}, {1, -1}}, true).elements.front(),
                 false,
                 {{-1, -1}, {-1, 1}},
-            }, {  // Intersecting line segment and circular arc at two points.
-                build_shape({{392075.327238964, 9219384.82687602}, {392004.011663701, 9219490.97066976}}, true).elements.front(),
-                build_shape({{392075.268512914, 9219384.91537799}, {392066.965548415, 9219379.34215805, -1}, {392075.327238964, 9219384.82687602}}, true).elements.front(),
+            }, {
+                build_shape({{39.2075327238964, 921.938482687602}, {39.2004011663701, 921.949097066976}}, true).elements.front(),
+                build_shape({{39.2075268512914, 921.938491537799}, {39.2066965548415, 921.937934215805, -1}, {39.2075327238964, 921.938482687602}}, true).elements.front(),
                 true,
                 {},
-            }, {  // Intersecting line segment and circular arc at two points.
+            }, {
                 build_shape({{398683.828041, 9213001.274628}, {398845.790901, 9213041.800811}}, true).elements.front(),
                 build_shape({{398645.799546, 9213137.752427}, {398972.799200, 9213516.000000, 1}, {398972.799200, 9213016.000000}}, true).elements.front(),
                 false,
