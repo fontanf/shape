@@ -12,7 +12,9 @@ namespace
 std::vector<ShapeElement> compute_splitted_elements(
         const std::vector<ShapeElement>& elements)
 {
-    //std::cout << "compute_splitted_elements" << std::endl;
+    //std::cout << "compute_splitted_elements"
+    //    " elements.size() " << elements.size() << std::endl;
+
     std::vector<std::vector<Point>> element_intersections(elements.size());
     for (ElementPos element_pos_1 = 0;
             element_pos_1 < (ElementPos)elements.size();
@@ -79,6 +81,11 @@ std::vector<ShapeElement> compute_splitted_elements(
         //std::cout << "- " << new_element.to_string() << std::endl;
         new_elements.push_back(new_element);
     }
+    //std::cout << "new_elements.size() " << new_elements.size() << std::endl;
+
+    // Equalize new element points.
+    new_elements = equalize_points(new_elements);
+
     //std::cout << "compute_splitted_elements end" << std::endl;
     return new_elements;
 }
