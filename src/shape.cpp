@@ -1395,6 +1395,7 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
     shape_new.elements.back().end = shape_new.elements.front().start;
 
     if (!shape_new.check()) {
+        std::cout << "input shape " << shape.to_string(0) << std::endl;
         throw std::invalid_argument(
                 "shape::remove_redundant_vertices: invalid output shape.");
     }
