@@ -4,6 +4,7 @@ include(GoogleTest)
 
 add_executable(Shape_shape_test)
 target_sources(Shape_shape_test PRIVATE
+    test_params.hpp
     trapezoid_test.cpp
     shape_test.cpp
     element_intersections_test.cpp

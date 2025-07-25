@@ -6,31 +6,29 @@
 
 #include <fstream>
 
+#include "test_params.hpp"
+
 using namespace shape;
 namespace fs = boost::filesystem;
+
 
 struct ComputeIntersectionsTestParams
 {
     ShapeElement element_1;
     ShapeElement element_2;
-    bool strict;
-    std::vector<Point> expected_intersections;
-
+    bool strict = false;
+    std::vector<Point> expected_result;
 
     template <class basic_json>
-    static ComputeIntersectionsTestParams from_json(basic_json& json_item)
+    static ComputeIntersectionsTestParams from_json(
+            basic_json& json_item)
     {
         ComputeIntersectionsTestParams test_params;
         test_params.element_1 = ShapeElement::from_json(json_item["element_1"]);
         test_params.element_2 = ShapeElement::from_json(json_item["element_2"]);
         test_params.strict = json_item["strict"];
-        for (auto it = json_item["expected_intersections"].begin();
-                it != json_item["expected_intersections"].end();
-                ++it) {
-            auto json_point = *it;
-            Point point = Point::from_json(json_point);
-            test_params.expected_intersections.push_back(point);
-        }
+        for (auto& json_point: json_item["expected_result"].items())
+            test_params.expected_result.emplace_back(Point::from_json(json_point.value()));
         return test_params;
     }
 
@@ -40,7 +38,7 @@ struct ComputeIntersectionsTestParams
         std::ifstream file(file_path);
         if (!file.good()) {
             throw std::runtime_error(
-                    "shape::IntersectShapeShapeElementTestParams::read_json: "
+                    "shape::ComputeIntersectionsTestParams::read_json: "
                     "unable to open file \"" + file_path + "\".");
         }
 
@@ -59,7 +57,7 @@ TEST_P(ComputeIntersectionsTest, ComputeIntersections)
     std::cout << "element_2 " << test_params.element_2.to_string() << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_intersections" << std::endl;
-    for (const Point& point: test_params.expected_intersections)
+    for (const Point& point: test_params.expected_result)
         std::cout << "- " << point.to_string() << std::endl;
 
     std::vector<Point> intersections = compute_intersections(
@@ -73,8 +71,8 @@ TEST_P(ComputeIntersectionsTest, ComputeIntersections)
             << std::endl;
     }
 
-    ASSERT_EQ(intersections.size(), test_params.expected_intersections.size());
-    for (const Point& expected_intersection: test_params.expected_intersections) {
+    ASSERT_EQ(intersections.size(), test_params.expected_result.size());
+    for (const Point& expected_intersection: test_params.expected_result) {
         EXPECT_NE(std::find_if(
                     intersections.begin(),
                     intersections.end(),
@@ -280,7 +278,7 @@ struct IntersectShapeShapeElementTestParams
 {
     Shape shape;
     ShapeElement element;
-    bool strict;
+    bool strict = false;
     bool expected_result;
 
 
@@ -335,7 +333,7 @@ INSTANTIATE_TEST_SUITE_P(
         IntersectShapeShapeElementTest,
         testing::ValuesIn(std::vector<IntersectShapeShapeElementTestParams>{
             IntersectShapeShapeElementTestParams::read_json(
-                    (fs::path("data") / "tests" / "intersect_shape_shape_element" / "0.json").string()),
+                    (fs::path("data") / "tests" / "element_intersections" / "shape_shape_element" / "0.json").string()),
             {
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
                 build_line_segment({3, 0}, {3, 2}),
@@ -359,12 +357,13 @@ struct IntersectShapeShapeTestParams
 {
     Shape shape_1;
     Shape shape_2;
-    bool strict;
+    bool strict = false;
     bool expected_result;
 
 
     template <class basic_json>
-    static IntersectShapeShapeTestParams from_json(basic_json& json_item)
+    static IntersectShapeShapeTestParams from_json(
+            basic_json& json_item)
     {
         IntersectShapeShapeTestParams test_params;
         test_params.shape_1 = Shape::from_json(json_item["shape_1"]);
