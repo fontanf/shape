@@ -1761,12 +1761,7 @@ void ShapeWithHoles::write_svg(
     file << s;
 
     file << "<g>" << std::endl;
-    file << "<path d=\"" << shape.to_svg() << "\""
-        << " stroke=\"black\""
-        << " stroke-width=\"0.1\""
-        << " fill=\"blue\""
-        << " fill-opacity=\"0.2\""
-        << "/>" << std::endl;
+    file << to_svg();
     //file << "<text x=\"" << std::to_string(x)
     //    << "\" y=\"" << std::to_string(-y)
     //    << "\" dominant-baseline=\"middle\" text-anchor=\"middle\">"
