@@ -1,5 +1,5 @@
 {
-  "name": "Square",
+  "description": "Square",
   "shape": {
     "type": "rectangle",
     "width": 1,

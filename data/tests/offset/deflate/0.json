@@ -1,5 +1,5 @@
 {
-  "name": "Square",
+  "description": "Square",
   "shape": {
     "type": "polygon",
     "vertices": [

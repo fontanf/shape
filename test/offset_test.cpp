@@ -80,7 +80,9 @@ TEST_P(DeflateTest, Deflate)
     for (const Shape& hole: test_params.expected_result)
         std::cout << "- " << hole.to_string(2) << std::endl;
 
-    auto result = deflate(test_params.shape, test_params.offset);
+    auto result = deflate(
+        test_params.shape,
+        test_params.offset);
     std::cout << "result" << std::endl;
     for (const Shape& hole: result)
         std::cout << "- " << hole.to_string(2) << std::endl;

@@ -10,14 +10,15 @@ template <typename T>
 struct TestParams
 {
     std::string name;
+    std::string description;
 
 
     static T from_json(
-        nlohmann::basic_json<>& json_item)
+            nlohmann::basic_json<>& json_item)
     {
         T t;
-        if (json_item.contains("name"))
-            t.name = json_item["name"];
+        if (json_item.contains("description"))
+            t.description = json_item["description"];
         return t;
     }
 
@@ -42,8 +43,11 @@ struct TestParams
         std::vector<T> params;
         if (fs::is_directory(dir_path))
             for (auto& entry : fs::directory_iterator(dir_path)) {
-                if (entry.path().extension().string() == ".json")
-                    params.emplace_back(read_json(entry.path().string()));
+                if (entry.path().extension().string() == ".json") {
+                    T test_params = read_json(entry.path().string());
+                    test_params.name = entry.path().string();
+                    params.emplace_back(test_params);
+                }
             }
         return params;
     }
