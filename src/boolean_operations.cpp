@@ -197,21 +197,26 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             new_element_reversed.orig_shape_id = shape_pos;
             new_element_reversed.original_direction = false;
             output.components_splitted_elements[component_id].push_back(new_element_reversed);
+
+            //std::cout << "  - " << point_cur.to_string() << std::endl;
+            //std::cout << "  - " << new_element.element.to_string() << std::endl;
         }
 
-        SplittedElement new_element;
-        new_element.element = element;
-        new_element.orig_shape_id = elements_info[element_pos].orig_shape_id;
-        new_element.original_direction = true;
-        output.components_splitted_elements[component_id].push_back(new_element);
+        if (!equal(element.start, element.end)) {
+            SplittedElement new_element;
+            new_element.element = element;
+            new_element.orig_shape_id = elements_info[element_pos].orig_shape_id;
+            new_element.original_direction = true;
+            output.components_splitted_elements[component_id].push_back(new_element);
 
-        SplittedElement new_element_reversed;
-        new_element_reversed.element = element.reverse();
-        new_element_reversed.orig_shape_id = elements_info[element_pos].orig_shape_id;
-        new_element_reversed.original_direction = false;
-        output.components_splitted_elements[component_id].push_back(new_element_reversed);
+            SplittedElement new_element_reversed;
+            new_element_reversed.element = element.reverse();
+            new_element_reversed.orig_shape_id = elements_info[element_pos].orig_shape_id;
+            new_element_reversed.original_direction = false;
+            output.components_splitted_elements[component_id].push_back(new_element_reversed);
 
-        //std::cout << "- " << new_element.to_string() << std::endl;
+            //std::cout << "  - " << new_element.element.to_string() << std::endl;
+        }
     }
 
     // Remove duplicates in splitted elements.
