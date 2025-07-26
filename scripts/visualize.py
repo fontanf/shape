@@ -90,7 +90,7 @@ with open(args.path, 'r') as f:
                 name=f"Shape {shape_pos}",
                 # legendgroup=filepath,
                     showlegend=True,
-                    fillcolor=colors[shape_pos],
+                    fillcolor=colors[shape_pos % len(colors)],
                     opacity=0.2,
                     fill="toself",
                     marker=dict(

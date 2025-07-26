@@ -42,6 +42,15 @@ LengthDbl shape::smallest_power_of_two_greater_or_equal(LengthDbl value)
 //////////////////////////////////// Point /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+std::string shape::to_string(double value)
+{
+    std::streamsize precision = std::cout.precision();
+    std::stringstream ss;
+    ss << std::setprecision(std::numeric_limits<LengthDbl>::digits10 + 1)
+        << value << std::setprecision(precision);
+    return ss.str();
+}
+
 std::string Point::to_string() const
 {
     std::streamsize precision = std::cout.precision();
@@ -1943,11 +1952,6 @@ CleanExtremeSlopesOutput clean_extreme_slopes_outer_rec(
         const Shape& shape)
 {
     //std::cout << "clean_extreme_slopes " << shape.to_string(2) << std::endl;
-    if (!shape.check()) {
-        throw std::invalid_argument(
-                "shape::clean_extreme_slopes: invalid input shape.");
-    }
-
     CleanExtremeSlopesOutput output;
 
     for (ElementPos element_pos = 0;
@@ -2034,11 +2038,6 @@ CleanExtremeSlopesOutput clean_extreme_slopes_outer_rec(
         output.shape.elements.push_back(element);
     }
     output.shape.elements.front().start = output.shape.elements.back().end;
-
-    if (!output.shape.check()) {
-        throw std::invalid_argument(
-                "shape::clean_extreme_slopes: invalid output shape.");
-    }
     return output;
 }
 
@@ -2046,11 +2045,6 @@ CleanExtremeSlopesOutput clean_extreme_slopes_inner_rec(
         const Shape& shape)
 {
     //std::cout << "clean_extreme_slopes " << shape.to_string(2) << std::endl;
-    if (!shape.check()) {
-        throw std::invalid_argument(
-                "shape::clean_extreme_slopes: invalid input shape.");
-    }
-
     CleanExtremeSlopesOutput output;
 
     for (ElementPos element_pos = 0;
@@ -2137,11 +2131,6 @@ CleanExtremeSlopesOutput clean_extreme_slopes_inner_rec(
         output.shape.elements.push_back(element);
     }
     output.shape.elements.front().start = output.shape.elements.back().end;
-
-    if (!output.shape.check()) {
-        throw std::invalid_argument(
-                "shape::clean_extreme_slopes: invalid output shape.");
-    }
     return output;
 }
 
@@ -2150,6 +2139,8 @@ CleanExtremeSlopesOutput clean_extreme_slopes_inner_rec(
 std::vector<Shape> shape::clean_extreme_slopes_inner(
         const Shape& shape)
 {
+    //std::cout << "clean_extreme_slopes_inner" << std::endl;
+    //std::cout << "shape " << shape.to_string(0) << std::endl;
     Shape equalized_shape = equalize_shape(shape);
     std::vector<ShapeWithHoles> union_input;
     Shape shape_new = equalized_shape;
@@ -2171,12 +2162,19 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
     std::vector<Shape> output;
     for (const ShapeWithHoles& difference_output_shape: difference_output)
         output.push_back(difference_output_shape.shape);
+
+    //std::cout << "output" << std::endl;
+    //for (const Shape& shape: output)
+    //    std::cout << shape.to_string(0) << std::endl;
+    //std::cout << "clean_extreme_slopes_inner end" << std::endl;
+
     return output;
 }
 
 ShapeWithHoles shape::clean_extreme_slopes_outer(
         const Shape& shape)
 {
+    //std::cout << "clean_extreme_slopes_outer" << std::endl;
     Shape equalized_shape = equalize_shape(shape);
     std::vector<ShapeWithHoles> union_input = {{equalized_shape}};
     Shape shape_new = equalized_shape;
@@ -2194,6 +2192,7 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
             union_input.push_back(s);
     }
     std::vector<ShapeWithHoles> union_output = compute_union(union_input);
+    //std::cout << "clean_extreme_slopes_outer end" << std::endl;
     return union_output.front();
 }
 

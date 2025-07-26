@@ -367,6 +367,11 @@ bool shape::intersect(
                 return true;
         }
     }
+    if (!shape_1.is_path
+            && !shape_2.is_path
+            && equal(shape_1, shape_2)) {
+        return true;
+    }
     if (!shape_2.is_path) {
         for (const ShapeElement& element_1: shape_1.elements) {
             Point middle = element_1.middle();
@@ -431,6 +436,8 @@ bool shape::intersect(
             }
         }
     }
+    if (equal(shape_1, shape_2))
+        return true;
 
     for (const Shape& hole_1: shape_1.holes) {
         for (const ShapeElement& element_1: hole_1.elements) {
@@ -503,6 +510,8 @@ bool shape::intersect(
                 return true;
         }
     }
+    if (!shape_2.is_path && equal(shape_1.shape, shape_2))
+        return true;
 
     for (const Shape& hole_1: shape_1.holes) {
         for (const ShapeElement& element_1: hole_1.elements) {

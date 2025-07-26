@@ -414,6 +414,11 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(std::vector<IntersectShapeShapeTestParams>{
             {
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                true,
+                true,
+            }, {
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
                 build_path({{3, 0}, {3, 2}}),
                 false,
                 false,

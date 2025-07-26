@@ -476,6 +476,24 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 smallest_angle = angle;
             }
         }
+        if (smallest_angle_element_pos == -1) {
+            //nlohmann::json json;
+            //for (ElementPos pos = 0;
+            //        pos < (ElementPos)splitted_elements.size();
+            //        ++pos) {
+            //    json["elements"][pos] = splitted_elements[pos].element.to_json();
+            //}
+            //std::string file_path = "overlay.json";
+            //std::ofstream file{file_path};
+            //if (!file.good()) {
+            //    throw std::runtime_error(
+            //            "Unable to open file \"" + file_path + "\".");
+            //}
+            //file << std::setw(4) << json << std::endl;
+            throw std::logic_error(
+                    "compute_boolean_operation_component: "
+                    "smallest_angle_element_pos is '-1' in outline.");
+        }
 
         // Update current element.
         element_cur_pos = smallest_angle_element_pos;
@@ -607,7 +625,12 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                     smallest_angle = angle;
                 }
             }
-            std::cout << "smallest_angle_element_pos " << smallest_angle_element_pos << std::endl;
+            //std::cout << "smallest_angle_element_pos " << smallest_angle_element_pos << std::endl;
+            if (smallest_angle_element_pos == -1) {
+                throw std::logic_error(
+                        "compute_boolean_operation_component: "
+                        "smallest_angle_element_pos is '-1'");
+            }
 
             // Update current element.
             element_cur_pos = smallest_angle_element_pos;
