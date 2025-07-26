@@ -414,6 +414,8 @@ std::vector<ShapeWithHoles> shape::simplify(
         approximated_shape.max = mm.second;
         approximated_shape.copies = input_shape.copies;
         approximated_shape.outer = input_shape.outer;
+        if (approximated_shape.outer)
+            approximated_shape.union_input.push_back({input_shape.shape});
 
         total_number_of_elements += input_shape.copies * shape.elements.size();
         for (ElementPos element_pos = 0;
