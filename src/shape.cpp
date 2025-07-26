@@ -1850,6 +1850,29 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
     return {(number_of_elements_removed > 0), shape_new};
 }
 
+std::pair<bool, ShapeWithHoles> shape::remove_redundant_vertices(
+        const ShapeWithHoles& shape)
+{
+    ShapeWithHoles res;
+    bool b;
+
+    auto p = remove_redundant_vertices(shape.shape);
+    b |= p.first;
+    res.shape = p.second;
+
+    res.holes = std::vector<Shape>(shape.holes.size());
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)shape.holes.size();
+            ++hole_pos) {
+        const Shape& hole = shape.holes[hole_pos];
+        auto p = remove_redundant_vertices(hole);
+        b |= p.first;
+        res.holes[hole_pos] = p.second;
+    }
+
+    return {b, res};
+}
+
 std::pair<bool, Shape> shape::remove_aligned_vertices(
         const Shape& shape)
 {
