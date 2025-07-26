@@ -152,7 +152,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)elements.size();
             ++element_pos) {
-        ShapeElement element = elements[element_pos];
+        ShapeElement element = elements_tmp[element_pos];
         ShapePos shape_pos = elements_info[element_pos].orig_shape_id;
         ComponentId component_id = output.shape_component_ids[shape_pos];
         std::cout << "element_pos " << element_pos
@@ -178,6 +178,10 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                     || point_cur == element.end) {
                 continue;
             }
+            if (equal(point_cur, element.start)
+                    || equal(point_cur, element.end)) {
+                throw std::logic_error("");
+            }
 
             auto p = element.split(point_cur);
             element = p.second;
@@ -199,7 +203,8 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             output.components_splitted_elements[component_id].push_back(new_element_reversed);
 
             //std::cout << "  - " << point_cur.to_string() << std::endl;
-            //std::cout << "  - " << new_element.element.to_string() << std::endl;
+            //std::cout << "    " << new_element.element.to_string() << std::endl;
+            //std::cout << "    length " << new_element.element.length() << std::endl;
         }
 
         if (!equal(element.start, element.end)) {
@@ -216,6 +221,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             output.components_splitted_elements[component_id].push_back(new_element_reversed);
 
             //std::cout << "  - " << new_element.element.to_string() << std::endl;
+            //std::cout << "    length " << new_element.element.length() << std::endl;
         }
     }
 
@@ -637,7 +643,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
             // Check if hole is finished.
             if (element_is_processed[element_cur_pos]) {
-                std::cout << "face finished" << std::endl;
+                std::cout << "face finished size " << face.elements.size() << std::endl;
                 switch (boolean_operation) {
                 case BooleanOperation::Union: {
                     // Fast check.
