@@ -1772,6 +1772,34 @@ void ShapeWithHoles::write_svg(
     file << "</svg>" << std::endl;
 }
 
+void shape::write_json(
+        const std::vector<ShapeWithHoles>& shapes,
+        const std::vector<ShapeElement>& elements,
+        const std::string& file_path)
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    nlohmann::json json;
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        json["shapes"][shape_pos] = shapes[shape_pos].to_json();
+    }
+    for (ElementPos element_pos = 0;
+            element_pos < (ShapePos)elements.size();
+            ++element_pos) {
+        json["elements"][element_pos] = elements[element_pos].to_json();
+    }
+
+    file << std::setw(4) << json << std::endl;
+}
+
 std::pair<bool, Shape> shape::remove_redundant_vertices(
         const Shape& shape)
 {
