@@ -73,21 +73,21 @@ with open(args.path, 'r') as f:
 
     # Plot shapes.
     if "shapes" in j:
-        shape_x = []
-        shape_y = []
         for shape_pos, shape in enumerate(j["shapes"]):
+            shape_x = []
+            shape_y = []
 
             shape_path(shape_x, shape_y, shape)
             for hole in (shape["holes"]
                          if "holes" in shape else []):
-                element_x.append(None)
-                element_y.append(None)
+                shape_x.append(None)
+                shape_y.append(None)
                 shape_path(shape_x, shape_y, hole, True)
 
             fig.add_trace(go.Scatter(
                 x=shape_x,
                 y=shape_y,
-                name="Shape {shape_pos}",
+                name=f"Shape {shape_pos}",
                 # legendgroup=filepath,
                     showlegend=True,
                     fillcolor=colors[shape_pos],
