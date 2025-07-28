@@ -26,10 +26,10 @@ std::vector<Point> compute_line_line_intersections(
 
     // Check if both line segments are colinear.
     LengthDbl denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-    if (denom == 0.0) {
+    if (equal(denom, 0.0))
         if (strict)
             return {};
-
+    if (denom == 0.0) {
         // If they are colinear, check if they are aligned.
         LengthDbl denom_2 = (x1 - x2) * (y3 - y1) - (y1 - y2) * (x3 - x1);
         if (denom_2 != 0.0)
