@@ -112,7 +112,255 @@
       ]
     }
   ],
-  "expected_result": [],
+  "expected_result": [
+    {
+      "elements": [
+        {
+          "end": {
+            "x": 500.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 500.0,
+            "y": 500.0
+          },
+          "start": {
+            "x": 500.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 0.0,
+            "y": 500.0
+          },
+          "start": {
+            "x": 500.0,
+            "y": 500.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 500.0
+          },
+          "type": "LineSegment"
+        }
+      ],
+      "holes": [
+        {
+          "elements": [
+            {
+              "end": {
+                "x": 50.0,
+                "y": 75.0
+              },
+              "start": {
+                "x": 49.99999999999997,
+                "y": 450.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 100.0,
+                "y": 150.0
+              },
+              "start": {
+                "x": 50.0,
+                "y": 75.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 100.0,
+                "y": 450.0
+              },
+              "start": {
+                "x": 100.0,
+                "y": 150.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 49.99999999999997,
+                "y": 450.0
+              },
+              "start": {
+                "x": 100.0,
+                "y": 450.0
+              },
+              "type": "LineSegment"
+            }
+          ],
+          "type": "general"
+        },
+        {
+          "elements": [
+            {
+              "end": {
+                "x": 250.0,
+                "y": 150.0
+              },
+              "start": {
+                "x": 150.0,
+                "y": 150.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 200.0,
+                "y": 450.0
+              },
+              "start": {
+                "x": 250.0,
+                "y": 150.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 150.0,
+                "y": 450.0
+              },
+              "start": {
+                "x": 200.0,
+                "y": 450.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 150.0,
+                "y": 150.0
+              },
+              "start": {
+                "x": 150.0,
+                "y": 450.0
+              },
+              "type": "LineSegment"
+            }
+          ],
+          "type": "general"
+        },
+        {
+          "elements": [
+            {
+              "end": {
+                "x": 350.0,
+                "y": 150.0
+              },
+              "start": {
+                "x": 250.0,
+                "y": 150.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 350.0,
+                "y": 450.0
+              },
+              "start": {
+                "x": 350.0,
+                "y": 150.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 300.0,
+                "y": 450.0
+              },
+              "start": {
+                "x": 350.0,
+                "y": 450.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 250.0,
+                "y": 150.0
+              },
+              "start": {
+                "x": 300.0,
+                "y": 450.0
+              },
+              "type": "LineSegment"
+            }
+          ],
+          "type": "general"
+        },
+        {
+          "elements": [
+            {
+              "end": {
+                "x": 450.0,
+                "y": 75.0
+              },
+              "start": {
+                "x": 400.0,
+                "y": 150.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 450.0,
+                "y": 450.0
+              },
+              "start": {
+                "x": 450.0,
+                "y": 75.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 400.0,
+                "y": 450.0
+              },
+              "start": {
+                "x": 450.0,
+                "y": 450.0
+              },
+              "type": "LineSegment"
+            },
+            {
+              "end": {
+                "x": 400.0,
+                "y": 150.0
+              },
+              "start": {
+                "x": 400.0,
+                "y": 450.0
+              },
+              "type": "LineSegment"
+            }
+          ],
+          "type": "general"
+        }
+      ],
+      "type": "general"
+    }
+  ],
   "write_json": false,
   "write_svg": false
 }
