@@ -11,6 +11,8 @@ struct TestParams
 {
     std::string name;
     std::string description;
+    bool write_json = false;
+    bool write_svg = false;
 
 
     static T from_json(
@@ -19,6 +21,10 @@ struct TestParams
         T t;
         if (json_item.contains("description"))
             t.description = json_item["description"];
+        if (json_item.contains("write_json"))
+            t.write_json = json_item["write_json"];
+        if (json_item.contains("write_svg"))
+            t.write_svg = json_item["write_svg"];
         return t;
     }
 

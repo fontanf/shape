@@ -1809,6 +1809,59 @@ void shape::write_json(
     file << std::setw(4) << json << std::endl;
 }
 
+std::pair<Point, Point> shape::compute_min_max(
+    const std::vector<ShapeWithHoles>& shapes)
+{
+    LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+    for (const ShapeWithHoles& shape: shapes) {
+        auto points = shape.compute_min_max();
+        x_min = std::min(x_min, points.first.x);
+        x_max = std::max(x_max, points.second.x);
+        y_min = std::min(y_min, points.first.y);
+        y_max = std::max(y_max, points.second.y);
+    }
+    return {{x_min, y_min}, {x_max, y_max}};
+}
+
+void shape::write_svg(
+        const std::vector<ShapeWithHoles>& shapes,
+        const std::string& file_path)
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                "Unable to open file \"" + file_path + "\".");
+    }
+
+    auto mm = compute_min_max(shapes);
+    LengthDbl width = (mm.second.x - mm.first.x);
+    LengthDbl height = (mm.second.y - mm.first.y);
+
+    std::string s = "<svg viewBox=\""
+        + std::to_string(mm.first.x)
+        + " " + std::to_string(-mm.first.y - height)
+        + " " + std::to_string(width)
+        + " " + std::to_string(height)
+        + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+    file << s;
+
+    for (ShapePos shape_pos = 0;
+             shape_pos < (ShapePos) shapes.size();
+             ++shape_pos) {
+        const auto& shape = shapes[shape_pos];
+        file << "<g>" << std::endl;
+        file << shape.to_svg("blue");
+        file << "</g>" << std::endl;
+    }
+
+    file << "</svg>" << std::endl;
+}
+
 std::pair<bool, Shape> shape::remove_redundant_vertices(
         const Shape& shape)
 {

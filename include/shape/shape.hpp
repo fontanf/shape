@@ -452,6 +452,13 @@ void write_json(
         const std::vector<ShapeElement>& elements,
         const std::string& file_path);
 
+std::pair<Point, Point> compute_min_max(
+        const std::vector<ShapeWithHoles>& shapes);
+
+void write_svg(
+        const std::vector<ShapeWithHoles>& shapes,
+        const std::string& file_path);
+
 struct BuildShapeElement
 {
     LengthDbl x = 0;
