@@ -799,6 +799,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
                 shapes,
                 cse_output.components_splitted_elements[component_id],
                 boolean_operation);
+        if (boolean_operation != BooleanOperation::Union)
+            new_shapes = compute_union(new_shapes);
         for (const ShapeWithHoles& new_shape: new_shapes)
             output.push_back(new_shape);
     }
