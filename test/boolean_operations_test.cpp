@@ -45,7 +45,7 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
     if (test_params.write_json || test_params.write_svg) {
-        std::string base_filename = fs::path(test_params.name).filename().replace_extension("").string();
+        std::string base_filename = "union_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
             write_json(test_params.shapes, {}, base_filename + "_shapes.json");
@@ -112,7 +112,7 @@ TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
     if (test_params.write_json || test_params.write_svg) {
-        std::string base_filename = fs::path(test_params.name).filename().replace_extension("").string();
+        std::string base_filename = "intersection_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
             write_json(test_params.shapes, {}, base_filename + "_shapes.json");
