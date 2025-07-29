@@ -126,5 +126,5 @@
     }
   ],
   "write_json": false,
-  "write_svg": true
+  "write_svg": false
 }
