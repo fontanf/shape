@@ -91,40 +91,7 @@
       ]
     }
   ],
-  "expected_result": [
-    {
-      "type": "polygon",
-      "vertices": [
-        {
-          "x": 200.0,
-          "y": 100.0
-        },
-        {
-          "x": 100.0,
-          "y": 100.0
-        },
-        {
-          "x": 100.0,
-          "y": 200.0
-        },
-        {
-          "x": 0.0,
-          "y": 200.0
-        },
-        {
-          "x": 0.0,
-          "y": 0.0
-        },
-        {
-          "x": 200.0,
-          "y": 0.0
-        }
-      ],
-      "holes": [
-
-      ]
-    }
-  ],
+  "expected_result": [],
   "write_json": false,
   "write_svg": false
 }

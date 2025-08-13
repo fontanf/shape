@@ -40,6 +40,22 @@ TEST_P(InflateTest, Inflate)
         test_params.offset);
     std::cout << "result " << result.to_string(0) << std::endl;
 
+    if (test_params.write_json || test_params.write_svg) {
+        std::string base_filename = "inflate_" + fs::path(test_params.name).filename().replace_extension("").string();
+
+        if (test_params.write_json) {
+            test_params.shape.write_json(base_filename + "_shape.json");
+            write_json({ test_params.expected_result }, {}, base_filename + "_expected_result.json");
+            write_json({ result }, {}, base_filename + "_result.json");
+        }
+        if (test_params.write_svg) {
+            test_params.shape.write_svg(base_filename + "_shape.svg");
+            write_svg({ test_params.expected_result }, base_filename + "_expected_result.svg");
+            write_svg({ result }, base_filename + "_result.svg");
+        }
+
+    }
+
     EXPECT_TRUE(equal(result, test_params.expected_result));
 }
 
@@ -86,6 +102,26 @@ TEST_P(DeflateTest, Deflate)
     std::cout << "result" << std::endl;
     for (const Shape& hole: result)
         std::cout << "- " << hole.to_string(2) << std::endl;
+
+    if (test_params.write_json || test_params.write_svg) {
+        std::string base_filename = "deflate_" + fs::path(test_params.name).filename().replace_extension("").string();
+
+        if (test_params.write_json) {
+            test_params.shape.write_json(base_filename + "_shape.json");
+            for (const auto& shape: test_params.expected_result)
+                shape.write_json(base_filename + "_expected_result.json");
+            for (const auto& shape: result)
+                shape.write_json(base_filename + "_result.json");
+        }
+        if (test_params.write_svg) {
+            test_params.shape.write_svg(base_filename + "_shape.svg");
+            for (const auto& shape: test_params.expected_result)
+                shape.write_svg(base_filename + "_expected_result.svg");
+            for (const auto& shape: result)
+                shape.write_svg(base_filename + "_result.svg");
+        }
+
+    }
 
     ASSERT_EQ(result.size(), test_params.expected_result.size());
     for (const Shape& expected_hole: test_params.expected_result) {

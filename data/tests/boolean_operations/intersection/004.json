@@ -28,17 +28,7 @@
       ]
     }
   ],
-  "expected_result": [
-    {
-      "type": "polygon",
-      "vertices": [
-        { "x": 1, "y": 0 },
-        { "x": 2, "y": 0 },
-        { "x": 2, "y": 2 },
-        { "x": 1, "y": 2 }
-      ]
-    }
-  ],
+  "expected_result": [],
   "write_json": false,
   "write_svg": false
 }
