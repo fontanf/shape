@@ -30,7 +30,7 @@ class ComputeBooleanUnionTest: public testing::TestWithParam<ComputeBooleanUnion
 TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
 {
     ComputeBooleanUnionTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << "..." << std::endl;
+    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
     std::cout << "shapes" << std::endl;
     for (const ShapeWithHoles& shape: test_params.shapes)
         std::cout << "- " << shape.to_string(2) << std::endl;
@@ -99,7 +99,7 @@ class ComputeBooleanIntersectionTest: public testing::TestWithParam<ComputeBoole
 TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
 {
     ComputeBooleanIntersectionTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << "..." << std::endl;
+    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
     std::cout << "shapes" << std::endl;
     for (const ShapeWithHoles& shape: test_params.shapes)
         std::cout << "- " << shape.to_string(2) << std::endl;
@@ -170,7 +170,7 @@ class ComputeBooleanDifferenceTest: public testing::TestWithParam<ComputeBoolean
 TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
 {
     ComputeBooleanDifferenceTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << "..." << std::endl;
+    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
     std::cout << "shape" << std::endl;
     std::cout << "- " << test_params.shape.to_string(2) << std::endl;
     std::cout << "shapes" << std::endl;
@@ -245,7 +245,7 @@ class ComputeBooleanSymmetricDifferenceTest: public testing::TestWithParam<Compu
 TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
 {
     ComputeBooleanSymmetricDifferenceTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << "..." << std::endl;
+    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
     std::cout << "shape_1" << std::endl;
     std::cout << "- " << test_params.shape_1.to_string(2) << std::endl;
     std::cout << "shape_2" << std::endl;

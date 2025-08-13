@@ -9,7 +9,7 @@ using namespace shape;
 
 struct InflateTestParams : TestParams<InflateTestParams>
 {
-    Shape shape;
+    ShapeWithHoles shape;
     LengthDbl offset = 0;
     ShapeWithHoles expected_result;
 
@@ -18,7 +18,7 @@ struct InflateTestParams : TestParams<InflateTestParams>
             nlohmann::basic_json<>& json_item)
     {
         InflateTestParams test_params = TestParams::from_json(json_item);
-        test_params.shape = Shape::from_json(json_item["shape"]);
+        test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
         test_params.offset = json_item["offset"];
         test_params.expected_result = ShapeWithHoles::from_json(json_item["expected_result"]);
         return test_params;
@@ -30,7 +30,7 @@ class InflateTest: public testing::TestWithParam<InflateTestParams> { };
 TEST_P(InflateTest, Inflate)
 {
     InflateTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << "..." << std::endl;
+    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "offset " << test_params.offset << std::endl;
     std::cout << "expected_result " << test_params.expected_result.to_string(0) << std::endl;
@@ -50,8 +50,8 @@ TEST_P(InflateTest, Inflate)
         }
         if (test_params.write_svg) {
             test_params.shape.write_svg(base_filename + "_shape.svg");
-            write_svg({ test_params.expected_result }, base_filename + "_expected_result.svg");
-            write_svg({ result }, base_filename + "_result.svg");
+            write_svg({ test_params.shape, test_params.expected_result }, base_filename + "_expected_result.svg");
+            write_svg({ test_params.shape, result }, base_filename + "_result.svg");
         }
 
     }
@@ -89,7 +89,7 @@ class DeflateTest: public testing::TestWithParam<DeflateTestParams> { };
 TEST_P(DeflateTest, Deflate)
 {
     DeflateTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << "..." << std::endl;
+    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
     std::cout << "hole " << test_params.shape.to_string(0) << std::endl;
     std::cout << "offset " << test_params.offset << std::endl;
     std::cout << "expected_result" << std::endl;
