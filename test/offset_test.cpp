@@ -44,7 +44,7 @@ TEST_P(InflateTest, Inflate)
         std::string base_filename = "inflate_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
-            test_params.shape.write_json(base_filename + "_shape.json");
+            write_json({ test_params.shape }, {}, base_filename + "_shape.json");
             write_json({ test_params.expected_result }, {}, base_filename + "_expected_result.json");
             write_json({ result }, {}, base_filename + "_result.json");
         }
