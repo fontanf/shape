@@ -467,7 +467,7 @@ bool shape::intersect(
     for (const ShapeElement& element_1: shape_1.shape.elements) {
         Point middle = element_1.middle();
         for (const Shape& hole_2: shape_2.holes) {
-            if (shape_2.contains(middle, !strict))
+            if (hole_2.contains(middle, strict))
                 return false;
         }
     }
@@ -476,7 +476,7 @@ bool shape::intersect(
     for (const ShapeElement& element_2: shape_2.shape.elements) {
         Point middle = element_2.middle();
         for (const Shape& hole_1: shape_1.holes) {
-            if (shape_1.contains(middle, !strict))
+            if (hole_1.contains(middle, strict))
                 return false;
         }
     }
@@ -530,7 +530,7 @@ bool shape::intersect(
     for (const ShapeElement& element_2: shape_2.elements) {
         Point middle = element_2.middle();
         for (const Shape& hole_1: shape_1.holes) {
-            if (shape_1.contains(middle, !strict))
+            if (hole_1.contains(middle, strict))
                 return false;
         }
     }
@@ -578,7 +578,7 @@ bool shape::intersect(
     // Check if the shape element is inside a hole of the shape.
     Point middle = element.middle();
     for (const Shape& hole: shape.holes) {
-        if (hole.contains(middle, !strict))
+        if (hole.contains(middle, strict))
             return false;
     }
 

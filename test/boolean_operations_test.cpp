@@ -191,8 +191,10 @@ TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
         std::string base_filename = "difference_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
-            write_json({ test_params.shape }, {}, base_filename + "_shape.json");
-            write_json(test_params.shapes, {}, base_filename + "_shapes.json");
+            std::vector<ShapeWithHoles> shapes = {test_params.shape};
+            for (const ShapeWithHoles& shape: test_params.shapes)
+                shapes.push_back(shape);
+            write_json(shapes, {}, base_filename + "_shapes.json");
             write_json(test_params.expected_result, {}, base_filename + "_expected_result.json");
             write_json(result, {}, base_filename + "_result.json");
         }
