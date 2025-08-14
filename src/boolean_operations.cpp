@@ -5,7 +5,7 @@
 
 #include "optimizationtools/containers/doubly_indexed_map.hpp"
 
-#include <iostream>
+//#include <iostream>
 
 using namespace shape;
 
@@ -63,10 +63,13 @@ struct ElementToSplit
 ComputeSplittedElementsOutput compute_splitted_elements(
         const std::vector<ShapeWithHoles>& shapes)
 {
-    std::cout << "compute_splitted_elements"
-        " shapes.size() " << shapes.size() << std::endl;
-    for (const ShapeWithHoles& shape: shapes)
-        std::cout << shape.to_string(2) << std::endl;
+    //std::cout << "compute_splitted_elements"
+    //    " shapes.size() " << shapes.size() << std::endl;
+    //for (const ShapeWithHoles& shape: shapes) {
+    //    std::cout << shape.to_string(2)
+    //        << shape.shape.compute_area()
+    //        << std::endl;
+    //}
 
     ComputeSplittedElementsOutput output(shapes.size());
 
@@ -155,11 +158,11 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         ShapeElement element = elements_tmp[element_pos];
         ShapePos shape_pos = elements_info[element_pos].orig_shape_id;
         ComponentId component_id = output.shape_component_ids[shape_pos];
-        std::cout << "element_pos " << element_pos
-            << " " << element.to_string()
-            << " shape_pos " << shape_pos
-            << " component_id " << component_id
-            << std::endl;
+        //std::cout << "element_pos " << element_pos
+        //    << " " << element.to_string()
+        //    << " shape_pos " << shape_pos
+        //    << " component_id " << component_id
+        //    << std::endl;
         // Sort intersection points of this element.
         std::sort(
                 element_intersections[element_pos].begin(),
@@ -244,6 +247,10 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         ComponentId component_id = *it;
 
         // Draw a point strictly inside the component.
+        //std::cout << "component_id " << component_id << std::endl;
+        //std::cout << output.shape_component_ids.number_of_elements(component_id) << std::endl;
+        //std::cout << *output.shape_component_ids.begin(component_id) << " / " << shapes.size() << std::endl;
+        //std::cout << shapes[*(output.shape_component_ids.begin(component_id))].to_string(0) << std::endl;
         Point point = shapes[*(output.shape_component_ids.begin(component_id))].shape.elements.front().start;
 
         // Check if it is inside another component.
@@ -362,9 +369,16 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         const std::vector<SplittedElement>& splitted_elements,
         BooleanOperation boolean_operation)
 {
-    std::cout << "compute_boolean_operation_component" << std::endl;
+    //std::cout << "compute_boolean_operation_component" << std::endl;
     std::vector<ShapeWithHoles> new_shapes;
     BooleanOperationGraph graph = compute_graph(splitted_elements);
+
+    //if (boolean_operation == BooleanOperation::Difference) {
+    //    std::vector<ShapeElement> elements;
+    //    for (const auto& splitted_element: splitted_elements)
+    //        elements.push_back(splitted_element.element);
+    //    write_json({}, {elements}, "overlay.json");
+    //}
 
     IntersectionTree intersection_tree(shapes, {}, {});
 
@@ -399,7 +413,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     std::vector<uint8_t> element_is_processed(splitted_elements.size(), 0);
 
     // Find outer loop.
-    std::cout << "find outer loop..." << std::endl;
+    //std::cout << "find outer loop..." << std::endl;
     ElementPos element_cur_pos = element_start_pos;
     Shape outline;
     for (int i = 0;; ++i) {
@@ -417,11 +431,11 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         outline.elements.push_back(element_cur);
 
         // Find the next element with the smallest angle.
-        std::cout
-            << "element_cur_pos " << element_cur_pos
-            << " " << element_cur.to_string()
-            << " node_id " << arc.end_node_id << " / " << graph.nodes.size()
-            << std::endl;
+        //std::cout
+        //    << "element_cur_pos " << element_cur_pos
+        //    << " " << element_cur.to_string()
+        //    << " node_id " << arc.end_node_id << " / " << graph.nodes.size()
+        //    << std::endl;
         ElementPos smallest_angle_element_pos = -1;
         Angle smallest_angle = 0.0;
 
@@ -472,10 +486,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             Angle angle = angle_radian(
                     direction_next,
                     direction_cur);
-            std::cout << "- element_pos_next " << element_pos_next
-                << " " << element_next.to_string()
-                << " angle " << angle
-                << std::endl;
+            //std::cout << "- element_pos_next " << element_pos_next
+            //    << " " << element_next.to_string()
+            //    << " angle " << angle
+            //    << std::endl;
             if (smallest_angle_element_pos == -1
                     || smallest_angle > angle) {
                 smallest_angle_element_pos = element_pos_next;
@@ -543,7 +557,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         if (node_start_id == -1)
             break;
 
-        std::cout << "find faces..." << std::endl;
+        //std::cout << "find faces..." << std::endl;
         Shape face;
         std::vector<uint8_t> is_inside(shapes.size());
         ElementPos element_cur_pos = element_start_pos;
@@ -565,11 +579,11 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 is_inside[splitted_element_cur.orig_shape_id] = 1;
 
             // Find the next element with the smallest angle.
-            std::cout
-                << "element_cur_pos " << element_cur_pos
-                << " " << element_cur.to_string()
-                << " node_id " << arc.end_node_id << " / " << graph.nodes.size()
-                << std::endl;
+            //std::cout
+            //    << "element_cur_pos " << element_cur_pos
+            //    << " " << element_cur.to_string()
+            //    << " node_id " << arc.end_node_id << " / " << graph.nodes.size()
+            //    << std::endl;
             ElementPos smallest_angle_element_pos = -1;
             Angle smallest_angle = 0.0;
 
@@ -621,10 +635,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 Angle angle = angle_radian(
                         direction_next,
                         direction_cur);
-                std::cout << "* element_pos_next " << element_pos_next
-                    << " " << element_next.to_string()
-                    << " angle " << angle
-                    << std::endl;
+                //std::cout << "* element_pos_next " << element_pos_next
+                //    << " " << element_next.to_string()
+                //    << " angle " << angle
+                //    << std::endl;
                 if (smallest_angle_element_pos == -1
                         || smallest_angle > angle) {
                     smallest_angle_element_pos = element_pos_next;
@@ -643,7 +657,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
             // Check if hole is finished.
             if (element_is_processed[element_cur_pos]) {
-                std::cout << "face finished size " << face.elements.size() << std::endl;
+                //std::cout << "face finished size " << face.elements.size() << std::endl;
                 switch (boolean_operation) {
                 case BooleanOperation::Union: {
                     // Fast check.
@@ -656,15 +670,15 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                             break;
                         }
                     }
-                    std::cout << "ok " << ok << std::endl;
+                    //std::cout << "ok " << ok << std::endl;
                     if (ok)
                         break;
 
                     // Real check.
                     IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(face, true);
-                    std::cout << "intersection_output.shape_ids.size() " << intersection_output.shape_ids.size() << std::endl;
+                    //std::cout << "intersection_output.shape_ids.size() " << intersection_output.shape_ids.size() << std::endl;
                     if (intersection_output.shape_ids.empty()) {
-                        std::cout << "add hole" << std::endl;
+                        //std::cout << "add hole" << std::endl;
                         face = remove_redundant_vertices(face).second;
                         face = remove_aligned_vertices(face).second;
                         new_shapes[0].holes.push_back(face);
@@ -682,7 +696,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                             break;
                         }
                     }
-                    std::cout << "ok " << ok << std::endl;
+                    //std::cout << "ok " << ok << std::endl;
                     if (ok) {
                         face = remove_redundant_vertices(face).second;
                         face = remove_aligned_vertices(face).second;
@@ -693,7 +707,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                     // Real check.
                     IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(face, true);
                     if (intersection_output.shape_ids.size() == shapes.size()) {
-                        std::cout << "add face" << std::endl;
+                        //std::cout << "add face" << std::endl;
                         face = remove_redundant_vertices(face).second;
                         face = remove_aligned_vertices(face).second;
                         new_shapes.push_back({face});
@@ -711,7 +725,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                             break;
                         }
                     }
-                    std::cout << "ok " << ok << std::endl;
+                    //std::cout << "ok " << ok << std::endl;
                     if (!ok)
                         break;
 
@@ -757,6 +771,17 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
     std::vector<ShapeWithHoles> output;
     //write_json(shapes, {}, "input.json");
 
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        const ShapeWithHoles& shape = shapes[shape_pos];
+        if (shape.shape.elements.empty())
+            throw std::invalid_argument("shape::compute_boolean_operation");
+        for (const Shape& hole: shape.holes)
+            if (hole.elements.empty())
+                throw std::invalid_argument("shape::compute_boolean_operation");
+    }
+
     // Union
     // - outline
     // - faces that are in no shapes as holes
@@ -792,9 +817,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
                 continue;
         }
         // Compute the union of the shapes from this component.
-        std::cout << "component_id " << component_id
-            << " " << cse_output.shape_component_ids.number_of_elements(component_id)
-            << std::endl;
+        //std::cout << "component_id " << component_id
+        //    << " " << cse_output.shape_component_ids.number_of_elements(component_id)
+        //    << std::endl;
         std::vector<ShapeWithHoles> new_shapes = compute_boolean_operation_component(
                 shapes,
                 cse_output.components_splitted_elements[component_id],

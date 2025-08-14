@@ -2,7 +2,7 @@
 
 #include "shape/boolean_operations.hpp"
 
-#include <iostream>
+//#include <iostream>
 
 using namespace shape;
 
@@ -223,6 +223,7 @@ ShapeWithHoles shape::inflate(
         }
     }
 
+    //write_json(union_input, {}, "union_input.json");
     return compute_union(union_input).front();
 }
 
@@ -262,9 +263,9 @@ ShapeWithHoles shape::inflate(
             inflate_element(element, offset, 0):
             inflate_element(element, offset, offset);
 
-        std::cout << "element_pos " << element_pos << std::endl;
-        std::cout << "rectangle " << rectangle.to_string(2) << std::endl;
-        std::cout << "rectangle_prev " << rectangle_prev.to_string(2) << std::endl;
+        //std::cout << "element_pos " << element_pos << std::endl;
+        //std::cout << "rectangle " << rectangle.to_string(2) << std::endl;
+        //std::cout << "rectangle_prev " << rectangle_prev.to_string(2) << std::endl;
 
         Angle angle = angle_radian(
                 element_prev.start - element_prev.end,
