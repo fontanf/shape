@@ -24,6 +24,11 @@ def element_path(path_x, path_y, element, is_hole=False):
 
     if is_hole:
         xs, ys, xe, ye = xe, ye, xs, ys
+        if t == "CircularArc":
+            if orientation in ["Anticlockwise", "anticlockwise", "A", "a"]:
+                orientation = "Clockwise"
+            if orientation in ["Clockwise", "clockwise", "C", "c"]:
+                orientation = "Anticlockwise"
 
     if len(path_x) == 0 or path_x[-1] is None:
         path_x.append(xs)
