@@ -191,13 +191,13 @@ TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
         std::string base_filename = "difference_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
-            test_params.shape.write_json(base_filename + "_shape.json");
+            write_json({ test_params.shape }, {}, base_filename + "_shape.json");
             write_json(test_params.shapes, {}, base_filename + "_shapes.json");
             write_json(test_params.expected_result, {}, base_filename + "_expected_result.json");
             write_json(result, {}, base_filename + "_result.json");
         }
         if (test_params.write_svg) {
-            test_params.shape.write_svg(base_filename + "_shape.svg");
+            write_svg({ test_params.shape }, base_filename + "_shape.svg");
             write_svg(test_params.shapes, base_filename + "_shapes.svg");
             write_svg(test_params.expected_result, base_filename + "_expected_result.svg");
             write_svg(result, base_filename + "_result.svg");
@@ -265,14 +265,14 @@ TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
         std::string base_filename = "symmetric_difference_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
-            test_params.shape_1.write_json(base_filename + "_shape_1.json");
-            test_params.shape_2.write_json(base_filename + "_shape_2.json");
+            write_json({ test_params.shape_1 }, {}, base_filename + "_shape_1.json");
+            write_json({ test_params.shape_2 }, {}, base_filename + "_shape_2.json");
             write_json(test_params.expected_result, {}, base_filename + "_expected_result.json");
             write_json(result, {}, base_filename + "_result.json");
         }
         if (test_params.write_svg) {
-            test_params.shape_1.write_svg(base_filename + "_shape_1.svg");
-            test_params.shape_2.write_svg(base_filename + "_shape_2.svg");
+            write_svg({ test_params.shape_1 }, base_filename + "_shape_1.svg");
+            write_svg({ test_params.shape_2 }, base_filename + "_shape_2.svg");
             write_svg(test_params.expected_result, base_filename + "_expected_result.svg");
             write_svg(result, base_filename + "_result.svg");
         }

@@ -49,7 +49,7 @@ TEST_P(InflateTest, Inflate)
             write_json({ result }, {}, base_filename + "_result.json");
         }
         if (test_params.write_svg) {
-            test_params.shape.write_svg(base_filename + "_shape.svg");
+            write_svg({ test_params.shape }, base_filename + "_shape.svg");
             write_svg({ test_params.shape, test_params.expected_result }, base_filename + "_expected_result.svg");
             write_svg({ test_params.shape, result }, base_filename + "_result.svg");
         }
