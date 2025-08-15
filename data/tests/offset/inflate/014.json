@@ -1,0 +1,80 @@
+{
+  "description": "Circle (with 2 arcs)",
+  "shape": {
+    "elements": [
+      {
+        "center": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "end": {
+          "x": 10.0,
+          "y": 0.0
+        },
+        "orientation": "Anticlockwise",
+        "start": {
+          "x": -10.0,
+          "y": 0.0
+        },
+        "type": "CircularArc"
+      },
+      {
+        "center": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "end": {
+          "x": -10.0,
+          "y": 0.0
+        },
+        "orientation": "Anticlockwise",
+        "start": {
+          "x": 10.0,
+          "y": 0.0
+        },
+        "type": "CircularArc"
+      }
+    ],
+    "type": "general"
+  },
+  "offset": 1,
+  "expected_result": {
+    "elements": [
+      {
+        "center": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "end": {
+          "x": 11.0,
+          "y": 0.0
+        },
+        "orientation": "Anticlockwise",
+        "start": {
+          "x": -11.0,
+          "y": 0.0
+        },
+        "type": "CircularArc"
+      },
+      {
+        "center": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "end": {
+          "x": -11.0,
+          "y": 0.0
+        },
+        "orientation": "Anticlockwise",
+        "start": {
+          "x": 11.0,
+          "y": 0.0
+        },
+        "type": "CircularArc"
+      }
+    ],
+    "type": "general"
+  },
+  "write_json": false,
+  "write_svg": false
+}

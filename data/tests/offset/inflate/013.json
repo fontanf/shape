@@ -4,11 +4,11 @@
     "type": "circle",
     "radius": 10
   },
-  "offset": 1,
+  "offset": 0,
   "expected_result": {
     "type": "circle",
     "radius": 11
   },
-  "write_json": true,
-  "write_svg": true
+  "write_json": false,
+  "write_svg": false
 }
