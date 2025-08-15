@@ -1,0 +1,14 @@
+{
+  "description": "Circle",
+  "shape": {
+    "type": "circle",
+    "radius": 10
+  },
+  "offset": 1,
+  "expected_result": {
+    "type": "circle",
+    "radius": 11
+  },
+  "write_json": true,
+  "write_svg": true
+}
