@@ -586,12 +586,19 @@ Shape Shape::from_json(basic_json& json_shape)
     Shape shape;
     if (json_shape["type"] == "circle") {
         ShapeElement element;
+        LengthDbl x = json_shape.value("x", 0.0);
+        LengthDbl y = json_shape.value("y", 0.0);
+        LengthDbl radius = json_shape["radius"];
         element.type = ShapeElementType::CircularArc;
-        element.center = {0.0, 0.0};
-        element.start = {json_shape["radius"], 0.0};
+        element.center = {x, y};
+        element.start = {x + radius, y};
         element.end = element.start;
         shape.elements.push_back(element);
     } else if (json_shape["type"] == "rectangle") {
+        LengthDbl x = json_shape.value("x", 0.0);
+        LengthDbl y = json_shape.value("y", 0.0);
+        LengthDbl width = json_shape["width"];
+        LengthDbl height = json_shape["height"];
         ShapeElement element_1;
         ShapeElement element_2;
         ShapeElement element_3;
@@ -600,14 +607,14 @@ Shape Shape::from_json(basic_json& json_shape)
         element_2.type = ShapeElementType::LineSegment;
         element_3.type = ShapeElementType::LineSegment;
         element_4.type = ShapeElementType::LineSegment;
-        element_1.start = {0.0, 0.0};
-        element_1.end = {json_shape["width"], 0.0};
-        element_2.start = {json_shape["width"], 0.0};
-        element_2.end = {json_shape["width"], json_shape["height"]};
-        element_3.start = {json_shape["width"], json_shape["height"]};
-        element_3.end = {0.0, json_shape["height"]};
-        element_4.start = {0.0, json_shape["height"]};
-        element_4.end = {0.0, 0.0};
+        element_1.start = {x, y};
+        element_1.end = {x + width, y};
+        element_2.start = {x + width, y};
+        element_2.end = {x + width, y + height};
+        element_3.start = {x + width, y + height};
+        element_3.end = {x, y + height};
+        element_4.start = {x, y + height};
+        element_4.end = {x, y};
         shape.elements.push_back(element_1);
         shape.elements.push_back(element_2);
         shape.elements.push_back(element_3);
