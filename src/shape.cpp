@@ -266,7 +266,12 @@ std::pair<Point, Point> ShapeElement::min_max() const
         if (this->orientation != ShapeElementOrientation::Anticlockwise)
             std::swap(starting_angle, ending_angle);
         //std::cout << "starting_angle " << starting_angle << " ending_angle " << ending_angle << std::endl;
-        if (starting_angle <= ending_angle) {
+        if (starting_angle == ending_angle) {
+            x_min = this->center.x - radius;
+            x_max = this->center.x + radius;
+            y_min = this->center.y - radius;
+            y_max = this->center.y + radius;
+        } else if (starting_angle < ending_angle) {
             if (starting_angle <= M_PI
                     && ending_angle >= M_PI) {
                 x_min = std::min(x_min, this->center.x - radius);
@@ -1283,27 +1288,42 @@ void Shape::write_json(
 std::string Shape::to_svg() const
 {
     std::string s = "M";
-    for (const ShapeElement& element: elements) {
+    if (is_circle()) {
+        const ShapeElement& element = elements.front();
         Point center = {element.center.x, -(element.center.y)};
         Point start = {element.start.x, -(element.start.y)};
-        Point end = {element.end.x, -(element.end.y)};
-        s += std::to_string(start.x) + "," + std::to_string(start.y);
-        if (element.type == ShapeElementType::LineSegment) {
-            s += "L";
-        } else {
-            LengthDbl radius = distance(center, start);
-            Angle theta = angle_radian(start - center, end - center);
-            int large_arc_flag = (theta > M_PI)? 0: 1;
-            int sweep_flag = (element.orientation == ShapeElementOrientation::Anticlockwise)? 0: 1;
-            s += "A" + std::to_string(radius) + ","
-                + std::to_string(radius) + ",0,"
-                + std::to_string(large_arc_flag) + ","
-                + std::to_string(sweep_flag) + ",";
+        LengthDbl radius = distance(center, start);
+        s += std::to_string(center.x - radius) + "," + std::to_string(center.y);
+        s += "a" + std::to_string(radius) + ","
+            + std::to_string(radius) + ",0,1,0,"
+            + std::to_string(radius * 2) + ",0,";
+        s += "a" + std::to_string(radius) + ","
+            + std::to_string(radius) + ",0,1,0,"
+            + std::to_string(-radius * 2) + ",0Z";
+    } else {
+        for (const ShapeElement& element: elements) {
+            Point center = {element.center.x, -(element.center.y)};
+            Point start = {element.start.x, -(element.start.y)};
+            Point end = {element.end.x, -(element.end.y)};
+            s += std::to_string(start.x) + "," + std::to_string(start.y);
+            if (element.type == ShapeElementType::LineSegment) {
+                s += "L";
+            } else {
+                LengthDbl radius = distance(center, start);
+                Angle theta = angle_radian(start - center, end - center);
+                int large_arc_flag = (theta > M_PI)? 0: 1;
+                int sweep_flag = (element.orientation == ShapeElementOrientation::Anticlockwise)? 0: 1;
+                s += "A" + std::to_string(radius) + ","
+                    + std::to_string(radius) + ",0,"
+                    + std::to_string(large_arc_flag) + ","
+                    + std::to_string(sweep_flag) + ",";
+            }
         }
+        s += std::to_string(elements.front().start.x)
+            + "," + std::to_string(-(elements.front().start.y))
+            + "Z";
     }
-    s += std::to_string(elements.front().start.x)
-        + "," + std::to_string(-(elements.front().start.y))
-        + "Z";
+
     return s;
 }
 
