@@ -1,0 +1,19 @@
+{
+  "shapes": [
+    {
+      "type": "circle",
+      "x": 0,
+      "y": 0,
+      "radius": 10
+    },
+    {
+      "type": "circle",
+      "x": 5,
+      "y": 0,
+      "radius": 10
+    }
+  ],
+  "expected_result": [],
+  "write_json": false,
+  "write_svg": false
+}
