@@ -1,5 +1,5 @@
 {
-  "description": "Circle / Circle",
+  "description": "Circle / Square",
   "shapes": [
     {
       "type": "circle",
@@ -8,10 +8,11 @@
       "radius": 10
     },
     {
-      "type": "circle",
+      "type": "rectangle",
       "x": 5,
-      "y": 0,
-      "radius": 10
+      "y": -5,
+      "width": 10,
+      "height": 10
     }
   ],
   "expected_result": [],
