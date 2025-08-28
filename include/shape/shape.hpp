@@ -590,6 +590,7 @@ Shape Shape::from_json(basic_json& json_shape)
         LengthDbl y = json_shape.value("y", 0.0);
         LengthDbl radius = json_shape["radius"];
         element.type = ShapeElementType::CircularArc;
+        element.orientation = ShapeElementOrientation::Full;
         element.center = {x, y};
         element.start = {x + radius, y};
         element.end = element.start;

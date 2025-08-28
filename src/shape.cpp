@@ -309,6 +309,7 @@ std::pair<Point, Point> ShapeElement::min_max() const
 std::pair<Point, Point> ShapeElement::furthest_points(Angle angle) const
 {
     if (angle == 0.0) {
+        //std::cout << this->to_string() << std::endl;
         Point point_min;
         Point point_max;
         if (this->start.y < this->end.y) {
@@ -321,32 +322,39 @@ std::pair<Point, Point> ShapeElement::furthest_points(Angle angle) const
 
         if (this->type == ShapeElementType::CircularArc) {
             LengthDbl radius = distance(this->center, this->start);
-            Angle starting_angle = shape::angle_radian(this->start - this->center);
-            Angle ending_angle = shape::angle_radian(this->end - this->center);
-            if (this->orientation != ShapeElementOrientation::Anticlockwise)
-                std::swap(starting_angle, ending_angle);
-            //std::cout << "starting_angle " << starting_angle << " ending_angle " << ending_angle << std::endl;
-            if (starting_angle <= ending_angle) {
-                if (starting_angle <= 3 * M_PI / 2
-                        && ending_angle >= 3 * M_PI / 2 ) {
-                    point_min.y = this->center.y - radius;
-                    point_min.x = this->center.x;
-                }
-                if (starting_angle <= M_PI / 2
-                        && ending_angle >= M_PI / 2) {
-                    point_max.y = this->center.y + radius;
-                    point_max.x = this->center.x;
-                }
-            } else {  // starting_angle > ending_angle
-                if (starting_angle <= 3 * M_PI / 2
-                        || ending_angle >= 3 * M_PI / 2) {
-                    point_min.y = this->center.y - radius;
-                    point_min.x = this->center.x;
-                }
-                if (starting_angle <= M_PI / 2
-                        || ending_angle >= M_PI / 2) {
-                    point_max.y = this->center.y + radius;
-                    point_max.x = this->center.x;
+            if (this->orientation == ShapeElementOrientation::Full) {
+                point_min.y = this->center.y - radius;
+                point_min.x = this->center.x;
+                point_max.y = this->center.y + radius;
+                point_max.x = this->center.x;
+            } else {
+                Angle starting_angle = shape::angle_radian(this->start - this->center);
+                Angle ending_angle = shape::angle_radian(this->end - this->center);
+                if (this->orientation != ShapeElementOrientation::Anticlockwise)
+                    std::swap(starting_angle, ending_angle);
+                //std::cout << "starting_angle " << starting_angle << " ending_angle " << ending_angle << std::endl;
+                if (starting_angle <= ending_angle) {
+                    if (starting_angle <= 3 * M_PI / 2
+                            && ending_angle >= 3 * M_PI / 2 ) {
+                        point_min.y = this->center.y - radius;
+                        point_min.x = this->center.x;
+                    }
+                    if (starting_angle <= M_PI / 2
+                            && ending_angle >= M_PI / 2) {
+                        point_max.y = this->center.y + radius;
+                        point_max.x = this->center.x;
+                    }
+                } else {  // starting_angle > ending_angle
+                    if (starting_angle <= 3 * M_PI / 2
+                            || ending_angle >= 3 * M_PI / 2) {
+                        point_min.y = this->center.y - radius;
+                        point_min.x = this->center.x;
+                    }
+                    if (starting_angle <= M_PI / 2
+                            || ending_angle >= M_PI / 2) {
+                        point_max.y = this->center.y + radius;
+                        point_max.x = this->center.x;
+                    }
                 }
             }
         }
@@ -381,6 +389,7 @@ std::pair<ShapeElement, ShapeElement> ShapeElement::split(const Point& point) co
             element_1.start = point;
             element_1.end = point;
             ShapeElement element_2 = *this;
+            element_2.orientation = ShapeElementOrientation::Anticlockwise;
             element_2.start = point;
             element_2.end = point;
             return {element_1, element_2};
@@ -982,6 +991,8 @@ bool Shape::contains(
         const Point& point,
         bool strict) const
 {
+    //std::cout << "contains strict " << strict << " point " << point.to_string() << std::endl;
+    //std::cout << this->to_string(0) << std::endl;
     if (this->elements.empty())
         return false;
 
@@ -1063,20 +1074,24 @@ bool Shape::contains(
                     //    << " 3 * M_PI / 2 " << 3 * M_PI / 2
                     //    << std::endl;
                     bool start_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
-                        (start_angle < M_PI / 2 || start_angle >= 3 * M_PI / 2):
-                        (start_angle > M_PI / 2 && start_angle <= 3 * M_PI / 2);
+                        (strictly_lesser(start_angle, M_PI / 2) || !strictly_lesser(start_angle, 3 * M_PI / 2)):
+                        (strictly_greater(start_angle, M_PI / 2) && !strictly_greater(start_angle, 3 * M_PI / 2));
                     //std::cout << "start_upward " << start_upward << std::endl;
                     if (start_upward)
                         intersection_count++;
-                } else if (intersection == element.end) {
+                }
+                if (intersection == element.end) {
                     Angle end_angle = angle_radian(element.end - element.center);
                     bool end_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
-                        (end_angle < M_PI / 2 || end_angle >= 3 * M_PI / 2):
-                        (end_angle >= M_PI / 2 && end_angle < 3 * M_PI / 2);
+                        (strictly_lesser(end_angle, M_PI / 2) || !strictly_lesser(end_angle, 3 * M_PI / 2)):
+                        (!strictly_lesser(end_angle, M_PI / 2) && strictly_lesser(end_angle, 3 * M_PI / 2));
                     //std::cout << "end_upward " << end_upward << std::endl;
                     if (!end_upward)
                         intersection_count++;
-                } else {
+                }
+                if (!(intersection == element.start)
+                        && !(intersection == element.end)) {
+                    //std::cout << "intersection_count++" << std::endl;
                     intersection_count++;
                 }
             }
@@ -1601,7 +1616,7 @@ Shape ShapeWithHoles::bridge_holes() const
 
     for (ShapePos hole_pos: sorted_holes) {
         const Shape& hole = this->holes[hole_pos];
-        std::cout << "hole_pos " << hole_pos << std::endl;
+        //std::cout << "hole_pos " << hole_pos << std::endl;
 
         // Find point to connect the brige.
         LengthDbl y = holes_left_most_points[hole_pos].point.y;
@@ -1646,8 +1661,8 @@ Shape ShapeWithHoles::bridge_holes() const
             } else {
                 ElementPos hole_contact_element_pos = holes_left_most_points[hole_pos].element_pos;
                 const Point& hole_contact_point = holes_left_most_points[hole_pos].point;
-                std::cout << "hole_contact_point " << hole_contact_point.to_string() << std::endl;
-                std::cout << "intersection_best " << intersection_best.to_string() << std::endl;
+                //std::cout << "hole_contact_point " << hole_contact_point.to_string() << std::endl;
+                //std::cout << "intersection_best " << intersection_best.to_string() << std::endl;
                 auto p_hole = hole.elements[hole_contact_element_pos].reverse().split(hole_contact_point);
                 auto p_shape = shape_element.split(intersection_best);
                 // Add first part of the element.
@@ -2294,16 +2309,21 @@ bool shape::equal(
 {
     if (element_1.type != element_2.type)
         return false;
+    if (element_1.type == ShapeElementType::CircularArc) {
+        if (element_1.orientation != element_2.orientation)
+            return false;
+        if (!equal(element_1.center, element_2.center))
+            return false;
+        if (element_1.orientation == ShapeElementOrientation::Full) {
+            LengthDbl radius_1 = distance(element_1.center, element_1.start);
+            LengthDbl radius_2 = distance(element_2.center, element_2.start);
+            return equal(radius_1, radius_2);
+        }
+    }
     if (!equal(element_1.start, element_2.start))
         return false;
     if (!equal(element_1.end, element_2.end))
         return false;
-    if (element_1.type == ShapeElementType::CircularArc) {
-        if (!equal(element_1.center, element_2.center))
-            return false;
-        if (element_1.orientation != element_2.orientation)
-            return false;
-    }
     return true;
 }
 

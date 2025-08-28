@@ -44,6 +44,8 @@ def element_path(path_x, path_y, element, is_hole=False):
         end_cos = (xe - xc) / rc
         end_sin = (ye - yc) / rc
         end_angle = math.atan2(end_sin, end_cos)
+        if orientation in ["Full", "full", "F", "f"]:
+            end_angle += 2 * math.pi
         if (orientation in ["Anticlockwise", "anticlockwise", "A", "a"]
                 and end_angle <= start_angle):
             end_angle += 2 * math.pi

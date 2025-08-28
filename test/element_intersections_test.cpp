@@ -391,7 +391,7 @@ struct IntersectShapeShapeTestParams
 
 class IntersectShapeShapeTest: public testing::TestWithParam<IntersectShapeShapeTestParams> { };
 
-TEST_P(IntersectShapeShapeTest, IntersectShapeShapeElement)
+TEST_P(IntersectShapeShapeTest, IntersectShapeShape)
 {
     IntersectShapeShapeTestParams test_params = GetParam();
     std::cout << "shape_1 " << test_params.shape_1.to_string(0) << std::endl;
@@ -443,4 +443,6 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
                 false,
             },
+            IntersectShapeShapeTestParams::read_json(
+                    (fs::path("data") / "tests" / "element_intersections" / "shape_shape" / "0.json").string()),
             }));

@@ -1,0 +1,115 @@
+{
+    "description": "Two non-intersecting shapes from a bug",
+    "shape_1": {
+        "elements": [
+            {
+                "end": {
+                    "x": 17.685039370000002,
+                    "y": 5.93700787
+                },
+                "start": {
+                    "x": 5.93700787,
+                    "y": 5.93700787
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 17.685039370000002,
+                    "y": 15.7480315
+                },
+                "start": {
+                    "x": 17.685039370000002,
+                    "y": 5.93700787
+                },
+                "type": "LineSegment"
+            },
+            {
+                "center": {
+                    "x": 19.685039370000002,
+                    "y": 15.7480315
+                },
+                "end": {
+                    "x": 19.187042872464065,
+                    "y": 17.68503937
+                },
+                "orientation": "Clockwise",
+                "start": {
+                    "x": 17.685039370000002,
+                    "y": 15.7480315
+                },
+                "type": "CircularArc"
+            },
+            {
+                "end": {
+                    "x": 5.93700787,
+                    "y": 17.68503937
+                },
+                "start": {
+                    "x": 19.187042872464065,
+                    "y": 17.68503937
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 5.93700787,
+                    "y": 5.93700787
+                },
+                "start": {
+                    "x": 5.93700787,
+                    "y": 17.68503937
+                },
+                "type": "LineSegment"
+            }
+        ],
+        "type": "general"
+    },
+    "shape_2": {
+        "elements": [
+            {
+                "center": {
+                    "x": 23.62204724,
+                    "y": 19.685039370000002
+                },
+                "end": {
+                    "x": 25.62204724,
+                    "y": 19.685039370000002
+                },
+                "orientation": "Anticlockwise",
+                "start": {
+                    "x": 23.62204724,
+                    "y": 17.685039370000002
+                },
+                "type": "CircularArc"
+            },
+            {
+                "end": {
+                    "x": 23.62204724,
+                    "y": 19.685039370000002
+                },
+                "start": {
+                    "x": 25.62204724,
+                    "y": 19.685039370000002
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 23.62204724,
+                    "y": 17.685039370000002
+                },
+                "start": {
+                    "x": 23.62204724,
+                    "y": 19.685039370000002
+                },
+                "type": "LineSegment"
+            }
+        ],
+        "type": "general"
+    },
+    "strict": true,
+    "expected_result": false,
+    "write_json": false,
+    "write_svg": false
+}
