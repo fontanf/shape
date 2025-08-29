@@ -15,7 +15,62 @@
       "height": 10
     }
   ],
-  "expected_result": [],
+  "expected_result": [
+    {
+      "elements": [
+        {
+          "end": {
+            "x": 8.660254037844386,
+            "y": -5.0
+          },
+          "start": {
+            "x": 5.0,
+            "y": -5.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "center": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 8.660254037844386,
+            "y": 5.0
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": 8.660254037844386,
+            "y": -5.0
+          },
+          "type": "CircularArc"
+        },
+        {
+          "end": {
+            "x": 5.0,
+            "y": 5.0
+          },
+          "start": {
+            "x": 8.660254037844386,
+            "y": 5.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 5.0,
+            "y": -5.0
+          },
+          "start": {
+            "x": 5.0,
+            "y": 5.0
+          },
+          "type": "LineSegment"
+        }
+      ],
+      "type": "general"
+    }
+  ],
   "write_json": false,
   "write_svg": false
 }

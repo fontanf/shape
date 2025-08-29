@@ -14,7 +14,45 @@
       "radius": 10
     }
   ],
-  "expected_result": [],
+  "expected_result": [
+    {
+      "elements": [
+        {
+          "center": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 2.5,
+            "y": 9.682458365518542
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": 2.5,
+            "y": -9.682458365518542
+          },
+          "type": "CircularArc"
+        },
+        {
+          "center": {
+            "x": 5.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 2.5,
+            "y": -9.682458365518542
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": 2.5,
+            "y": 9.682458365518542
+          },
+          "type": "CircularArc"
+        }
+      ],
+      "type": "general"
+    }
+  ],
   "write_json": false,
   "write_svg": false
 }
