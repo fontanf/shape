@@ -40,7 +40,6 @@ TEST_P(InflateTest, Inflate)
         test_params.offset);
     std::cout << "result " << result.to_string(0) << std::endl;
 
-    test_params.write_json = true;
     if (test_params.write_json || test_params.write_svg) {
         std::string base_filename = "inflate_" + fs::path(test_params.name).filename().replace_extension("").string();
 
