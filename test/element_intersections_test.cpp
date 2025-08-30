@@ -270,6 +270,16 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{1.941450017182601, -0.7869799841717368}, {1.96721311, -0, 1}, {1.96721311, -0.78740157}}, true).elements.front(),
                 false,
                 {{1.96721311, -0.78740157}},
+            }, {
+                build_shape({{1, 0}, {0, 0, 1}, {0, -1}}, true).elements.front(),
+                build_shape({{-2, 0}, {1, 0}}, true).elements.front(),
+                false,
+                {{1, 0}, {-1, 0}},
+            }, {
+                build_shape({{1, 0}, {0, 0, 1}, {0, -1}}, true).elements.front(),
+                build_shape({{1, 0}, {1, 1}}, true).elements.front(),
+                false,
+                {{1, 0}},
             },
             }));
 
@@ -318,6 +328,7 @@ TEST_P(IntersectShapeShapeElementTest, IntersectShapeShapeElement)
     std::cout << "element " << test_params.element.to_string() << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_result " << test_params.expected_result << std::endl;
+    write_json({{test_params.shape}}, {test_params.element}, "intersect_input.json");
 
     bool result = intersect(
             test_params.shape,

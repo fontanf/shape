@@ -3,6 +3,7 @@
 #include "shape/boolean_operations.hpp"
 
 //#include <iostream>
+//#include <fstream>
 
 using namespace shape;
 
@@ -126,6 +127,16 @@ ShapeWithHoles shape::inflate(
 
     if (offset == 0.0)
         return shape;
+
+    // Write input to json for tests.
+    //{
+    //    std::string file_path = "inflate_input.json";
+    //    std::ofstream file{file_path};
+    //    nlohmann::json json;
+    //    json["shape"] = shape.to_json();
+    //    json["offset"] = offset;
+    //    file << std::setw(4) << json << std::endl;
+    //}
 
     std::vector<ShapeWithHoles> union_input = {{shape}};
 

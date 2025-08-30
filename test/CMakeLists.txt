@@ -14,7 +14,8 @@ target_sources(Shape_shape_test PRIVATE
     intersection_tree_test.cpp
     boolean_operations_test.cpp
     offset_test.cpp
-    supports_test.cpp)
+    supports_test.cpp
+    simplification_test.cpp)
 target_include_directories(Shape_shape_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(Shape_shape_test

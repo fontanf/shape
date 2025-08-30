@@ -6,6 +6,7 @@
 #include "optimizationtools/containers/doubly_indexed_map.hpp"
 
 //#include <iostream>
+//#include <fstream>
 
 using namespace shape;
 
@@ -472,17 +473,20 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             leftest_elements_pos.push_back(element_pos);
         }
     }
+    //std::cout << "leftest_elements_pos.size() " << leftest_elements_pos.size() << std::endl;
 
     if (leftest_elements_pos.size() > 1) {
         std::vector<ElementPos> leftest_elements_pos_tmp;
         for (ElementPos element_pos: leftest_elements_pos) {
             const SplittedElement& element = splitted_elements[element_pos];
+            //std::cout << element.element.to_string() << std::endl;
             if (!equal(element.element.start, p_min))
                 continue;
             leftest_elements_pos_tmp.push_back(element_pos);
         }
         leftest_elements_pos = leftest_elements_pos_tmp;
     }
+    //std::cout << "leftest_elements_pos.size() " << leftest_elements_pos.size() << std::endl;
 
     ElementPos element_start_pos = -1;
     Angle angle_best = 3 * M_PI;
@@ -895,7 +899,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
 {
     //std::cout << "compute_boolean_operation" << std::endl;
     std::vector<ShapeWithHoles> output;
-    //write_json(shapes, {}, "input.json");
+    //write_json(shapes, {}, "boolean_operation_input.json");
 
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
@@ -965,6 +969,19 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
 std::vector<ShapeWithHoles> shape::compute_union(
         const std::vector<ShapeWithHoles>& shapes)
 {
+    // Write input to json for tests.
+    //{
+    //    std::string file_path = "union_input.json";
+    //    std::ofstream file{file_path};
+    //    nlohmann::json json;
+    //    for (ShapePos shape_pos = 0;
+    //            shape_pos < (ShapePos)shapes.size();
+    //            ++shape_pos) {
+    //        json["shapes"][shape_pos] = shapes[shape_pos].shape.to_json();
+    //    }
+    //    file << std::setw(4) << json << std::endl;
+    //}
+
     return compute_boolean_operation(
             shapes,
             BooleanOperation::Union);
