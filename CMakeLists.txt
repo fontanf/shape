@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 
 project(Shape LANGUAGES CXX)
 
+# Build options.
 option(SHAPE_BUILD_TEST "Build the unit tests" ON)
 
 # Avoid FetchContent warning.
