@@ -134,19 +134,19 @@ Point& Point::shift(
 Point Point::rotate(
         Angle angle) const
 {
-    if (equal(angle, 0.0)) {
+    if (equal(angle, 0.0) || equal(angle, 360)) {
         return *this;
-    } else if (equal(angle, 180)) {
+    } else if (equal(angle, 180) || equal(angle, -180)) {
         Point point_out;
         point_out.x = -x;
         point_out.y = -y;
         return point_out;
-    } else if (equal(angle, 90)) {
+    } else if (equal(angle, 90) || equal(angle, -270)) {
         Point point_out;
         point_out.x = -y;
         point_out.y = x;
         return point_out;
-    } else if (equal(angle, 270)) {
+    } else if (equal(angle, 270) || equal(angle, -90)) {
         Point point_out;
         point_out.x = y;
         point_out.y = -x;
