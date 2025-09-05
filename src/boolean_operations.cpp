@@ -97,6 +97,10 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             elements_info.push_back(element_info);
         }
     }
+    //std::cout << "elements" << std::endl;
+    //for (const ShapeElement& element: elements)
+    //    std::cout << element.to_string() << std::endl;
+    //std::cout << "elements end" << std::endl;
 
     IntersectionTree intersection_tree({}, elements, {});
     std::vector<IntersectionTree::ElementElementIntersection> intersections
@@ -122,7 +126,12 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             }
         }
 
+        //if (!intersections.empty()) {
+        //    std::cout << "element_1 " << intersection.element_id_1 << " " << elements[intersection.element_id_1].to_string() << std::endl;
+        //    std::cout << "element_2 " << intersection.element_id_2 << " " << elements[intersection.element_id_2].to_string() << std::endl;
+        //}
         for (const Point& point: intersection.intersections) {
+            //std::cout << "intersection " << point.to_string() << std::endl;
             element_intersections[intersection.element_id_1].push_back(point);
             element_intersections[intersection.element_id_2].push_back(point);
         }
@@ -742,6 +751,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //    << "element_cur_pos " << element_cur_pos
             //    << " " << element_cur.to_string()
             //    << " node_id " << arc.end_node_id << " / " << graph.nodes.size()
+            //    << " original_direction " << splitted_element_cur.original_direction
             //    << std::endl;
             ElementPos smallest_angle_element_pos = -1;
             Angle smallest_angle = 0.0;
@@ -844,6 +854,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         }
 
         //std::cout << "face finished size " << face.elements.size() << std::endl;
+        //std::cout << face.to_string(0) << std::endl;
         switch (boolean_operation) {
         case BooleanOperation::Union: {
             // Fast check.
@@ -1012,8 +1023,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
                 shapes,
                 cse_output.components_splitted_elements[component_id],
                 boolean_operation);
-        if (boolean_operation != BooleanOperation::Union)
+        if (boolean_operation != BooleanOperation::Union) {
+            //write_json(new_shapes, {}, "union_input.json");
             new_shapes = compute_union(new_shapes);
+        }
         for (const ShapeWithHoles& new_shape: new_shapes)
             output.push_back(new_shape);
     }
