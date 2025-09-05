@@ -3,7 +3,7 @@
 #include "shape/element_intersections.hpp"
 #include "shape/equalize.hpp"
 
-//#include <iostream>
+#include <iostream>
 
 using namespace shape;
 
@@ -101,33 +101,40 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
         //std::cout << "element_cur_pos " << element_cur_pos << std::endl;
         ElementPos element_next_pos = element_cur_pos + 1;
         const ShapeElement& element_prev = shape.elements[element_prev_pos];
-        const ShapeElement& element = shape.elements[element_cur_pos];
-        const ShapeElement& element_next = (element_next_pos < shape.elements.size())?
-            shape.elements[element_next_pos]:
-            shape_new.elements.front();
+        const ShapeElement& element_cur = shape.elements[element_cur_pos];
         bool useless = false;
-        if (element.type == ShapeElementType::LineSegment
+        if (element_cur.type == ShapeElementType::LineSegment
                 && element_prev.type == ShapeElementType::LineSegment) {
-            double v = compute_area(element_prev.start, element.start, element_next.start);
             //std::cout << "element_prev  " << element_prev_pos << " " << element_prev.to_string() << std::endl;
-            //std::cout << "element       " << element_cur_pos << " " << element.to_string() << std::endl;
-            //std::cout << "element_next  " << element_next_pos << " " << element_next.to_string() << std::endl;
-            //std::cout << "v " << v << std::endl;
-            if (element_prev.start.x == element.start.x
-                    && element.start.x == element_next.start.x) {
-                //std::cout << "useless " << element.to_string() << std::endl;
+            //std::cout << "element_cur   " << element_cur_pos << " " << element_cur.to_string() << std::endl;
+            if (element_prev.start.x == element_cur.start.x
+                    && element_cur.start.x == element_cur.end.x) {
+                //std::cout << "useless " << element_cur.to_string() << std::endl;
                 useless = true;
-            }
-            if (element_prev.start.y == element.start.y
-                    && element.start.y == element_next.start.y) {
-                //std::cout << "useless " << element.to_string() << std::endl;
+            } else if (element_prev.start.y == element_cur.start.y
+                    && element_cur.start.y == element_cur.end.y) {
+                //std::cout << "useless " << element_cur.to_string() << std::endl;
                 useless = true;
+            } else {
+                Point normal;
+                normal.x = element_cur.end.y - element_prev.start.y;
+                normal.y = element_prev.start.x - element_cur.end.x;
+                Point p = element_cur.start + normal;
+                auto intersection = compute_line_intersection(
+                        element_prev.start,
+                        element_cur.end,
+                        element_cur.start,
+                        p);
+                if (intersection.first
+                        && equal(element_cur.start, intersection.second)) {
+                    useless = true;
+                }
             }
         }
         if (!useless || shape.elements.size() - number_of_elements_removed <= 3) {
             if (!shape_new.elements.empty())
-                shape_new.elements.back().end = element.start;
-            shape_new.elements.push_back(element);
+                shape_new.elements.back().end = element_cur.start;
+            shape_new.elements.push_back(element_cur);
             element_prev_pos = element_cur_pos;
         } else {
             number_of_elements_removed++;
