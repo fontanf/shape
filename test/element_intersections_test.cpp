@@ -295,6 +295,11 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{6.180307632126364, 3.737782318431193}, {6.180307632126364, 4.143285659332687}}, true).elements.front(),
                 true,
                 {},
+            }, {
+                build_shape({{100, 150}, {0, 0}}, true).elements.front(),
+                build_shape({{33.33333333333334, 50}, {50, 75}}, true).elements.front(),
+                true,
+                {},
             },
             }));
 
