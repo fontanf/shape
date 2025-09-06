@@ -30,10 +30,17 @@ std::pair<bool, Point> shape::compute_line_intersection(
         Point p;
         p.x = p11.x;
         p.y = (p22.y - p21.y) * p.x / (p22.x - p21.x) + b;
-        if (equal(p.y, p21.y))
-            p.y = p21.y;
-        if (equal(p.y, p22.y))
-            p.y = p22.y;
+
+        if (equal(p, p11)) {
+            p = p11;
+        } else if (equal(p, p12)) {
+            p = p12;
+        } else if (equal(p, p21)) {
+            p = p21;
+        } else if (equal(p, p22)) {
+            p = p22;
+        }
+
         return {true, p};
     } else if (p11.y == p12.y) {
         if (p21.y == p22.y)
@@ -45,10 +52,17 @@ std::pair<bool, Point> shape::compute_line_intersection(
         Point p;
         p.y = p11.y;
         p.x = a * p.y + b;
-        if (equal(p.x, p21.x))
-            p.x = p21.x;
-        if (equal(p.x, p22.x))
-            p.x = p22.x;
+
+        if (equal(p, p11)) {
+            p = p11;
+        } else if (equal(p, p12)) {
+            p = p12;
+        } else if (equal(p, p21)) {
+            p = p21;
+        } else if (equal(p, p22)) {
+            p = p22;
+        }
+
         return {true, p};
     } else if (p21.x == p22.x) {
         if (p11.x == p12.x)
@@ -58,10 +72,17 @@ std::pair<bool, Point> shape::compute_line_intersection(
         Point p;
         p.x = p21.x;
         p.y = a * p.x + b;
-        if (equal(p.y, p11.y))
-            p.y = p11.y;
-        if (equal(p.y, p12.y))
-            p.y = p12.y;
+
+        if (equal(p, p11)) {
+            p = p11;
+        } else if (equal(p, p12)) {
+            p = p12;
+        } else if (equal(p, p21)) {
+            p = p21;
+        } else if (equal(p, p22)) {
+            p = p22;
+        }
+
         return {true, p};
     } else if (p21.y == p22.y) {
         if (p11.y == p12.y)
@@ -71,10 +92,17 @@ std::pair<bool, Point> shape::compute_line_intersection(
         Point p;
         p.y = p21.y;
         p.x = a * p.y + b;
-        if (equal(p.x, p11.x))
-            p.x = p11.x;
-        if (equal(p.x, p12.x))
-            p.x = p12.x;
+
+        if (equal(p, p11)) {
+            p = p11;
+        } else if (equal(p, p12)) {
+            p = p12;
+        } else if (equal(p, p21)) {
+            p = p21;
+        } else if (equal(p, p22)) {
+            p = p22;
+        }
+
         return {true, p};
     } else {
         LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
