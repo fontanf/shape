@@ -12,12 +12,12 @@ std::pair<bool, Point> shape::compute_line_intersection(
 {
     if (p11 == p21 || p11 == p22) {
         LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
-        if (denom == 0.0)
+        if (equal(denom, 0.0))
             return {false, {0, 0}};
         return {true, p11};
     } else if (p12 == p21 || p12 == p22) {
         LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
-        if (denom == 0.0)
+        if (equal(denom, 0.0))
             return {false, {0, 0}};
         return {true, p12};
     } else if (p11.x == p12.x) {
@@ -106,7 +106,7 @@ std::pair<bool, Point> shape::compute_line_intersection(
         return {true, p};
     } else {
         LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
-        if (denom == 0.0)
+        if (equal(denom, 0.0))
             return {false, {0, 0}};
         Point p;
         p.x = ((p11.x * p12.y - p11.y * p12.x) * (p21.x - p22.x) - (p11.x - p12.x) * (p21.x * p22.y - p21.y * p22.x)) / denom;
