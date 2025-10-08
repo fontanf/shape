@@ -27,20 +27,68 @@ struct Vertex
 
 struct OpenTrapezoid
 {
-    Point bottom_left;
-    Point bottom_right;
+    ShapePos bottom_left_shape_pos = -1;
+    ElementPos bottom_left_element_pos = -1;
+    ShapePos bottom_right_shape_pos = -1;
+    ElementPos bottom_right_element_pos;
     Point top_left;
     Point top_right;
 };
+
+inline ElementPos get_element_pos(
+        const Shape& shape,
+        ElementPos element_pos)
+{
+    ElementPos n = shape.elements.size();
+    return ((element_pos % n) + n) % n;
+}
+
+inline Point get_vertex(
+        const Shape& shape,
+        ElementPos element_pos)
+{
+    return shape.elements[get_element_pos(shape, element_pos)].start;
+}
+
+inline Point get_vertex(
+        const ShapeWithHoles& shape,
+        ShapePos shape_pos,
+        ElementPos element_pos)
+{
+    const Shape& current_shape = (shape_pos == (ShapePos)shape.holes.size())?
+        shape.shape:
+        shape.holes[shape_pos];
+    return get_vertex(current_shape, element_pos);
+}
+
+inline Point bottom_left(
+        const ShapeWithHoles& shape,
+        const OpenTrapezoid& open_trapezoid)
+{
+    return get_vertex(
+            shape,
+            open_trapezoid.bottom_left_shape_pos,
+            open_trapezoid.bottom_left_element_pos);
+}
+
+inline Point bottom_right(
+        const ShapeWithHoles& shape,
+        const OpenTrapezoid& open_trapezoid)
+{
+    return get_vertex(
+            shape,
+            open_trapezoid.bottom_right_shape_pos,
+            open_trapezoid.bottom_right_element_pos);
+}
 
 inline std::ostream& operator<<(
         std::ostream& os,
         const OpenTrapezoid& open_trapezoid)
 {
-    os << "bl " << open_trapezoid.bottom_left.x << " " << open_trapezoid.bottom_left.y
-        << " br " << open_trapezoid.bottom_right.x << " " << open_trapezoid.bottom_right.y
-        << " tl " << open_trapezoid.top_left.x << " " << open_trapezoid.top_left.y
-        << " tr " << open_trapezoid.top_right.x << " " << open_trapezoid.top_right.y;
+    os << "bl " << open_trapezoid.bottom_left_shape_pos << " " << open_trapezoid.bottom_left_element_pos
+        << " br " << open_trapezoid.bottom_right_shape_pos << " " << open_trapezoid.bottom_right_element_pos
+        << " tl " << open_trapezoid.top_left.to_string()
+        << " tr " << open_trapezoid.top_right.to_string();
     return os;
 }
 
@@ -65,9 +113,16 @@ LengthDbl x(
 }
 
 std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
+        const ShapeWithHoles& shape,
         const std::vector<OpenTrapezoid>& open_trapezoids,
-        const Point& vertex)
+        ShapePos shape_pos,
+        ElementPos element_pos)
 {
+    Point vertex = get_vertex(shape, shape_pos, element_pos);
+    //std::cout << "shape_pos " << shape_pos
+    //    << " element_pos " << element_pos
+    //    << " vertex " << vertex.to_string()
+    //    << std::endl;
     std::pair<ElementPos, ElementPos> res = {-1, -1};
     LengthDbl x_left_1 = 0;
     for (ElementPos open_trapezoid_pos = 0;
@@ -76,11 +131,17 @@ std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
         const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
         //std::cout << "open_trapezoid " << open_trapezoid << std::endl;
 
-        LengthDbl x_left = x(open_trapezoid.bottom_left, open_trapezoid.top_left, vertex.y);
-        LengthDbl x_right = x(open_trapezoid.bottom_right, open_trapezoid.top_right, vertex.y);
+        LengthDbl x_left = x(bottom_left(shape, open_trapezoid), open_trapezoid.top_left, vertex.y);
+        LengthDbl x_right = x(bottom_right(shape, open_trapezoid), open_trapezoid.top_right, vertex.y);
         //std::cout << "x_left " << x_left << " x " << vertex.x << " x_right " << x_right << std::endl;
-        if (!strictly_greater(x_left, vertex.x)
-                && !strictly_lesser(x_right, vertex.x)) {
+        //if (!strictly_greater(x_left, vertex.x)
+        //        && !strictly_lesser(x_right, vertex.x)) {
+        if ((strictly_lesser(x_left, vertex.x)
+                    || (shape_pos == open_trapezoid.bottom_left_shape_pos
+                        && element_pos == open_trapezoid.bottom_left_element_pos))
+                && (strictly_greater(x_right, vertex.x)
+                    || (shape_pos == open_trapezoid.bottom_right_shape_pos
+                        && element_pos == open_trapezoid.bottom_right_element_pos))) {
             if (res.first == -1) {
                 res.first = open_trapezoid_pos;
                 x_left_1 = x_left;
@@ -98,22 +159,16 @@ std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
     return res;
 }
 
-inline Point get_vertex(
-        const Shape& shape,
-        ElementPos element_pos)
-{
-    ElementPos n = shape.elements.size();
-    return shape.elements[((element_pos % n) + n) % n].start;
-}
-
 }
 
 std::vector<GeneralizedTrapezoid> shape::trapezoidation(
-        const ShapeWithHoles& shape)
+        const ShapeWithHoles& shape_orig)
 {
     //std::cout << "polygon_trapezoidation" << std::endl;
     //std::cout << shape.to_string(0) << std::endl;
     //write_json({shape}, {}, "trapezoidation_input.json");
+    const ShapeWithHoles& shape = shape_orig.bridge_touching_holes();
+    //std::cout << shape.to_string(0) << std::endl;
 
     std::vector<GeneralizedTrapezoid> trapezoids;
 
@@ -277,13 +332,13 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
         if (flag == VertexTypeFlag::HorizontalLocalMaximumConvex
                 || flag == VertexTypeFlag::HorizontalLocalMinimumConcave) {
             element_pos_next = (shape_pos == (ShapePos)shape.holes.size())?
-                (current_shape.elements.size() + element_pos - 1) % current_shape.elements.size():
-                (element_pos + 1) % current_shape.elements.size();
+                get_element_pos(current_shape, element_pos - 1):
+                get_element_pos(current_shape, element_pos + 1);
         } else if (flag == VertexTypeFlag::HorizontalLocalMinimumConvex
                 || flag == VertexTypeFlag::HorizontalLocalMaximumConcave) {
             element_pos_next = (shape_pos == (ShapePos)shape.holes.size())?
-                (element_pos + 1) % current_shape.elements.size():
-                (current_shape.elements.size() + element_pos - 1) % current_shape.elements.size();
+                get_element_pos(current_shape, element_pos + 1):
+                get_element_pos(current_shape, element_pos - 1);
         }
 
         const Point& vertex = current_shape.elements[element_pos].start;
@@ -295,7 +350,10 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
         //std::cout << "vertex_next " << vertex_next.x << " " << vertex_next.y << std::endl;
         //std::cout << "open trapezoids:" << std::endl;
         //for (const OpenTrapezoid& open_trapezoid: open_trapezoids)
-        //    std::cout << open_trapezoid << std::endl;
+        //    std::cout << open_trapezoid
+        //        << " " << bottom_left(shape, open_trapezoid).to_string()
+        //        << " " << bottom_right(shape, open_trapezoid).to_string()
+        //        << std::endl;
         if (vertices[shape_pos][element_pos].flag == VertexTypeFlag::LocalMaximumConvex) {
             // +1 open trapezoid.
             //std::cout << "LocalMaximumConvex" << std::endl;
@@ -304,12 +362,14 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             OpenTrapezoid open_trapezoid;
             open_trapezoid.top_left = vertex;
             open_trapezoid.top_right = vertex;
-            open_trapezoid.bottom_left = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos + 1):
-                get_vertex(current_shape, element_pos - 1);
-            open_trapezoid.bottom_right = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos - 1):
-                get_vertex(current_shape, element_pos + 1);
+            open_trapezoid.bottom_left_shape_pos = shape_pos;
+            open_trapezoid.bottom_left_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos + 1):
+                get_element_pos(current_shape, element_pos - 1);
+            open_trapezoid.bottom_right_shape_pos = shape_pos;
+            open_trapezoid.bottom_right_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos - 1):
+                get_element_pos(current_shape, element_pos + 1);
             ElementPos open_trapezoid_pos = open_trapezoids.size();
 
             open_trapezoids.push_back(open_trapezoid);
@@ -318,7 +378,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // -1 open trapezoid.
             //std::cout << "LocalMinimumConvex" << std::endl;
 
-            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos).first;
             if (open_trapezoid_pos == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
@@ -346,7 +406,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // +2 open trapezoids.
             //std::cout << "LocalMaximumConcave" << std::endl;
 
-            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos).first;
             if (open_trapezoid_pos == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
@@ -355,8 +415,8 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
-            LengthDbl x_left = x(open_trapezoid.bottom_left, open_trapezoid.top_left, vertex.y);
-            LengthDbl x_right = x(open_trapezoid.bottom_right, open_trapezoid.top_right, vertex.y);
+            LengthDbl x_left = x(bottom_left(shape, open_trapezoid), open_trapezoid.top_left, vertex.y);
+            LengthDbl x_right = x(bottom_right(shape, open_trapezoid), open_trapezoid.top_right, vertex.y);
             if (vertex.y != open_trapezoid.top_left.y) {
                 GeneralizedTrapezoid trapezoid(
                         vertex.y,
@@ -374,18 +434,22 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             OpenTrapezoid new_open_trapezoid_1;
             new_open_trapezoid_1.top_left = {x_left, vertex.y};
             new_open_trapezoid_1.top_right = vertex;
-            new_open_trapezoid_1.bottom_left = open_trapezoid.bottom_left;
-            new_open_trapezoid_1.bottom_right = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos - 1):
-                get_vertex(current_shape, element_pos + 1);
+            new_open_trapezoid_1.bottom_left_shape_pos = open_trapezoid.bottom_left_shape_pos;
+            new_open_trapezoid_1.bottom_left_element_pos = open_trapezoid.bottom_left_element_pos;
+            new_open_trapezoid_1.bottom_right_shape_pos = shape_pos;
+            new_open_trapezoid_1.bottom_right_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos - 1):
+                get_element_pos(current_shape, element_pos + 1);
 
             OpenTrapezoid new_open_trapezoid_2;
             new_open_trapezoid_2.top_left = vertex;
             new_open_trapezoid_2.top_right = {x_right, vertex.y};
-            new_open_trapezoid_2.bottom_left = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos + 1):
-                get_vertex(current_shape, element_pos - 1);
-            new_open_trapezoid_2.bottom_right = open_trapezoid.bottom_right;
+            new_open_trapezoid_2.bottom_left_shape_pos = shape_pos;
+            new_open_trapezoid_2.bottom_left_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos + 1):
+                get_element_pos(current_shape, element_pos - 1);
+            new_open_trapezoid_2.bottom_right_shape_pos = open_trapezoid.bottom_right_shape_pos;
+            new_open_trapezoid_2.bottom_right_element_pos = open_trapezoid.bottom_right_element_pos;
 
             open_trapezoids.push_back(new_open_trapezoid_1);
             open_trapezoids.push_back(new_open_trapezoid_2);
@@ -397,7 +461,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // +1 open trapezoids.
             //std::cout << "LocalMinimumConcave" << std::endl;
 
-            auto p = find_trapezoid_containing_vertex(open_trapezoids, vertex);
+            auto p = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos);
             if (p.first == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
@@ -412,7 +476,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             const OpenTrapezoid& open_trapezoid_2 = open_trapezoids[p.second];
 
             // Update trapezoids.
-            LengthDbl x_left = x(open_trapezoid_1.bottom_left, open_trapezoid_1.top_left, vertex.y);
+            LengthDbl x_left = x(bottom_left(shape, open_trapezoid_1), open_trapezoid_1.top_left, vertex.y);
             if (vertex.y != open_trapezoid_1.top_left.y) {
                 GeneralizedTrapezoid trapezoid(
                         vertex.y,
@@ -425,7 +489,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
                 trapezoids.push_back(trapezoid);
             }
 
-            LengthDbl x_right = x(open_trapezoid_2.bottom_right, open_trapezoid_2.top_right, vertex.y);
+            LengthDbl x_right = x(bottom_right(shape, open_trapezoid_2), open_trapezoid_2.top_right, vertex.y);
             if (vertex.y != open_trapezoid_2.top_left.y) {
                 GeneralizedTrapezoid trapezoid(
                         vertex.y,
@@ -443,8 +507,10 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             OpenTrapezoid new_open_trapezoid;
             new_open_trapezoid.top_left = {x_left, vertex.y};
             new_open_trapezoid.top_right = {x_right, vertex.y};
-            new_open_trapezoid.bottom_left = open_trapezoid_1.bottom_left;
-            new_open_trapezoid.bottom_right = open_trapezoid_2.bottom_right;
+            new_open_trapezoid.bottom_left_shape_pos = open_trapezoid_1.bottom_left_shape_pos;
+            new_open_trapezoid.bottom_left_element_pos = open_trapezoid_1.bottom_left_element_pos;
+            new_open_trapezoid.bottom_right_shape_pos = open_trapezoid_2.bottom_right_shape_pos;
+            new_open_trapezoid.bottom_right_element_pos = open_trapezoid_2.bottom_right_element_pos;
 
             open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[p.first] = open_trapezoids.back();
@@ -457,7 +523,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // +1 open trapezoids.
             //std::cout << "Inflection" << std::endl;
 
-            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos).first;
             if (open_trapezoid_pos == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
@@ -466,15 +532,15 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             //std::cout << "open_trapezoid_pos " << open_trapezoid_pos << std::endl;
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
             //std::cout << "open_trapezoid"
-            //    << " bl " << open_trapezoid.bottom_left.x << " " << open_trapezoid.bottom_left.y
-            //    << " br " << open_trapezoid.bottom_right.x << " " << open_trapezoid.bottom_right.y
+            //    << " bl " << open_trapezoid.bottom_left_element_pos.x << " " << open_trapezoid.bottom_left_element_pos.y
+            //    << " br " << open_trapezoid.bottom_right_element_pos.x << " " << open_trapezoid.bottom_right_element_pos.y
             //    << " tl " << open_trapezoid.top_left.x << " " << open_trapezoid.top_left.y
             //    << " tr " << open_trapezoid.top_right.x << " " << open_trapezoid.top_right.y
             //    << std::endl;
 
             // Update trapezoids.
-            LengthDbl x_left = x(open_trapezoid.bottom_left, open_trapezoid.top_left, vertex.y);
-            LengthDbl x_right = x(open_trapezoid.bottom_right, open_trapezoid.top_right, vertex.y);
+            LengthDbl x_left = x(bottom_left(shape, open_trapezoid), open_trapezoid.top_left, vertex.y);
+            LengthDbl x_right = x(bottom_right(shape, open_trapezoid), open_trapezoid.top_right, vertex.y);
             if (vertex.y != open_trapezoid.top_left.y) {
                 // Open trapezoids with null height might be created.
                 // If that happens, don't add them to the trapezoids.
@@ -494,16 +560,20 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             OpenTrapezoid new_open_trapezoid;
             new_open_trapezoid.top_left = {x_left, vertex.y};
             new_open_trapezoid.top_right = {x_right, vertex.y};
-            if (vertex == open_trapezoid.bottom_left) {
-                new_open_trapezoid.bottom_left = (shape_pos == shape.holes.size())?
-                    get_vertex(current_shape, element_pos + 1):
-                    get_vertex(current_shape, element_pos - 1);
-                new_open_trapezoid.bottom_right = open_trapezoid.bottom_right;
+            if (vertex == bottom_left(shape, open_trapezoid)) {
+                new_open_trapezoid.bottom_left_shape_pos = shape_pos;
+                new_open_trapezoid.bottom_left_element_pos = (shape_pos == shape.holes.size())?
+                    get_element_pos(current_shape, element_pos + 1):
+                    get_element_pos(current_shape, element_pos - 1);
+                new_open_trapezoid.bottom_right_shape_pos = open_trapezoid.bottom_right_shape_pos;
+                new_open_trapezoid.bottom_right_element_pos = open_trapezoid.bottom_right_element_pos;
             } else {
-                new_open_trapezoid.bottom_left = open_trapezoid.bottom_left;
-                new_open_trapezoid.bottom_right = (shape_pos == shape.holes.size())?
-                    get_vertex(current_shape, element_pos - 1):
-                    get_vertex(current_shape, element_pos + 1);
+                new_open_trapezoid.bottom_left_shape_pos = open_trapezoid.bottom_left_shape_pos;
+                new_open_trapezoid.bottom_left_element_pos = open_trapezoid.bottom_left_element_pos;
+                new_open_trapezoid.bottom_right_shape_pos = shape_pos;
+                new_open_trapezoid.bottom_right_element_pos = (shape_pos == shape.holes.size())?
+                    get_element_pos(current_shape, element_pos - 1):
+                    get_element_pos(current_shape, element_pos + 1);
             }
             open_trapezoids.push_back(new_open_trapezoid);
 
@@ -520,12 +590,14 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             OpenTrapezoid open_trapezoid;
             open_trapezoid.top_left = vertex;
             open_trapezoid.top_right = vertex_next;
-            open_trapezoid.bottom_left = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos + 1):
-                get_vertex(current_shape, element_pos - 1);
-            open_trapezoid.bottom_right = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos_next - 1):
-                get_vertex(current_shape, element_pos_next + 1);
+            open_trapezoid.bottom_left_shape_pos = shape_pos;
+            open_trapezoid.bottom_left_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos + 1):
+                get_element_pos(current_shape, element_pos - 1);
+            open_trapezoid.bottom_right_shape_pos = shape_pos;
+            open_trapezoid.bottom_right_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos_next - 1):
+                get_element_pos(current_shape, element_pos_next + 1);
 
             open_trapezoids.push_back(open_trapezoid);
 
@@ -534,7 +606,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // -1 open trapezoid.
             //std::cout << "HorizontalLocalMinimumConvex HorizontalLocalMinimumConvex" << std::endl;
 
-            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos).first;
             if (open_trapezoid_pos == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
@@ -566,7 +638,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // +2 open trapezoids.
             //std::cout << "HorizontalLocalMaximumConcave HorizontalLocalMaximumConcave" << std::endl;
 
-            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos).first;
             if (open_trapezoid_pos == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
@@ -576,8 +648,8 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             //std::cout << "open trapezoid " << open_trapezoid << std::endl;
 
             // Update trapezoids.
-            LengthDbl x_left = x(open_trapezoid.bottom_left, open_trapezoid.top_left, vertex.y);
-            LengthDbl x_right = x(open_trapezoid.bottom_right, open_trapezoid.top_right, vertex.y);
+            LengthDbl x_left = x(bottom_left(shape, open_trapezoid), open_trapezoid.top_left, vertex.y);
+            LengthDbl x_right = x(bottom_right(shape, open_trapezoid), open_trapezoid.top_right, vertex.y);
             if (vertex.y != open_trapezoid.top_left.y) {
                 GeneralizedTrapezoid trapezoid(
                         vertex.y,
@@ -595,18 +667,22 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             OpenTrapezoid new_open_trapezoid_1;
             new_open_trapezoid_1.top_left = {x_left, vertex.y};
             new_open_trapezoid_1.top_right = vertex;
-            new_open_trapezoid_1.bottom_left = open_trapezoid.bottom_left;
-            new_open_trapezoid_1.bottom_right = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos - 1):
-                get_vertex(current_shape, element_pos + 1);
+            new_open_trapezoid_1.bottom_left_shape_pos = open_trapezoid.bottom_left_shape_pos;
+            new_open_trapezoid_1.bottom_left_element_pos = open_trapezoid.bottom_left_element_pos;
+            new_open_trapezoid_1.bottom_right_shape_pos = shape_pos;
+            new_open_trapezoid_1.bottom_right_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos - 1):
+                get_element_pos(current_shape, element_pos + 1);
 
             OpenTrapezoid new_open_trapezoid_2;
             new_open_trapezoid_2.top_left = vertex_next;
             new_open_trapezoid_2.top_right = {x_right, vertex.y};
-            new_open_trapezoid_2.bottom_left = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos_next + 1):
-                get_vertex(current_shape, element_pos_next - 1);
-            new_open_trapezoid_2.bottom_right = open_trapezoid.bottom_right;
+            new_open_trapezoid_2.bottom_left_shape_pos = shape_pos;
+            new_open_trapezoid_2.bottom_left_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos + 2):
+                get_element_pos(current_shape, element_pos - 2);
+            new_open_trapezoid_2.bottom_right_shape_pos = open_trapezoid.bottom_right_shape_pos;
+            new_open_trapezoid_2.bottom_right_element_pos = open_trapezoid.bottom_right_element_pos;
 
             open_trapezoids.push_back(new_open_trapezoid_1);
             open_trapezoids.push_back(new_open_trapezoid_2);
@@ -619,13 +695,13 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // +1 open trapezoids.
             //std::cout << "HorizontalLocalMinimumConcave HorizontalLocalMinimumConcave" << std::endl;
 
-            ElementPos open_trapezoid_1_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            ElementPos open_trapezoid_1_pos = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos).first;
             if (open_trapezoid_1_pos == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
                         "'open_trapezoid_1_pos' must be != -1.");
             }
-            auto p = find_trapezoid_containing_vertex(open_trapezoids, vertex_next);
+            auto p = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos_next);
             ElementPos open_trapezoid_2_pos = (p.second != -1)? p.second: p.first;
             if (open_trapezoid_2_pos == -1) {
                 throw std::runtime_error(
@@ -637,7 +713,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             const OpenTrapezoid& open_trapezoid_2 = open_trapezoids[open_trapezoid_2_pos];
 
             // Update trapezoids.
-            LengthDbl x_left = x(open_trapezoid_1.bottom_left, open_trapezoid_1.top_left, vertex.y);
+            LengthDbl x_left = x(bottom_left(shape, open_trapezoid_1), open_trapezoid_1.top_left, vertex.y);
             if (vertex.y != open_trapezoid_1.top_left.y) {
                 GeneralizedTrapezoid trapezoid(
                         vertex.y,
@@ -650,7 +726,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
                 trapezoids.push_back(trapezoid);
             }
 
-            LengthDbl x_right = x(open_trapezoid_2.bottom_right, open_trapezoid_2.top_right, vertex.y);
+            LengthDbl x_right = x(bottom_right(shape, open_trapezoid_2), open_trapezoid_2.top_right, vertex.y);
             if (vertex.y != open_trapezoid_2.top_left.y) {
                 GeneralizedTrapezoid trapezoid(
                         vertex.y,
@@ -668,8 +744,10 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             OpenTrapezoid new_open_trapezoid;
             new_open_trapezoid.top_left = {x_left, vertex.y};
             new_open_trapezoid.top_right = {x_right, vertex.y};
-            new_open_trapezoid.bottom_left = open_trapezoid_1.bottom_left;
-            new_open_trapezoid.bottom_right = open_trapezoid_2.bottom_right;
+            new_open_trapezoid.bottom_left_shape_pos = open_trapezoid_1.bottom_left_shape_pos;
+            new_open_trapezoid.bottom_left_element_pos = open_trapezoid_1.bottom_left_element_pos;
+            new_open_trapezoid.bottom_right_shape_pos = open_trapezoid_2.bottom_right_shape_pos;
+            new_open_trapezoid.bottom_right_element_pos = open_trapezoid_2.bottom_right_element_pos;
 
             open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_1_pos] = open_trapezoids.back();
@@ -683,7 +761,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // +1 open trapezoids.
             //std::cout << "HorizontalLocalMaximumConvex HorizontalLocalMinimumConcave" << std::endl;
 
-            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex_next).first;
+            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos_next).first;
             //std::cout << "open_trapezoid_pos " << open_trapezoid_pos << std::endl;
             if (open_trapezoid_pos == -1) {
                 throw std::runtime_error(
@@ -693,7 +771,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
-            LengthDbl x_right = x(open_trapezoid.bottom_right, open_trapezoid.top_right, vertex.y);
+            LengthDbl x_right = x(bottom_right(shape, open_trapezoid), open_trapezoid.top_right, vertex.y);
             LengthDbl x_left = ((shape_pos == shape.holes.size())?
                 get_vertex(current_shape, element_pos - 1):
                 get_vertex(current_shape, element_pos + 1)).x;
@@ -712,10 +790,12 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             OpenTrapezoid new_open_trapezoid;
             new_open_trapezoid.top_left = vertex;
             new_open_trapezoid.top_right = {x_right, vertex.y};
-            new_open_trapezoid.bottom_left = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos + 1):
-                get_vertex(current_shape, element_pos - 1);
-            new_open_trapezoid.bottom_right = open_trapezoid.bottom_right;
+            new_open_trapezoid.bottom_left_shape_pos = shape_pos;
+            new_open_trapezoid.bottom_left_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos + 1):
+                get_element_pos(current_shape, element_pos - 1);
+            new_open_trapezoid.bottom_right_shape_pos = open_trapezoid.bottom_right_shape_pos;
+            new_open_trapezoid.bottom_right_element_pos = open_trapezoid.bottom_right_element_pos;
 
             open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
@@ -727,7 +807,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // +1 open trapezoids.
             //std::cout << "HorizontalLocalMinimumConvex HorizontalLocalMaximumConcave" << std::endl;
 
-            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos).first;
             if (open_trapezoid_pos == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
@@ -736,7 +816,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
-            LengthDbl x_right = x(open_trapezoid.bottom_right, open_trapezoid.top_right, vertex.y);
+            LengthDbl x_right = x(bottom_right(shape, open_trapezoid), open_trapezoid.top_right, vertex.y);
             GeneralizedTrapezoid trapezoid(
                     vertex.y,
                     open_trapezoid.top_left.y,
@@ -754,10 +834,12 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
                 get_vertex(current_shape, element_pos + 1):
                 get_vertex(current_shape, element_pos - 1);
             new_open_trapezoid.top_right = {x_right, vertex.y};
-            new_open_trapezoid.bottom_left = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos + 2):
-                get_vertex(current_shape, element_pos - 2);
-            new_open_trapezoid.bottom_right = open_trapezoid.bottom_right;
+            new_open_trapezoid.bottom_left_shape_pos = shape_pos;
+            new_open_trapezoid.bottom_left_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos + 2):
+                get_element_pos(current_shape, element_pos - 2);
+            new_open_trapezoid.bottom_right_shape_pos = open_trapezoid.bottom_right_shape_pos;
+            new_open_trapezoid.bottom_right_element_pos = open_trapezoid.bottom_right_element_pos;
 
             open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
@@ -769,7 +851,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // +1 open trapezoids.
             //std::cout << "HorizontalLocalMaximumConcave HorizontalLocalMinimumConvex" << std::endl;
 
-            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex_next).first;
+            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos_next).first;
             if (open_trapezoid_pos == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
@@ -778,7 +860,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
-            LengthDbl x_left = x(open_trapezoid.bottom_left, open_trapezoid.top_left, vertex.y);
+            LengthDbl x_left = x(bottom_left(shape, open_trapezoid), open_trapezoid.top_left, vertex.y);
             if (vertex.y != open_trapezoid.top_left.y) {
                 LengthDbl x_right = ((shape_pos == shape.holes.size())?
                         get_vertex(current_shape, element_pos + 1):
@@ -799,10 +881,12 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             OpenTrapezoid new_open_trapezoid;
             new_open_trapezoid.top_left = {x_left, vertex.y};
             new_open_trapezoid.top_right = vertex;
-            new_open_trapezoid.bottom_left = open_trapezoid.bottom_left;
-            new_open_trapezoid.bottom_right = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos - 1):
-                get_vertex(current_shape, element_pos + 1);
+            new_open_trapezoid.bottom_left_shape_pos = open_trapezoid.bottom_left_shape_pos;
+            new_open_trapezoid.bottom_left_element_pos = open_trapezoid.bottom_left_element_pos;
+            new_open_trapezoid.bottom_right_shape_pos = shape_pos;
+            new_open_trapezoid.bottom_right_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos - 1):
+                get_element_pos(current_shape, element_pos + 1);
 
             open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();
@@ -814,7 +898,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             // +1 open trapezoids.
             //std::cout << "HorizontalLocalMinimumConcave HorizontalLocalMaximumConvex" << std::endl;
 
-            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(open_trapezoids, vertex).first;
+            ElementPos open_trapezoid_pos = find_trapezoid_containing_vertex(shape, open_trapezoids, shape_pos, element_pos).first;
             if (open_trapezoid_pos == -1) {
                 throw std::runtime_error(
                         "shape::polygon_trapezoidation: "
@@ -823,7 +907,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             const OpenTrapezoid& open_trapezoid = open_trapezoids[open_trapezoid_pos];
 
             // Update trapezoids.
-            LengthDbl x_left = x(open_trapezoid.bottom_left, open_trapezoid.top_left, vertex.y);
+            LengthDbl x_left = x(bottom_left(shape, open_trapezoid), open_trapezoid.top_left, vertex.y);
             if (vertex.y != open_trapezoid.top_left.y) {
                 GeneralizedTrapezoid trapezoid(
                         vertex.y,
@@ -843,10 +927,12 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
             new_open_trapezoid.top_right = (shape_pos == shape.holes.size())?
                 get_vertex(current_shape, element_pos - 1):
                 get_vertex(current_shape, element_pos + 1);
-            new_open_trapezoid.bottom_left = open_trapezoid.bottom_left;
-            new_open_trapezoid.bottom_right = (shape_pos == shape.holes.size())?
-                get_vertex(current_shape, element_pos - 2):
-                get_vertex(current_shape, element_pos + 2);
+            new_open_trapezoid.bottom_left_shape_pos = open_trapezoid.bottom_left_shape_pos;
+            new_open_trapezoid.bottom_left_element_pos = open_trapezoid.bottom_left_element_pos;
+            new_open_trapezoid.bottom_right_shape_pos = shape_pos;
+            new_open_trapezoid.bottom_right_element_pos = (shape_pos == shape.holes.size())?
+                get_element_pos(current_shape, element_pos - 2):
+                get_element_pos(current_shape, element_pos + 2);
 
             open_trapezoids.push_back(new_open_trapezoid);
             open_trapezoids[open_trapezoid_pos] = open_trapezoids.back();

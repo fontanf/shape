@@ -17,9 +17,8 @@ struct TrapezoidationTestParams
     {
         TrapezoidationTestParams test_params;
         test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
-        // TODO
-        //for (auto& json_point: json_item["expected_result"].items())
-        //    test_params.expected_result.emplace_back(Point::from_json(json_point.value()));
+        for (auto& json_trapezoid: json_item["expected_result"].items())
+            test_params.expected_result.emplace_back(GeneralizedTrapezoid::from_json(json_trapezoid.value()));
         return test_params;
     }
 
@@ -191,6 +190,144 @@ INSTANTIATE_TEST_SUITE_P(
                     GeneralizedTrapezoid(1, 1.5, 1, 3, 2, 2),
                     GeneralizedTrapezoid(1, 3, 3, 4, 3, 4),
                     GeneralizedTrapezoid(0, 1, 1, 3, 0, 4),
+                },
+            }, {
+                {
+                    build_shape({
+                            {0, 0}, {5, 0}, {5, 2}, {3, 2}, {4, 1},
+                            {1, 1}, {2, 2}, {0, 2}}),
+                }, {
+                    GeneralizedTrapezoid(1, 2, 0, 1, 0, 2),
+                    GeneralizedTrapezoid(1, 2, 4, 5, 3, 5),
+                    GeneralizedTrapezoid(0, 1, 0, 5, 0, 5),
+                },
+            }, {  // Touching hole top flat
+                {
+                    build_shape({{0, 0}, {12, 0}, {12, 12}, {0, 12}}),
+                    {build_shape({{3, 6}, {9, 6}, {6, 12}})}
+                }, {
+                    GeneralizedTrapezoid(6, 12, 0, 3, 0, 6),
+                    GeneralizedTrapezoid(6, 12, 9, 12, 6, 12),
+                    GeneralizedTrapezoid(0, 6, 0, 12, 0, 12),
+                },
+            }, {  // Touching hole top increasing
+                {
+                    build_shape({{0, 0}, {12, 0}, {12, 13}, {0, 11}}),
+                    {build_shape({{3, 9}, {9, 9}, {6, 12}})}
+                }, {
+                    GeneralizedTrapezoid(12, 13, 6, 12, 12, 12),
+                    GeneralizedTrapezoid(11, 12, 0, 5, 6, 6),
+                    GeneralizedTrapezoid(9, 11, 0, 3, 0, 5),
+                    GeneralizedTrapezoid(9, 12, 9, 12, 6, 12),
+                    GeneralizedTrapezoid(0, 9, 0, 12, 0, 12),
+                },
+            }, {  // Touching hole top decreasing
+                {
+                    build_shape({{0, 0}, {12, 0}, {12, 11}, {0, 13}}),
+                    {build_shape({{3, 9}, {9, 9}, {6, 12}})}
+                }, {
+                    GeneralizedTrapezoid(12, 13, 0, 6, 0, 0),
+                    GeneralizedTrapezoid(11, 12, 7, 12, 6, 6),
+                    GeneralizedTrapezoid(9, 11, 9, 12, 7, 12),
+                    GeneralizedTrapezoid(9, 12, 0, 3, 0, 6),
+                    GeneralizedTrapezoid(0, 9, 0, 12, 0, 12),
+                },
+            }, {  // Touching hole bottom flat
+                {
+                    build_shape({{0, 0}, {12, 0}, {12, 12}, {0, 12}}),
+                    {build_shape({{3, 3}, {6, 0}, {9, 3}})}
+                }, {
+                    GeneralizedTrapezoid(3, 12, 0, 12, 0, 12),
+                    GeneralizedTrapezoid(0, 3, 0, 6, 0, 3),
+                    GeneralizedTrapezoid(0, 3, 6, 12, 9, 12),
+                },
+            }, {  // Touching hole bottom increasing
+                {
+                    build_shape({{0, -1}, {12, 1}, {12, 12}, {0, 12}}),
+                    {build_shape({{3, 3}, {6, 0}, {9, 3}})}
+                }, {
+                    GeneralizedTrapezoid(3, 12, 0, 12, 0, 12),
+                    GeneralizedTrapezoid(1, 3, 7, 12, 9, 12),
+                    GeneralizedTrapezoid(0, 3, 0, 6, 0, 3),
+                    GeneralizedTrapezoid(-1, 0, 0, 0, 0, 6),
+                    GeneralizedTrapezoid(0, 1, 6, 6, 7, 12),
+                },
+            }, {  // Touching hole bottom decreasing
+                {
+                    build_shape({{0, 1}, {12, -1}, {12, 12}, {0, 12}}),
+                    {build_shape({{3, 3}, {6, 0}, {9, 3}})}
+                }, {
+                    GeneralizedTrapezoid(3, 12, 0, 12, 0, 12),
+                    GeneralizedTrapezoid(1, 3, 0, 5, 0, 3),
+                    GeneralizedTrapezoid(0, 1, 6, 6, 0, 5),
+                    GeneralizedTrapezoid(0, 3, 6, 12, 9, 12),
+                    GeneralizedTrapezoid(-1, 0, 12, 12, 6, 12),
+                },
+            }, {  // Touching hole left flat
+                {
+                    build_shape({{0, 0}, {12, 0}, {12, 12}, {0, 12}}),
+                    {build_shape({{0, 6}, {3, 3}, {3, 9}})}
+                }, {
+                    GeneralizedTrapezoid(9, 12, 0, 12, 0, 12),
+                    GeneralizedTrapezoid(6, 9, 0, 0, 0, 3),
+                    GeneralizedTrapezoid(3, 9, 3, 12, 3, 12),
+                    GeneralizedTrapezoid(3, 6, 0, 3, 0, 0),
+                    GeneralizedTrapezoid(0, 3, 0, 12, 0, 12),
+                },
+            }, {  // Touching hole left increasing
+                {
+                    build_shape({{-1, 0}, {12, 0}, {12, 12}, {1, 12}}),
+                    {build_shape({{0, 6}, {3, 3}, {3, 9}})}
+                }, {
+                    GeneralizedTrapezoid(9, 12, 0.5, 12, 1, 12),
+                    GeneralizedTrapezoid(6, 9, 0, 0, 0.5, 3),
+                    GeneralizedTrapezoid(3, 6, -0.5, 3, 0, 0),
+                    GeneralizedTrapezoid(3, 9, 3, 12, 3, 12),
+                    GeneralizedTrapezoid(0, 3, -1, 12, -0.5, 12),
+                },
+            }, {  // Touching hole left decreasing
+                {
+                    build_shape({{1, 0}, {12, 0}, {12, 12}, {-1, 12}}),
+                    {build_shape({{0, 6}, {3, 3}, {3, 9}})}
+                }, {
+                    GeneralizedTrapezoid(9, 12, -0.5, 12, -1, 12),
+                    GeneralizedTrapezoid(6, 9, 0, 0, -0.5, 3),
+                    GeneralizedTrapezoid(3, 6, 0.5, 3, 0, 0),
+                    GeneralizedTrapezoid(3, 9, 3, 12, 3, 12),
+                    GeneralizedTrapezoid(0, 3, 1, 12, 0.5, 12),
+                },
+            }, {  // Touching hole right flat
+                {
+                    build_shape({{0, 0}, {12, 0}, {12, 12}, {0, 12}}),
+                    {build_shape({{12, 6}, {9, 9}, {9, 3}})}
+                }, {
+                    GeneralizedTrapezoid(9, 12, 0, 12, 0, 12),
+                    GeneralizedTrapezoid(6, 9, 12, 12, 9, 12),
+                    GeneralizedTrapezoid(3, 9, 0, 9, 0, 9),
+                    GeneralizedTrapezoid(3, 6, 9, 12, 12, 12),
+                    GeneralizedTrapezoid(0, 3, 0, 12, 0, 12),
+                },
+            }, {  // Touching hole right increasing
+                {
+                    build_shape({{0, 0}, {11, 0}, {13, 12}, {0, 12}}),
+                    {build_shape({{12, 6}, {9, 9}, {9, 3}})}
+                }, {
+                    GeneralizedTrapezoid(9, 12, 0, 12.5, 0, 13),
+                    GeneralizedTrapezoid(6, 9, 12, 12, 9, 12.5),
+                    GeneralizedTrapezoid(3, 9, 0, 9, 0, 9),
+                    GeneralizedTrapezoid(3, 6, 9, 11.5, 12, 12),
+                    GeneralizedTrapezoid(0, 3, 0, 11, 0, 11.5),
+                },
+            }, {  // Touching hole right decreasing
+                {
+                    build_shape({{0, 0}, {13, 0}, {11, 12}, {0, 12}}),
+                    {build_shape({{12, 6}, {9, 9}, {9, 3}})}
+                }, {
+                    GeneralizedTrapezoid(9, 12, 0, 11.5, 0, 11),
+                    GeneralizedTrapezoid(6, 9, 12, 12, 9, 11.5),
+                    GeneralizedTrapezoid(3, 9, 0, 9, 0, 9),
+                    GeneralizedTrapezoid(3, 6, 9, 12.5, 12, 12),
+                    GeneralizedTrapezoid(0, 3, 0, 13, 0, 12.5),
                 },
             },
             }));

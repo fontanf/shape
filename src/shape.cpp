@@ -68,6 +68,13 @@ Point shape::operator+(
     return {point_1.x + point_2.x, point_1.y + point_2.y};
 }
 
+Point shape::operator-(
+        const Point& point_1,
+        const Point& point_2)
+{
+    return {point_1.x - point_2.x, point_1.y - point_2.y};
+}
+
 Point shape::operator*(
         LengthDbl scalar,
         const Point& point)
@@ -75,11 +82,11 @@ Point shape::operator*(
     return {scalar * point.x, scalar * point.y};
 }
 
-Point shape::operator-(
-        const Point& point_1,
-        const Point& point_2)
+Point shape::operator/(
+        const Point& point,
+        LengthDbl scalar)
 {
-    return {point_1.x - point_2.x, point_1.y - point_2.y};
+    return {point.x / scalar, point.y / scalar};
 }
 
 LengthDbl shape::norm(
@@ -1588,6 +1595,133 @@ bool ShapeWithHoles::contains(
         if (hole.contains(point, !strict))
             return false;
     return true;
+}
+
+ShapeWithHoles ShapeWithHoles::bridge_touching_holes() const
+{
+    ShapeWithHoles shape = *this;
+
+    // Build intersection tree.
+    std::vector<ShapeElement> intersection_tree_elements;
+    std::vector<std::pair<ShapePos, ElementPos>> intersection_tree_elements_to_orig;
+    for (ShapePos shape_pos = -1;
+            shape_pos < (ShapePos)shape.holes.size();
+            ++shape_pos) {
+        const Shape& s = (shape_pos != -1)?
+            shape.holes[shape_pos]:
+            shape.shape;
+        for (ElementPos element_pos = 0;
+                element_pos < (ElementPos)s.elements.size();
+                ++element_pos) {
+            const ShapeElement& element = s.elements[element_pos];
+            intersection_tree_elements.push_back(element);
+            intersection_tree_elements_to_orig.push_back({shape_pos, element_pos});
+        }
+    }
+    IntersectionTree intersection_tree({}, intersection_tree_elements, {});
+
+    // Check if a hole is already touching the outer boundary.
+    for (ShapePos hole_pos = (ShapePos)shape.holes.size() - 1;
+            hole_pos >= 0;
+            --hole_pos) {
+
+        ShapePos shape_contact_shape_pos = -1;
+        ElementPos shape_contact_element_pos = -1;
+        ElementPos hole_contact_element_pos = -1;
+        const Shape& hole = shape.holes[hole_pos];
+        for (ElementPos hole_element_pos = 0;
+                hole_element_pos < (ElementPos)hole.elements.size();
+                ++hole_element_pos) {
+            const ShapeElement& hole_element = hole.elements[hole_element_pos];
+            auto intersection_output = intersection_tree.intersect(hole_element, false);
+            for (ElementPos p: intersection_output.element_ids) {
+                ShapePos shape_pos = intersection_tree_elements_to_orig[p].first;
+                ElementPos element_pos = intersection_tree_elements_to_orig[p].second;
+                // Already merged.
+                if (shape_pos >= hole_pos)
+                    continue;
+                if (shape_contact_element_pos == -1
+                        || shape_contact_shape_pos < shape_pos) {
+                    hole_contact_element_pos = hole_element_pos;
+                    shape_contact_shape_pos = shape_pos;
+                    shape_contact_element_pos = element_pos;
+                }
+            }
+        }
+
+        if (hole_contact_element_pos == -1)
+            continue;
+
+        Shape& contact_shape = (shape_contact_shape_pos != -1)?
+            shape.holes[shape_contact_shape_pos]:
+            shape.shape;
+        const ShapeElement& shape_contact_element = contact_shape.elements[shape_contact_element_pos];
+        const ShapeElement& hole_contact_element = hole.elements[hole_contact_element_pos];
+
+        Shape new_shape;
+        for (ElementPos shape_element_pos = 0;
+                shape_element_pos < (ElementPos)contact_shape.elements.size();
+                ++shape_element_pos) {
+            const ShapeElement& shape_element = contact_shape.elements[shape_element_pos];
+            if (shape_element_pos != shape_contact_element_pos) {
+                new_shape.elements.push_back(shape_element);
+            } else {
+                auto intersections = compute_intersections(
+                        shape_contact_element,
+                        hole_contact_element);
+                const Point& intersection = intersections.front();
+                auto p_shape = shape_element.split(intersection);
+                std::pair<ShapeElement, ShapeElement> p_hole;
+                if (shape_contact_shape_pos == -1) {
+                    p_hole = hole_contact_element.reverse().split(intersection);
+                } else {
+                    p_hole = hole_contact_element.split(intersection);
+                }
+                // Add first part of the shape element.
+                if (!equal(p_shape.first.start, p_shape.first.end))
+                    new_shape.elements.push_back(p_shape.first);
+                // Add first part of the hole element.
+                if (!equal(p_hole.second.start, p_hole.second.end))
+                    new_shape.elements.push_back(p_hole.second);
+                // Add hole.
+                if (shape_contact_shape_pos == -1) {
+                    for (ElementPos hole_element_pos_tmp = (ElementPos)hole.elements.size() - 1;
+                            hole_element_pos_tmp >= 1;
+                            --hole_element_pos_tmp) {
+                        ElementPos hole_element_pos = (hole_contact_element_pos + hole_element_pos_tmp) % hole.elements.size();
+                        const ShapeElement& hole_element = hole.elements[hole_element_pos];
+                        new_shape.elements.push_back(hole_element.reverse());
+                    }
+                } else {
+                    for (ElementPos hole_element_pos_tmp = 1;
+                            hole_element_pos_tmp < (ElementPos)hole.elements.size();
+                            ++hole_element_pos_tmp) {
+                        ElementPos hole_element_pos = (hole_contact_element_pos + hole_element_pos_tmp) % hole.elements.size();
+                        const ShapeElement& hole_element = hole.elements[hole_element_pos];
+                        new_shape.elements.push_back(hole_element);
+                    }
+                }
+                // Add second part of the hole element.
+                if (!equal(p_hole.first.start, p_hole.first.end))
+                    new_shape.elements.push_back(p_hole.first);
+                // Add second part of the element.
+                if (!equal(p_shape.second.start, p_shape.second.end))
+                    new_shape.elements.push_back(p_shape.second);
+            }
+        }
+        contact_shape = new_shape;
+        shape.holes[hole_pos].elements.clear();
+    }
+
+    // Remove bridged holes.
+    shape.holes.erase(
+            std::remove_if(
+                shape.holes.begin(),
+                shape.holes.end(),
+                [](const Shape& s) { return s.elements.empty(); }),
+            shape.holes.end());
+
+    return shape;
 }
 
 Shape ShapeWithHoles::bridge_holes() const

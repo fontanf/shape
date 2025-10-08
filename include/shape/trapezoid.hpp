@@ -534,6 +534,44 @@ public:
 
     GeneralizedTrapezoid clean() const;
 
+    /*
+     * Export
+     */
+
+    Shape to_shape() const
+    {
+        Shape shape;
+        {
+            ShapeElement element;
+            element.type = ShapeElementType::LineSegment;
+            element.start = {x_bottom_left(), y_bottom()};
+            element.end = {x_bottom_right(), y_bottom()};
+            shape.elements.push_back(element);
+        }
+        {
+            ShapeElement element;
+            element.type = ShapeElementType::LineSegment;
+            element.start = {x_bottom_right(), y_bottom()};
+            element.end = {x_top_right(), y_top()};
+            shape.elements.push_back(element);
+        }
+        {
+            ShapeElement element;
+            element.type = ShapeElementType::LineSegment;
+            element.start = {x_top_right(), y_top()};
+            element.end = {x_top_left(), y_top()};
+            shape.elements.push_back(element);
+        }
+        {
+            ShapeElement element;
+            element.type = ShapeElementType::LineSegment;
+            element.start = {x_top_left(), y_top()};
+            element.end = {x_bottom_left(), y_bottom()};
+            shape.elements.push_back(element);
+        }
+        return shape;
+    }
+
     std::string to_svg(
             const std::string color = "purple",
             double factor = 10) const
@@ -549,6 +587,30 @@ public:
             + " fill=\"" + color + "\""
             + " fill-opacity=\"0.2\""
             + "/>\n";
+    }
+
+    template <class basic_json>
+    static GeneralizedTrapezoid from_json(basic_json& json_element)
+    {
+        return GeneralizedTrapezoid(
+                json_element["y_bottom"],
+                json_element["y_top"],
+                json_element["x_bottom_left"],
+                json_element["x_bottom_right"],
+                json_element["x_top_left"],
+                json_element["x_top_right"]);
+    }
+
+    nlohmann::json to_json() const
+    {
+        nlohmann::json json;
+        json["y_bottom"] = y_bottom();
+        json["y_top"] = y_top();
+        json["x_bottom_left"] = x_bottom_left();
+        json["x_bottom_right"] = x_bottom_right();
+        json["x_top_left"] = x_top_left();
+        json["x_top_right"] = x_top_right();
+        return json;
     }
 
 private:

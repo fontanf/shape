@@ -104,6 +104,10 @@ Point operator*(
         LengthDbl scalar,
         const Point& point);
 
+Point operator/(
+        const Point& point,
+        LengthDbl scalar);
+
 LengthDbl norm(
         const Point& vector);
 
@@ -426,8 +430,13 @@ struct ShapeWithHoles
             bool strict = false) const;
 
     /**
+     * Bridge the touching holes.
+     */
+    ShapeWithHoles bridge_touching_holes() const;
+
+    /**
      * Bridge the holes to convert the ShapeWithHoles into a Shape without
-     * hoels.
+     * holes.
      */
     Shape bridge_holes() const;
 
