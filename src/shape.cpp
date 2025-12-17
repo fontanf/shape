@@ -1123,8 +1123,8 @@ bool Shape::contains(
             ray.end.x = (std::max)(point.x, element.center.x) + 2 * radius;
             ray.end.y = point.y;
 
-            std::vector<Point> intersections = compute_intersections(ray, element);
-            for (const Point& intersection: intersections) {
+            ShapeElementIntersectionsOutput intersections = compute_intersections(ray, element);
+            for (const Point& intersection: intersections.points) {
                 if (intersection.x < point.x)
                     continue;
                 //std::cout << "intersection " << intersection.to_string() << std::endl;
@@ -1791,7 +1791,7 @@ ShapeWithHoles ShapeWithHoles::bridge_touching_holes() const
                 auto intersections = compute_intersections(
                         shape_contact_element,
                         hole_contact_element);
-                const Point& intersection = intersections.front();
+                const Point& intersection = intersections.points.front();
                 auto p_shape = shape_element.split(intersection);
                 std::pair<ShapeElement, ShapeElement> p_hole;
                 if (shape_contact_shape_pos == -1) {
@@ -1888,7 +1888,7 @@ Shape ShapeWithHoles::bridge_holes() const
                     auto intersections = compute_intersections(
                             shape_contact_element,
                             hole_contact_element);
-                    const Point& intersection = intersections.front();
+                    const Point& intersection = intersections.points.front();
                     auto p_shape = shape_element.split(intersection);
                     auto p_hole = hole_contact_element.reverse().split(intersection);
                     // Add first part of the shape element.
@@ -1971,7 +1971,7 @@ Shape ShapeWithHoles::bridge_holes() const
                     element_0,
                     shape_element,
                     false);
-            for (const Point& intersection: intersections) {
+            for (const Point& intersection: intersections.points) {
                 if (shape_element_pos_best == -1
                         || strictly_lesser(intersection_best.x, intersection.x)) {
                     intersection_best = intersection;

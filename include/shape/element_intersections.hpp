@@ -11,7 +11,13 @@ std::pair<bool, Point> compute_line_intersection(
         const Point& p21,
         const Point& p22);
 
-std::vector<Point> compute_intersections(
+struct ShapeElementIntersectionsOutput
+{
+    bool overlap = false;
+    std::vector<Point> points;
+};
+
+ShapeElementIntersectionsOutput compute_intersections(
         const ShapeElement& element_1,
         const ShapeElement& element_2,
         bool strict = false);

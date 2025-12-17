@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shape/shape.hpp"
+#include "shape/element_intersections.hpp"
 
 #include "optimizationtools/containers/indexed_set.hpp"
 
@@ -56,7 +56,7 @@ public:
     {
         ElementPos element_id_1 = -1;
         ElementPos element_id_2 = -1;
-        std::vector<Point> intersections;
+        ShapeElementIntersectionsOutput intersections;
     };
 
     /** Get all the pairs of intersecting shape elements in the tree. */

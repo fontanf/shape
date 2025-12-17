@@ -136,7 +136,7 @@ namespace
 {
 
 // Helper function to compute line-line intersections
-std::vector<Point> compute_line_line_intersections(
+ShapeElementIntersectionsOutput compute_line_line_intersections(
         const ShapeElement& line1,
         const ShapeElement& line2,
         bool strict)
@@ -184,10 +184,6 @@ std::vector<Point> compute_line_line_intersections(
                         return point_1.x < point_2.x;
                     return point_1.y < point_2.y;
                 });
-        if (sorted_points[0] + sorted_points[1] == 1
-                || sorted_points[0] + sorted_points[1] == 5) {
-            return {};
-        }
 
         // Return the two interior points.
         const Point& point_1 =
@@ -200,7 +196,20 @@ std::vector<Point> compute_line_line_intersections(
             (sorted_points[2] == 1)? line1.end:
             (sorted_points[2] == 2)? line2.start:
             line2.end;
-        return {point_1, point_2};
+
+        if (sorted_points[0] + sorted_points[1] == 1
+                || sorted_points[0] + sorted_points[1] == 5) {
+            if (equal(point_1, point_2)) {
+                return {false, {point_1}};
+            } else {
+                return {};
+            }
+        }
+        if (equal(point_1, point_2)) {
+            return {false, {point_1}};
+        } else {
+            return {true, {point_1, point_2}};
+        }
     }
 
     if (strict) {
@@ -213,7 +222,7 @@ std::vector<Point> compute_line_line_intersections(
     }
 
     if (line1.contains(p.second) && line2.contains(p.second))
-        return {p.second};
+        return {false, {p.second}};
     return {};
 }
 
@@ -368,7 +377,7 @@ std::vector<Point> compute_line_arc_intersections(
 }
 
 // Helper function to compute arc-arc intersections
-std::vector<Point> compute_arc_arc_intersections(
+ShapeElementIntersectionsOutput compute_arc_arc_intersections(
         const ShapeElement& arc,
         const ShapeElement& arc_2,
         bool strict)
@@ -379,6 +388,22 @@ std::vector<Point> compute_arc_arc_intersections(
         if (strict)
             return {};
         if (equal(rsq, r2sq)) {
+            if (equal(arc.start, arc_2.start)
+                    && equal(arc.end, arc_2.end)) {
+                if (arc.orientation == arc_2.orientation) {
+                    return {true, {arc.start, arc.end}};
+                } else {
+                    return {false, {arc.start, arc.end}};
+                }
+            } else if (equal(arc.start, arc_2.end)
+                    && equal(arc.end, arc_2.start)) {
+                if (arc.orientation == arc_2.orientation) {
+                    return {false, {arc.start, arc.end}};
+                } else {
+                    return {true, {arc.start, arc.end}};
+                }
+            }
+
             std::vector<Point> intersections;
             if (arc.contains(arc_2.start))
                 intersections.push_back(arc_2.start);
@@ -394,7 +419,8 @@ std::vector<Point> compute_arc_arc_intersections(
                     && !equal(arc.end, arc.start)
                     && arc_2.contains(arc.end))
                 intersections.push_back(arc.end);
-            return intersections;
+            bool overlap = (intersections.size() == 2);
+            return {overlap, {intersections}};
         } else {
             return {};
         }
@@ -454,7 +480,7 @@ std::vector<Point> compute_arc_arc_intersections(
             p = arc_2.end;
         }
         if (arc.contains(p) && arc_2.contains(p)) {
-            return {p};
+            return {false, {p}};
         } else {
             return {};
         }
@@ -488,12 +514,12 @@ std::vector<Point> compute_arc_arc_intersections(
             intersections.push_back(p);
     }
 
-    return intersections;
+    return {false, intersections};
 }
 
 }
 
-std::vector<Point> shape::compute_intersections(
+ShapeElementIntersectionsOutput shape::compute_intersections(
         const ShapeElement& element_1,
         const ShapeElement& element_2,
         bool strict)
@@ -505,10 +531,10 @@ std::vector<Point> shape::compute_intersections(
     } else if (element_1.type == ShapeElementType::LineSegment
             && element_2.type == ShapeElementType::CircularArc) {
         // Line segment - Circular arc intersection
-        return compute_line_arc_intersections(element_1, element_2, strict);
+        return {false, compute_line_arc_intersections(element_1, element_2, strict)};
     } else if (element_1.type == ShapeElementType::CircularArc
             && element_2.type == ShapeElementType::LineSegment) {
-        return compute_line_arc_intersections(element_2, element_1, strict);
+        return {false, compute_line_arc_intersections(element_2, element_1, strict)};
     } else if (element_1.type == ShapeElementType::CircularArc
             && element_2.type == ShapeElementType::CircularArc) {
         // Circular arc - Circular arc intersection
@@ -539,7 +565,7 @@ bool shape::intersect(
                     element_1,
                     element_2,
                     true);
-            if (!intersections.empty()) {
+            if (!intersections.points.empty()) {
                 //write_json({{shape}}, {}, "intersect.json");
                 //std::cout << "shape " << shape.to_string(2) << std::endl;
                 //std::cout << "element " << element_pos << " " << element_1.to_string() << std::endl;
@@ -564,7 +590,7 @@ bool shape::intersect(
                     element_1,
                     element_2,
                     strict);
-            if (!intersections.empty())
+            if (!intersections.points.empty())
                 return true;
         }
     }
@@ -601,11 +627,11 @@ std::vector<ShapeShapeElementIntersection> shape::compute_intersections(
             shape_element_pos < (ElementPos)shape.elements.size();
             ++shape_element_pos) {
         const ShapeElement& shape_element = shape.elements[shape_element_pos];
-        std::vector<Point> intersections_cur = compute_intersections(
+        ShapeElementIntersectionsOutput intersections_cur = compute_intersections(
                 element,
                 shape_element,
                 strict);
-        for (Point point: intersections_cur) {
+        for (Point point: intersections_cur.points) {
             ShapeShapeElementIntersection intersection;
             intersection.element_pos = shape_element_pos;
             intersection.point = point;
@@ -672,7 +698,7 @@ bool shape::intersect(
                 element,
                 shape_element,
                 strict);
-        if (!intersections.empty())
+        if (!intersections.points.empty())
             return true;
     }
     Point middle = element.middle();
@@ -693,7 +719,7 @@ bool shape::intersect(
                     element_1,
                     element_2,
                     strict);
-            if (!intersections.empty())
+            if (!intersections.points.empty())
                 return true;
         }
 
@@ -703,7 +729,7 @@ bool shape::intersect(
                         element_1,
                         element_2,
                         strict);
-                if (!intersections.empty())
+                if (!intersections.points.empty())
                     return true;
             }
         }
@@ -718,7 +744,7 @@ bool shape::intersect(
                         element_1,
                         element_2,
                         strict);
-                if (!intersections.empty())
+                if (!intersections.points.empty())
                     return true;
             }
 
@@ -728,7 +754,7 @@ bool shape::intersect(
                             element_1,
                             element_2,
                             strict);
-                    if (!intersections.empty())
+                    if (!intersections.points.empty())
                         return true;
                 }
             }
@@ -779,7 +805,7 @@ bool shape::intersect(
                     element_1,
                     element_2,
                     strict);
-            if (!intersections.empty()) {
+            if (!intersections.points.empty()) {
                 //std::cout << "element_1 " << element_1.to_string() << std::endl;
                 //std::cout << "element_2 " << element_2.to_string() << std::endl;
                 //for (const Point& intersection: intersections)
@@ -800,7 +826,7 @@ bool shape::intersect(
                         element_1,
                         element_2,
                         strict);
-                if (!intersections.empty()) {
+                if (!intersections.points.empty()) {
                     //std::cout << "element_1 " << element_1.to_string() << std::endl;
                     //std::cout << "element_2 " << element_2.to_string() << std::endl;
                     //for (const Point& intersection: intersections)
@@ -854,7 +880,7 @@ bool shape::intersect(
                 element,
                 shape_element,
                 strict);
-        if (!intersections.empty())
+        if (!intersections.points.empty())
             return true;
     }
     for (const Shape& hole: shape.holes) {
@@ -863,7 +889,7 @@ bool shape::intersect(
                     element,
                     shape_element,
                     strict);
-            if (!intersections.empty())
+            if (!intersections.points.empty())
                 return true;
         }
     }

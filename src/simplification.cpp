@@ -624,8 +624,9 @@ std::vector<ShapeWithHoles> shape::simplify(
                 shape_new.holes.push_back(shape_tmp);
             } else {
                 auto difference_output = compute_difference({shape.shape}, approximated_shape.union_input);
-                for (const ShapeWithHoles& s: difference_output)
+                for (const ShapeWithHoles& s: difference_output) {
                     shape_new.holes.push_back(s.shape);
+                }
             }
         }
         shapes_new.push_back(shape_new);

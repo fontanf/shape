@@ -172,6 +172,22 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
 
     std::vector<GeneralizedTrapezoid> trapezoids;
 
+    if (!shape.shape.check()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid input shape.");
+    }
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)shape.holes.size();
+            ++hole_pos) {
+        const Shape& hole = shape.holes[hole_pos];
+        if (!hole.check()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "invalid input shape.");
+        }
+    }
+
     // Classify the vertices.
     std::vector<std::vector<Vertex>> vertices;
     for (ShapePos shape_pos = 0;

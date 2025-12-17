@@ -406,7 +406,7 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
         if (shape::intersect(this->shape(shape_id), element, strict))
             output.shape_ids.push_back(shape_id);
     for (ElementPos element_id: potentially_intersecting_elements_)
-        if (!compute_intersections(this->element(element_id), element, strict).empty())
+        if (!compute_intersections(this->element(element_id), element, strict).points.empty())
             output.element_ids.push_back(element_id);
     if (!strict) {
         for (ShapePos point_id: potentially_intersecting_points_)
@@ -540,7 +540,7 @@ std::vector<IntersectionTree::ElementElementIntersection> IntersectionTree::comp
         auto intersections = shape::compute_intersections(
                 this->element(p.first),
                 this->element(p.second), strict);
-        if (!intersections.empty()) {
+        if (!intersections.points.empty()) {
             ElementElementIntersection intersection;
             intersection.element_id_1 = p.first;
             intersection.element_id_2 = p.second;
