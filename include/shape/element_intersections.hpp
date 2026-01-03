@@ -13,16 +13,23 @@ std::pair<bool, Point> compute_line_intersection(
 
 struct ShapeElementIntersectionsOutput
 {
-    bool overlap = false;
-    std::vector<Point> points;
+    std::vector<ShapeElement> overlapping_parts;
+
+    std::vector<Point> improper_intersections;
+
+    std::vector<Point> proper_intersections;
 };
 
 ShapeElementIntersectionsOutput compute_intersections(
         const ShapeElement& element_1,
+        const ShapeElement& element_2);
+
+bool intersect(
+        const ShapeElement& element_1,
         const ShapeElement& element_2,
         bool strict = false);
 
-bool intersect(
+bool strictly_intersect(
         const Shape& shape);
 
 bool intersect(
@@ -42,7 +49,7 @@ struct ShapeShapeElementIntersection
 {
     ElementPos element_pos = -1;
 
-    Point point = {0, 0};
+    ShapeElementIntersectionsOutput intersections;
 };
 
 /**
@@ -54,8 +61,7 @@ struct ShapeShapeElementIntersection
  */
 std::vector<ShapeShapeElementIntersection> compute_intersections(
         const Shape& shape,
-        const ShapeElement& element,
-        bool strict = false);
+        const ShapeElement& element);
 
 struct ComputeClosestToShapeElementStartIntersectionOutput
 {
@@ -70,12 +76,12 @@ struct ComputeClosestToShapeElementStartIntersectionOutput
 
 /**
  * Compute the intersection points between an element and the elements of a
- * shape which are the closest from the element's ends.
+ * shape which are the closest from the element's start.
  */
 ComputeClosestToShapeElementStartIntersectionOutput compute_closest_to_start_intersection(
         const ShapeElement& element,
         const Shape& shape,
-        bool strict = false);
+        bool proper = false);
 
 bool intersect(
         const Shape& shape_1,
@@ -105,28 +111,28 @@ bool intersect(
 
 inline bool intersect(
         const ShapeElement& element,
-        const ShapeWithHoles& shape,
+        const ShapeWithHoles& shape_with_holes,
         bool strict = false)
 {
-    return intersect(shape, element, strict);
+    return intersect(shape_with_holes, element, strict);
 }
 
 bool intersect(
-        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_with_holes_1,
         const Shape& shape_2,
         bool strict = false);
 
 inline bool intersect(
         const Shape& shape_1,
-        const ShapeWithHoles& shape_2,
+        const ShapeWithHoles& shape_with_holes_2,
         bool strict = false)
 {
-    return intersect(shape_2, shape_1, strict);
+    return intersect(shape_with_holes_2, shape_1, strict);
 }
 
 bool intersect(
-        const ShapeWithHoles& shape_1,
-        const ShapeWithHoles& shape_2,
+        const ShapeWithHoles& shape_with_holes_1,
+        const ShapeWithHoles& shape_with_holes_2,
         bool strict = false);
 
 }

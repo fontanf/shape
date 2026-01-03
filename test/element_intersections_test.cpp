@@ -16,7 +16,6 @@ struct ComputeIntersectionsTestParams
 {
     ShapeElement element_1;
     ShapeElement element_2;
-    bool strict = false;
     ShapeElementIntersectionsOutput expected_result;
 
     template <class basic_json>
@@ -26,10 +25,12 @@ struct ComputeIntersectionsTestParams
         ComputeIntersectionsTestParams test_params;
         test_params.element_1 = ShapeElement::from_json(json_item["element_1"]);
         test_params.element_2 = ShapeElement::from_json(json_item["element_2"]);
-        test_params.strict = json_item["strict"];
-        test_params.expected_result.overlap = json_item["expected_result"]["overlap"];
-        for (auto& json_point: json_item["expected_result"]["points"].items())
-            test_params.expected_result.points.emplace_back(Point::from_json(json_point.value()));
+        for (auto& json_element: json_item["expected_result"]["overlapping_parts"].items())
+            test_params.expected_result.overlapping_parts.emplace_back(ShapeElement::from_json(json_element.value()));
+        for (auto& json_point: json_item["expected_result"]["improper_intersections"].items())
+            test_params.expected_result.improper_intersections.emplace_back(Point::from_json(json_point.value()));
+        for (auto& json_point: json_item["expected_result"]["proper_intersections"].items())
+            test_params.expected_result.proper_intersections.emplace_back(Point::from_json(json_point.value()));
         return test_params;
     }
 
@@ -56,32 +57,52 @@ TEST_P(ComputeIntersectionsTest, ComputeIntersections)
     ComputeIntersectionsTestParams test_params = GetParam();
     std::cout << "element_1 " << test_params.element_1.to_string() << std::endl;
     std::cout << "element_2 " << test_params.element_2.to_string() << std::endl;
-    std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expected_result.overlap " << test_params.expected_result.overlap << std::endl;
-    std::cout << "expected_result.points" << std::endl;
-    for (const Point& point: test_params.expected_result.points)
+    std::cout << "expected_result.overlapping_parts" << std::endl;
+    for (const ShapeElement& overlapping_part: test_params.expected_result.overlapping_parts)
+        std::cout << "- " << overlapping_part.to_string() << std::endl;
+    std::cout << "expected_result.impropoer_intersections" << std::endl;
+    for (const Point& point: test_params.expected_result.improper_intersections)
+        std::cout << "- " << point.to_string() << std::endl;
+    std::cout << "expected_result.propoer_intersections" << std::endl;
+    for (const Point& point: test_params.expected_result.proper_intersections)
         std::cout << "- " << point.to_string() << std::endl;
 
     ShapeElementIntersectionsOutput intersections = compute_intersections(
             test_params.element_1,
-            test_params.element_2,
-            test_params.strict);
-    std::cout << "result.overlap " << intersections.overlap << std::endl;
-    std::cout << "result.points" << std::endl;
-    for (const Point& point: intersections.points) {
-        std::cout << "- " << std::setprecision(15) << point.x
-            << " " << std::setprecision(15) << point.y
-            << std::endl;
-    }
+            test_params.element_2);
+    std::cout << "result.overlapping_parts" << std::endl;
+    for (const ShapeElement& overlapping_part: intersections.overlapping_parts)
+        std::cout << "- " << overlapping_part.to_string() << std::endl;
+    std::cout << "result.improper_intersections" << std::endl;
+    for (const Point& point: intersections.improper_intersections)
+        std::cout << "- " << point.to_string() << std::endl;
+    std::cout << "result.proper_intersections" << std::endl;
+    for (const Point& point: intersections.proper_intersections)
+        std::cout << "- " << point.to_string() << std::endl;
 
-    ASSERT_EQ(intersections.overlap, test_params.expected_result.overlap);
-    ASSERT_EQ(intersections.points.size(), test_params.expected_result.points.size());
-    for (const Point& expected_intersection: test_params.expected_result.points) {
+    ASSERT_EQ(intersections.overlapping_parts.size(), test_params.expected_result.overlapping_parts.size());
+    for (const auto& expected_intersection: test_params.expected_result.overlapping_parts) {
         EXPECT_NE(std::find_if(
-                    intersections.points.begin(),
-                    intersections.points.end(),
+                    intersections.overlapping_parts.begin(),
+                    intersections.overlapping_parts.end(),
+                    [&expected_intersection](const ShapeElement& overlapping_part) { return equal(overlapping_part, expected_intersection); }),
+                intersections.overlapping_parts.end());
+    }
+    ASSERT_EQ(intersections.improper_intersections.size(), test_params.expected_result.improper_intersections.size());
+    for (const Point& expected_intersection: test_params.expected_result.improper_intersections) {
+        EXPECT_NE(std::find_if(
+                    intersections.improper_intersections.begin(),
+                    intersections.improper_intersections.end(),
                     [&expected_intersection](const Point& point) { return equal(point, expected_intersection); }),
-                intersections.points.end());
+                intersections.improper_intersections.end());
+    }
+    ASSERT_EQ(intersections.proper_intersections.size(), test_params.expected_result.proper_intersections.size());
+    for (const Point& expected_intersection: test_params.expected_result.proper_intersections) {
+        EXPECT_NE(std::find_if(
+                    intersections.proper_intersections.begin(),
+                    intersections.proper_intersections.end(),
+                    [&expected_intersection](const Point& point) { return equal(point, expected_intersection); }),
+                intersections.proper_intersections.end());
     }
 }
 
@@ -92,229 +113,225 @@ INSTANTIATE_TEST_SUITE_P(
             {  // Non-intersecting line segments
                 build_line_segment({0, 0}, {0, 1}),
                 build_line_segment({1, 0}, {1, 1}),
-                false,
-                {false, {}},
+                {{}, {}, {}},
+            }, {  // Non-intersecting line segments
+                build_line_segment({11, 1}, {10, 2}),
+                build_line_segment({9, 3}, {11, 3}),
+                {{}, {}, {}},
             }, {  // Simple line segment intersection.
                 build_line_segment({1, 0}, {1, 2}),
                 build_line_segment({0, 1}, {2, 1}),
-                false,
-                {false, {{1, 1}}},
+                {{}, {}, {{1, 1}}},
             }, {  // One line segment touching another.
                 build_line_segment({0, 0}, {0, 2}),
                 build_line_segment({0, 1}, {2, 1}),
-                false,
-                {false, {{0, 1}}},
-            }, {  // One line segment touching another (strict).
-                build_line_segment({0, 0}, {0, 2}),
-                build_line_segment({0, 1}, {2, 1}),
-                true,
-                {false, {}},
+                {{}, {{0, 1}}, {}},
             }, {  // Two identical line segments.
                 build_line_segment({0, 0}, {0, 2}),
                 build_line_segment({0, 0}, {0, 2}),
-                false,
-                {true, {{0, 0}, {0, 2}}},
+                {{build_line_segment({0, 0}, {0, 2})}, {}, {}},
             }, {  // Two identical line segments (reversed).
                 build_line_segment({0, 0}, {0, 2}),
                 build_line_segment({0, 2}, {0, 0}),
-                false,
-                {true, {{0, 0}, {0, 2}}},
-            }, {  // Two identical line segments (reversed) (strict).
-                build_line_segment({0, 0}, {0, 2}),
-                build_line_segment({0, 0}, {0, 2}),
-                true,
-                {false, {}},
+                {{build_line_segment({0, 0}, {0, 2})}, {}, {}},
             }, {  // Two overlapping line segments.
                 build_line_segment({0, 0}, {0, 3}),
                 build_line_segment({0, 1}, {0, 4}),
-                false,
-                {true, {{0, 1}, {0, 3}}},
-            }, {  // Two overlapping line segments (strict).
-                build_line_segment({0, 0}, {0, 3}),
-                build_line_segment({0, 1}, {0, 4}),
-                true,
-                {false, {}},
+                {{build_line_segment({0, 1}, {0, 3})}, {}, {}},
             }, {  // Two touching colinear line segments.
                 build_line_segment({0, 0}, {0, 1}),
                 build_line_segment({0, 1}, {0, 2}),
-                false,
-                {false, {{0, 1}}},
+                {{}, {{0, 1}}, {}},
             }, {  // Non-intersecting line segment and circular arc.
                 build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_line_segment({2, 0}, {2, 2}),
-                false,
-                {false, {}},
+                {{}, {}, {}},
             }, {  // Non-intersecting line segment and circular arc.
                 build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_line_segment({1, 1}, {2, 1}),
-                false,
-                {false, {}},
+                {{}, {}, {}},
             }, {  // Non-intersecting line segment and circular arc.
                 build_circular_arc({2, 0}, {0, 2}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_line_segment({2, 1}, {3, 1}),
-                false,
-                {false, {}},
+                {{}, {}, {}},
+            }, {  // Non-intersecting line segment and circular arc.
+                build_line_segment({15, 0}, {35, 0}),
+                build_circular_arc({2.5, -9.682458365518542}, {2.5, 9.682458365518542}, {5, 0}, ShapeElementOrientation::Clockwise),
+                {{}, {}, {}},
             }, {  // Intersecting line segment and circular arc.
                 build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_line_segment({0, 0}, {0, 2}),
-                false,
-                {false, {{0, 1}}},
+                {{}, {}, {{0, 1}}},
             }, {  // Intersecting line segment and circular arc.
                 build_circular_arc({-1, 0}, {1, 0}, {0, 0}, ShapeElementOrientation::Clockwise),
                 build_line_segment({0, 0}, {0, 2}),
-                false,
-                {false, {{0, 1}}},
+                {{}, {}, {{0, 1}}},
             }, {  // Intersecting line segment and circular arc at two points.
                 build_line_segment({-1, -2}, {-1, 2}),
                 build_circular_arc({1, 1}, {1, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                false,
-                {false, {{-1, -1}, {-1, 1}}},
+                {{}, {}, {{-1, -1}, {-1, 1}}},
             }, {
                 build_line_segment({39.2075327238964, 921.938482687602}, {39.2004011663701, 921.949097066976}),
                 build_circular_arc({39.2075268512914, 921.938491537799}, {39.2075327238964, 921.938482687602}, {39.2066965548415, 921.937934215805}, ShapeElementOrientation::Clockwise),
-                true,
-                {false, {}},
+                {{}, {{39.2075327238964, 921.938482687602}}, {}},
             }, {
                 build_line_segment({398683.828041/(1<<14), 9213001.274628/(1<<14)}, {398845.790901/(1<<14), 9213041.800811/(1<<14)}),
                 build_circular_arc({398645.799546/(1<<14), 9213137.752427/(1<<14)}, {398972.799200/(1<<14), 9213016.000000/(1<<14)}, {398972.799200/(1<<14), 9213516.000000/(1<<14)}, ShapeElementOrientation::Anticlockwise),
-                false,
-                {false, {{398828.138764737/(1<<14), 9213037.38391307/(1<<14)}}},
+                {{}, {}, {{398828.138764737/(1<<14), 9213037.38391307/(1<<14)}}},
             }, {  // Touching line segment and circular arc.
                 build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_line_segment({-1, 1}, {1, 1}),
-                false,
-                {false, {{0, 1}}},
-            }, {  // Touching line segment and circular arc (strict).
-                build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                build_line_segment({-1, 1}, {1, 1}),
-                true,
-                {false, {}},
+                {{}, {{0, 1}}, {}},
             }, {  // Touching line segment and circular arc at two points.
                 build_line_segment({2, 0}, {-2, 0}),
                 build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                false,
-                {false, {{1, 0}, {-1, 0}}},
-            }, {  // Touching line segment and circular arc at two points (strict).
-                build_line_segment({2, 0}, {-2, 0}),
-                build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                true,
-                {false, {}},
+                {{}, {{1, 0}, {-1, 0}}, {}},
             }, {  // Touching line segment and circular arc.
                 build_circular_arc({5, -1}, {7, -3}, {7, -1}, ShapeElementOrientation::Anticlockwise),
                 build_line_segment({6, 5}, {7, -3}),
-                true,
-                {false, {}},
-            }, {  // Touching line segment and circular arc.
-                build_circular_arc({5, -1}, {7, -3}, {7, -1}, ShapeElementOrientation::Anticlockwise),
-                build_line_segment({6, 5}, {7, -3}),
-                false,
-                {false, {{7, -3}}},
+                {{}, {{7, -3}}, {}},
             }, {  // Non-intersecting circular arcs.
                 build_circular_arc({2, 0}, {0, 2}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({3, 0}, {1, 2}, {1, 0}, ShapeElementOrientation::Anticlockwise),
-                false,
-                {false, {}},
+                {{}, {}, {}},
             }, {  // Intersecting circular arcs.
                 build_circular_arc({3, 0}, {-1, 0}, {1, 0}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({1, 0}, {-3, 0}, { -1, 0}, ShapeElementOrientation::Anticlockwise),
-                false,
-                {false, {{0, 1.73205080756888}}},
+                {{}, {}, {{0, 1.73205080756888}}},
             }, {  // Intersecting circular arcs.
                 build_circular_arc({3, 0}, {-1, 0}, {1, 0}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({-3, 0}, {1, 0}, {-1, 0}, ShapeElementOrientation::Clockwise),
-                false,
-                {false, {{0, 1.73205080756888}}},
+                {{}, {}, {{0, 1.73205080756888}}},
             }, {  // Intersecting circular arcs.
                 build_circular_arc({-1, 0}, {3, 0}, {1, 0}, ShapeElementOrientation::Clockwise),
                 build_circular_arc({-3, 0}, {1, 0}, {-1, 0}, ShapeElementOrientation::Clockwise),
-                false,
-                {false, {{0, 1.73205080756888}}},
+                {{}, {}, {{0, 1.73205080756888}}},
             }, {  // Intersecting circular arcs at two points.
                 build_circular_arc({-2, 1}, {-2, -1}, {-1, 0}, ShapeElementOrientation::Clockwise),
                 build_circular_arc({2, 1}, {2, -1}, {1, 0}, ShapeElementOrientation::Anticlockwise),
-                false,
-                {false, {{0, -1}, {0, 1}}},
+                {{}, {}, {{0, -1}, {0, 1}}},
             }, {  // Touching circular arcs.
                 build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({-1, 0}, {1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                false,
-                {false, {{1, 0}, {-1, 0}}},
-            }, {  // Touching circular arcs (strict).
-                build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                build_circular_arc({-1, 0}, {1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                true,
-                {false, {}},
+                {{}, {{1, 0}, {-1, 0}}, {}},
             }, {  // Identical circular arcs.
                 build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                false,
-                {true, {{1, 0}, {-1, 0}}},
-            }, {  // Identical circular arcs (strict).
-                build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                true,
-                {false, {}},
+                {{build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise)}, {}, {}},
             }, {  // Identical circular arcs (reversed).
                 build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({-1, 0}, {1, 0}, {0, 0}, ShapeElementOrientation::Clockwise),
-                false,
-                {true, {{1, 0}, {-1, 0}}},
-            }, {  // Identical circular arcs (reversed) (strict).
-                build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                build_circular_arc({-1, 0}, {1, 0}, {0, 0}, ShapeElementOrientation::Clockwise),
-                true,
-                {false, {}},
+                {{build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise)}, {}, {}},
             }, {  // Overlapping circular arcs.
                 build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({0, 1}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                false,
-                {true, {{0, 1}, {-1, 0}}},
-            }, {  // Overlapping circular arcs (strict).
-                build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                build_circular_arc({0, 1}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
-                true,
-                {false, {}},
+                {{build_circular_arc({1, 0}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise)}, {}, {}},
             }, {
                 build_line_segment({1.96721311, -0.78740157}, {60.98360656, -0.78740157}),
                 build_circular_arc({1.941450017182601, -0.7869799841717368}, {1.96721311, -0.78740157}, {1.96721311, 0}, ShapeElementOrientation::Anticlockwise),
-                false,
-                {false, {{1.96721311, -0.78740157}}},
+                {{}, {{1.96721311, -0.78740157}}, {}},
             }, {
                 build_circular_arc({1, 0}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_line_segment({-2, 0}, {1, 0}),
-                false,
-                {false, {{1, 0}, {-1, 0}}},
+                {{}, {{1, 0}}, {{-1, 0}}},
             }, {
                 build_circular_arc({1, 0}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_line_segment({1, 0}, {1, 1}),
-                false,
-                {false, {{1, 0}}},
+                {{}, {{1, 0}}, {}},
             }, {
                 build_line_segment({23.5210023, 10.26937568}, {23.62204724, 11.81102362}),
                 build_line_segment({23.62204724, 14.18786926646811}, {23.62204724, 11.81102362}),
-                true,
-                {false, {}},
+                {{}, {{23.62204724, 11.81102362}}, {}},
             }, {
                 build_line_segment({23.62204724, 11.81102362}, {23.62204724, 23.62204724}),
                 build_line_segment({27.43352932, 18.85373163}, {23.62204724, 14.18786926646811}),
-                true,
-                {false, {}},
+                {{}, {{23.62204724, 14.18786926646811}}, {}},
             }, {
                 build_line_segment({6.146061335761145, 4.1594407268466}, {6.354632555761145, 4.0610510468466}),
                 build_line_segment({6.180307632126364, 3.737782318431193}, {6.180307632126364, 4.143285659332687}),
-                true,
-                {false, {}},
+                {{}, {{6.180307632126364, 4.143285659332687}}, {}},
             }, {
                 build_line_segment({100, 150}, {0, 0}),
                 build_line_segment({33.33333333333334, 50}, {50, 75}),
-                true,
-                {false, {}},
+                {{}, {}, {}},
             }, {  // Overlapping line segments with numerical issues.
                 build_line_segment({56.45661773889309, 154.3210357234225}, {74.21458856416608, 160.7844084041661}),
                 build_line_segment({67.70333256416608, 158.4145050441661}, {85.46130335612965, 164.8778778164265}),
-                true,
-                {false, {}},
+                {{}, {}, {}},
             }}));
+
+
+struct IntersectShapeTestParams
+{
+    Shape shape;
+    bool expected_result;
+
+
+    template <class basic_json>
+    static IntersectShapeTestParams from_json(basic_json& json_item)
+    {
+        IntersectShapeTestParams test_params;
+        test_params.shape = Shape::from_json(json_item["shape"]);
+        test_params.expected_result = json_item["expected_result"];
+        return test_params;
+    }
+
+    static IntersectShapeTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
+};
+
+class IntersectShapeTest: public testing::TestWithParam<IntersectShapeTestParams> { };
+
+TEST_P(IntersectShapeTest, IntersectShape)
+{
+    IntersectShapeTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    std::cout << "expected_result " << test_params.expected_result << std::endl;
+    //write_json({{test_params.shape}}, {}, "intersect_input.json");
+
+    bool result = strictly_intersect(
+            test_params.shape);
+    std::cout << "result " << result << std::endl;
+
+    EXPECT_EQ(result, test_params.expected_result);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        IntersectShapeTest,
+        testing::ValuesIn(std::vector<IntersectShapeTestParams>{
+            {
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                false,
+            }, {
+                build_shape({{0, 0}, {2, 2}, {2, 0}, {0, 2}}),
+                true,
+            }, {
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}, {0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                true,
+            }, {
+                build_shape({{0, 0}, {4, 0}, {4, 4}, {2, 4}, {2, 3}, {3, 3}, {3, 2}, {1, 2}, {1, 3}, {2, 3}, {2, 4}, {0, 4}}),
+                false,
+            }, {
+                build_shape({{0, 0}, {6, 0}, {3, 2}, {2, 1}, {4, 1}, {3, 2}}),
+                true,
+            }, {
+                build_shape({{0, 0}, {6, 0}, {3, 2}, {4, 1}, {2, 1}, {3, 2}}),
+                false,
+            }}));
+
 
 struct IntersectShapeShapeElementTestParams
 {
@@ -360,7 +377,7 @@ TEST_P(IntersectShapeShapeElementTest, IntersectShapeShapeElement)
     std::cout << "element " << test_params.element.to_string() << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_result " << test_params.expected_result << std::endl;
-    write_json({{test_params.shape}}, {test_params.element}, "intersect_input.json");
+    //write_json({{test_params.shape}}, {test_params.element}, "intersect_input.json");
 
     bool result = intersect(
             test_params.shape,
@@ -489,3 +506,196 @@ INSTANTIATE_TEST_SUITE_P(
             IntersectShapeShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "element_intersections" / "shape_shape" / "0.json").string()),
             }));
+
+
+struct IntersectShapeWithHolesShapeTestParams
+{
+    ShapeWithHoles shape_1;
+    Shape shape_2;
+    bool strict = false;
+    bool expected_result;
+
+
+    template <class basic_json>
+    static IntersectShapeWithHolesShapeTestParams from_json(
+            basic_json& json_item)
+    {
+        IntersectShapeWithHolesShapeTestParams test_params;
+        test_params.shape_1 = ShapeWithHoles::from_json(json_item["shape_1"]);
+        test_params.shape_2 = Shape::from_json(json_item["shape_2"]);
+        test_params.strict = json_item["strict"];
+        test_params.expected_result = json_item["expected_result"];
+        return test_params;
+    }
+
+    static IntersectShapeWithHolesShapeTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
+};
+
+class IntersectShapeWithHolesShapeTest: public testing::TestWithParam<IntersectShapeWithHolesShapeTestParams> { };
+
+TEST_P(IntersectShapeWithHolesShapeTest, IntersectShapeWithHolesShape)
+{
+    IntersectShapeWithHolesShapeTestParams test_params = GetParam();
+    std::cout << "shape_1 " << test_params.shape_1.to_string(0) << std::endl;
+    std::cout << "shape_2 " << test_params.shape_2.to_string(0) << std::endl;
+    std::cout << "strict " << test_params.strict << std::endl;
+    std::cout << "expected_result " << test_params.expected_result << std::endl;
+    //write_json({test_params.shape_1, {test_params.shape_2}}, {}, "intersect_input.json");
+
+    bool result = intersect(
+            test_params.shape_1,
+            test_params.shape_2,
+            test_params.strict);
+    std::cout << "result " << result << std::endl;
+
+    EXPECT_EQ(result, test_params.expected_result);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        IntersectShapeWithHolesShapeTest,
+        testing::ValuesIn(std::vector<IntersectShapeWithHolesShapeTestParams>{
+            {
+                {
+                    build_shape({{500, 500}, {0, 500}, {0, 0}, {500, 0}}),
+                    {build_shape({{100, 100}, {400, 100}, {400, 400}, {100, 400}})}
+                },
+                build_shape({{100, 200}, {200, 200}, {200, 400}, {100, 400}}),
+                true,
+                false,
+            }, {
+                {
+                    build_circle(10).shift(5, 0),
+                },
+                build_shape({
+                        {2.5, -9.682458365518542},
+                        {5, 0, -1},
+                        {2.5, 9.682458365518542},
+                        {0, 0, 1}}),
+                true,
+                false,
+            }, {
+                {
+                    build_shape({{0, 0}, {3, 0}, {3, 1}, {1, 1}, {1, 2}, {3, 2}, {3, 3}, {0, 3}}),
+                },
+                build_shape({{1, 1}, {2, 1}, {3, 1}, {4, 1}, {4, 2}, {3, 2}, {2, 2}, {1, 2}}),
+                true,
+                false,
+            }, {
+                {
+                    build_shape({{2, 0}, {5, 0}, {5, 3}, {2, 3}, {2, 2}, {4, 2}, {4, 1}, {2, 1}}),
+                },
+                build_shape({{1, 1}, {2, 1}, {3, 1}, {4, 1}, {4, 2}, {3, 2}, {2, 2}, {1, 2}}),
+                true,
+                false,
+            }, {
+                {
+                    build_circle(10),
+                },
+                build_shape({
+                        {2.5, -9.682458365518542},
+                        {5, 0, 1},
+                        {2.5, 9.682458365518542},
+                        {0, 0, -1}}),
+                true,
+                false,
+            }, {
+                {
+                    build_shape({
+                            {19.68503937, 17.7480315},
+                            {19.68503937, 15.7480315, 1},
+                            {17.68503937, 15.7480315},
+                            {19.68503937, 15.7480315}}),
+                },
+                build_shape({
+                        {5.93700787, 5.93700787},
+                        {17.68503937, 5.93700787},
+                        {17.68503937, 15.7480315},
+                        {19.68503937, 15.7480315, -1},
+                        {5.93700787, 17.68503937}}),
+                true,
+                false,
+            }}));
+
+
+struct IntersectShapeWithHolesShapeWithHolesTestParams
+{
+    ShapeWithHoles shape_1;
+    ShapeWithHoles shape_2;
+    bool strict = false;
+    bool expected_result;
+
+
+    template <class basic_json>
+    static IntersectShapeWithHolesShapeWithHolesTestParams from_json(
+            basic_json& json_item)
+    {
+        IntersectShapeWithHolesShapeWithHolesTestParams test_params;
+        test_params.shape_1 = ShapeWithHoles::from_json(json_item["shape_1"]);
+        test_params.shape_2 = ShapeWithHoles::from_json(json_item["shape_2"]);
+        test_params.strict = json_item["strict"];
+        test_params.expected_result = json_item["expected_result"];
+        return test_params;
+    }
+
+    static IntersectShapeWithHolesShapeWithHolesTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
+};
+
+class IntersectShapeWithHolesShapeWithHolesTest: public testing::TestWithParam<IntersectShapeWithHolesShapeWithHolesTestParams> { };
+
+TEST_P(IntersectShapeWithHolesShapeWithHolesTest, IntersectShapeWithHolesShapeWithHoles)
+{
+    IntersectShapeWithHolesShapeWithHolesTestParams test_params = GetParam();
+    std::cout << "shape_1 " << test_params.shape_1.to_string(0) << std::endl;
+    std::cout << "shape_2 " << test_params.shape_2.to_string(0) << std::endl;
+    std::cout << "strict " << test_params.strict << std::endl;
+    std::cout << "expected_result " << test_params.expected_result << std::endl;
+
+    bool result = intersect(
+            test_params.shape_1,
+            test_params.shape_2,
+            test_params.strict);
+    std::cout << "result " << result << std::endl;
+
+    EXPECT_EQ(result, test_params.expected_result);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        IntersectShapeWithHolesShapeWithHolesTest,
+        testing::ValuesIn(std::vector<IntersectShapeWithHolesShapeWithHolesTestParams>{
+            {
+                {build_shape({{100, 200}, {200, 200}, {200, 400}, {100, 400}})},
+                {
+                    build_shape({{500, 500}, {0, 500}, {0, 0}, {500, 0}}),
+                    {build_shape({{100, 100}, {400, 100}, {400, 400}, {100, 400}})}
+                },
+                true,
+                false,
+            }}));

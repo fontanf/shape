@@ -7,7 +7,7 @@
 using namespace shape;
 
 
-struct ComputeBooleanUnionTestParams : TestParams<ComputeBooleanUnionTestParams>
+struct ComputeBooleanUnionTestParams: TestParams<ComputeBooleanUnionTestParams>
 {
     std::vector<ShapeWithHoles> shapes;
     std::vector<ShapeWithHoles> expected_result;
@@ -76,7 +76,7 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(ComputeBooleanUnionTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "union").string())));
 
 
-struct ComputeBooleanIntersectionTestParams : TestParams<ComputeBooleanIntersectionTestParams>
+struct ComputeBooleanIntersectionTestParams: TestParams<ComputeBooleanIntersectionTestParams>
 {
     std::vector<ShapeWithHoles> shapes;
     std::vector<ShapeWithHoles> expected_result;

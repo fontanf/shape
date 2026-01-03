@@ -78,6 +78,8 @@ struct Point
 
     Point rotate(Angle angle) const;
 
+    Point rotate(const Point& center, Angle angle) const;
+
     Point rotate_radians(Angle angle) const;
 
     Point rotate_radians(const Point& center, Angle angle) const;
@@ -201,6 +203,25 @@ char orientation2char(ShapeElementOrientation type);
 ShapeElementOrientation opposite(ShapeElementOrientation orientation);
 
 /**
+ * Structure for a jet of an element.
+ */
+struct Jet
+{
+    /** Angle of the tangent. */
+    Angle tangent_angle = 0.0;
+
+    /** Curvature. */
+    LengthDbl curvature = 0.0;
+
+
+    std::string to_string() const;
+};
+
+Jet operator-(
+        const Jet& jet_1,
+        const Jet& jet_2);
+
+/**
  * Structure for the elementary elements composing a shape.
  */
 struct ShapeElement
@@ -220,11 +241,12 @@ struct ShapeElement
     /** If the element is a CircularArc, direction of the rotation. */
     ShapeElementOrientation orientation = ShapeElementOrientation::Anticlockwise;
 
-    /** Length of the element. */
-    LengthDbl length() const;
 
     /** Check if a point is on the element. */
     bool contains(const Point& point) const;
+
+    /** Length of the element. */
+    LengthDbl length() const;
 
     /**
      * Compute the length between the start of the element and a given point.
@@ -232,6 +254,14 @@ struct ShapeElement
      * The element must contain the given point.
      */
     LengthDbl length(const Point& point) const;
+
+    /** Jet of the element. */
+    Jet jet(
+            const Point& point,
+            bool reverse) const;
+
+    bool same_direction(
+            const ShapeElement& overlapping_part) const;
 
     ShapeElement& shift(
             LengthDbl x,
@@ -248,7 +278,12 @@ struct ShapeElement
     ShapeElement reverse() const;
 
     /** Get the middle point on the element. */
-    Point middle() const;
+    Point middle() const { return middle(this->start, this->end); };
+
+    /** Get the middle point between two points on the element. */
+    Point middle(
+            const Point& point_1,
+            const Point& point_2) const;
 
     /** Compute the smallest and greatest x and y of the shape. */
     std::pair<Point, Point> min_max() const;
@@ -320,6 +355,15 @@ std::string shape2str(ShapeType type);
 
 struct ShapePoint
 {
+    ElementPos element_pos = -1;
+
+    Point point = {0, 0};
+};
+
+struct ShapeWithHolesPoint
+{
+    ShapePos shape_pos = -2;
+
     ElementPos element_pos = -1;
 
     Point point = {0, 0};
@@ -579,6 +623,18 @@ inline bool equal(
 {
     return equal(point_1.x, point_2.x) && equal(point_1.y, point_2.y);
 }
+
+bool operator==(
+        const Jet& jet_1,
+        const Jet& jet_2);
+
+bool equal(
+        const Jet& jet_1,
+        const Jet& jet_2);
+
+bool strictly_greater(
+        const Jet& jet_1,
+        const Jet& jet_2);
 
 bool operator==(
         const ShapeElement& element_1,

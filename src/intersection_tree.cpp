@@ -405,9 +405,23 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     for (ShapePos shape_id: potentially_intersecting_shapes_)
         if (shape::intersect(this->shape(shape_id), element, strict))
             output.shape_ids.push_back(shape_id);
-    for (ElementPos element_id: potentially_intersecting_elements_)
-        if (!compute_intersections(this->element(element_id), element, strict).points.empty())
-            output.element_ids.push_back(element_id);
+    if (strict) {
+        for (ElementPos element_id: potentially_intersecting_elements_) {
+            ShapeElementIntersectionsOutput intersections = compute_intersections(this->element(element_id), element);
+            if (!intersections.improper_intersections.empty())
+                output.element_ids.push_back(element_id);
+        }
+    } else {
+        for (ElementPos element_id: potentially_intersecting_elements_) {
+            ShapeElementIntersectionsOutput intersections = compute_intersections(this->element(element_id), element);
+            if (!intersections.overlapping_parts.empty()
+                    || !intersections.improper_intersections.empty()
+                    || !intersections.improper_intersections.empty()) {
+                output.element_ids.push_back(element_id);
+            }
+        }
+
+    }
     if (!strict) {
         for (ShapePos point_id: potentially_intersecting_points_)
             if (element.contains(this->point(point_id)))
@@ -539,13 +553,25 @@ std::vector<IntersectionTree::ElementElementIntersection> IntersectionTree::comp
     for (auto p: potentially_intersecting_elements) {
         auto intersections = shape::compute_intersections(
                 this->element(p.first),
-                this->element(p.second), strict);
-        if (!intersections.points.empty()) {
-            ElementElementIntersection intersection;
-            intersection.element_id_1 = p.first;
-            intersection.element_id_2 = p.second;
-            intersection.intersections = intersections;
-            intersecting_elements.push_back(intersection);
+                this->element(p.second));
+        if (strict) {
+            if (!intersections.proper_intersections.empty()) {
+                ElementElementIntersection intersection;
+                intersection.element_id_1 = p.first;
+                intersection.element_id_2 = p.second;
+                intersection.intersections = intersections;
+                intersecting_elements.push_back(intersection);
+            }
+        } else {
+            if (!intersections.overlapping_parts.empty()
+                    || !intersections.improper_intersections.empty()
+                    || !intersections.proper_intersections.empty()) {
+                ElementElementIntersection intersection;
+                intersection.element_id_1 = p.first;
+                intersection.element_id_2 = p.second;
+                intersection.intersections = intersections;
+                intersecting_elements.push_back(intersection);
+            }
         }
     }
     return intersecting_elements;

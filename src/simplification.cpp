@@ -602,7 +602,7 @@ std::vector<ShapeWithHoles> shape::simplify(
         ShapeWithHoles shape_new;
         if (shape.outer) {
             Shape shape_tmp = approximated_shape.shape();
-            if (!intersect(shape_tmp)) {
+            if (!strictly_intersect(shape_tmp)) {
                 shape_tmp = remove_redundant_vertices(shape_tmp).second;
                 shape_tmp = remove_aligned_vertices(shape_tmp).second;
                 shape_new.shape = shape_tmp;
@@ -618,7 +618,7 @@ std::vector<ShapeWithHoles> shape::simplify(
             //}
         } else {
             Shape shape_tmp = approximated_shape.shape();
-            if (!intersect(shape_tmp)) {
+            if (!strictly_intersect(shape_tmp)) {
                 shape_tmp = remove_redundant_vertices(shape_tmp).second;
                 shape_tmp = remove_aligned_vertices(shape_tmp).second;
                 shape_new.holes.push_back(shape_tmp);

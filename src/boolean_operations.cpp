@@ -130,8 +130,17 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         //    std::cout << "element_1 " << intersection.element_id_1 << " " << elements[intersection.element_id_1].to_string() << std::endl;
         //    std::cout << "element_2 " << intersection.element_id_2 << " " << elements[intersection.element_id_2].to_string() << std::endl;
         //}
-        for (const Point& point: intersection.intersections.points) {
-            //std::cout << "intersection " << point.to_string() << std::endl;
+        for (const ShapeElement& overlapping_part: intersection.intersections.overlapping_parts) {
+            element_intersections[intersection.element_id_1].push_back(overlapping_part.start);
+            element_intersections[intersection.element_id_1].push_back(overlapping_part.end);
+            element_intersections[intersection.element_id_2].push_back(overlapping_part.start);
+            element_intersections[intersection.element_id_2].push_back(overlapping_part.end);
+        }
+        for (const Point& point: intersection.intersections.improper_intersections) {
+            element_intersections[intersection.element_id_1].push_back(point);
+            element_intersections[intersection.element_id_2].push_back(point);
+        }
+        for (const Point& point: intersection.intersections.proper_intersections) {
             element_intersections[intersection.element_id_1].push_back(point);
             element_intersections[intersection.element_id_2].push_back(point);
         }
