@@ -10,7 +10,11 @@ std::pair<bool, Point> shape::compute_line_intersection(
         const Point& p21,
         const Point& p22)
 {
-    if (p11 == p21 || p11 == p22) {
+    if (equal(
+                signed_distance_point_to_line(p11, p21, p22),
+                signed_distance_point_to_line(p12, p21, p22))) {
+        return {false, {0, 0}};
+    } else if (p11 == p21 || p11 == p22) {
         LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
         if (equal(denom, 0.0))
             return {false, {0, 0}};
@@ -104,17 +108,15 @@ std::pair<bool, Point> shape::compute_line_intersection(
         }
 
         return {true, p};
-    } else if (equal(distance_point_to_line(p11, p21, p22), 0.0)) {
-        if (equal(distance_point_to_line(p12, p21, p22), 0.0)) {
+    } else if (equal(signed_distance_point_to_line(p11, p21, p22), 0.0)) {
+        if (equal(signed_distance_point_to_line(p12, p21, p22), 0.0)) {
             return {false, {0, 0}};
         } else {
             return {true, p11};
         }
     } else {
-        LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
-        if (equal(denom, 0.0))
-            return {false, {0, 0}};
         Point p;
+        LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
         p.x = ((p11.x * p12.y - p11.y * p12.x) * (p21.x - p22.x) - (p11.x - p12.x) * (p21.x * p22.y - p21.y * p22.x)) / denom;
         p.y = ((p11.x * p12.y - p11.y * p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x * p22.y - p21.y * p22.x)) / denom;
 
@@ -141,19 +143,11 @@ ShapeElementIntersectionsOutput compute_line_line_intersections(
         const ShapeElement& line2)
 {
     auto p = compute_line_intersection(line1.start, line1.end, line2.start, line2.end);
+    //std::cout << p.first << " " << p.second.to_string() << std::endl;
 
     if (!p.first) {
         // If they are colinear, check if they are aligned.
-        LengthDbl x1 = line1.start.x;
-        LengthDbl y1 = line1.start.y;
-        LengthDbl x2 = line1.end.x;
-        LengthDbl y2 = line1.end.y;
-        LengthDbl x3 = line2.start.x;
-        LengthDbl y3 = line2.start.y;
-        LengthDbl x4 = line2.end.x;
-        LengthDbl y4 = line2.end.y;
-        LengthDbl denom_2 = (x1 - x2) * (y3 - y1) - (y1 - y2) * (x3 - x1);
-        if (denom_2 != 0.0)
+        if (!equal(signed_distance_point_to_line(line1.start, line2.start, line2.end), 0.0))
             return {};
 
         // If they are aligned, check if they overlap.

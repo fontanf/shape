@@ -12,6 +12,7 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
 {
     //std::cout << "remove_redundant_vertices " << shape.to_string(2) << std::endl;
     if (!shape.check()) {
+        //write_json({{shape}}, {}, "self_intersect.json");
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": invalid input shape.");
     }
@@ -672,8 +673,17 @@ Shape clean_extreme_slopes_inner_2(
 ShapeWithHoles shape::clean_extreme_slopes_outer(
         const Shape& shape_orig)
 {
+    if (!shape_orig.check()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": invalid input shape.");
+    }
     Shape shape = shape_orig;
     shape = equalize_shape(shape);
+    if (!shape.check()) {
+        //write_json({{shape_orig}, {shape}}, {}, "self_intersect_after_equalize.json");
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": invalid shape after equalize_shape.");
+    }
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
 

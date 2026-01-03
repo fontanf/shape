@@ -66,6 +66,7 @@ TEST_P(ComputeIntersectionsTest, ComputeIntersections)
     std::cout << "expected_result.propoer_intersections" << std::endl;
     for (const Point& point: test_params.expected_result.proper_intersections)
         std::cout << "- " << point.to_string() << std::endl;
+    //write_json({}, {test_params.element_1, test_params.element_2}, "element_intersections_input.json");
 
     ShapeElementIntersectionsOutput intersections = compute_intersections(
             test_params.element_1,
@@ -138,6 +139,10 @@ INSTANTIATE_TEST_SUITE_P(
                 build_line_segment({0, 0}, {0, 3}),
                 build_line_segment({0, 1}, {0, 4}),
                 {{build_line_segment({0, 1}, {0, 3})}, {}, {}},
+            }, {  // Two overlapping line segments.
+                build_line_segment({144.25196848, 31.49606296}, {134.8031497200001, 31.49606295999999}),
+                build_line_segment({135.4330709199999, 31.49606296}, {8.818897719999987, 31.49606296}),
+                {{build_line_segment({134.8031497200001, 31.49606296}, {135.4330709199999, 31.49606296})}, {}, {}},
             }, {  // Two touching colinear line segments.
                 build_line_segment({0, 0}, {0, 1}),
                 build_line_segment({0, 1}, {0, 2}),
@@ -253,11 +258,11 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 build_line_segment({100, 150}, {0, 0}),
                 build_line_segment({33.33333333333334, 50}, {50, 75}),
-                {{}, {}, {}},
+                {{build_line_segment({33.33333333333334, 50}, {50, 75})}, {}, {}},
             }, {  // Overlapping line segments with numerical issues.
                 build_line_segment({56.45661773889309, 154.3210357234225}, {74.21458856416608, 160.7844084041661}),
                 build_line_segment({67.70333256416608, 158.4145050441661}, {85.46130335612965, 164.8778778164265}),
-                {{}, {}, {}},
+                {{build_line_segment({67.70333256416608, 158.4145050441661}, {74.21458856416608, 160.7844084041661})}, {}, {}},
             }}));
 
 
