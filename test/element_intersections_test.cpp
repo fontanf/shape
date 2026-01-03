@@ -86,7 +86,7 @@ TEST_P(ComputeIntersectionsTest, ComputeIntersections)
         EXPECT_NE(std::find_if(
                     intersections.overlapping_parts.begin(),
                     intersections.overlapping_parts.end(),
-                    [&expected_intersection](const ShapeElement& overlapping_part) { return equal(overlapping_part, expected_intersection); }),
+                    [&expected_intersection](const ShapeElement& overlapping_part) { return equal(overlapping_part, expected_intersection) || equal(overlapping_part.reverse(), expected_intersection); }),
                 intersections.overlapping_parts.end());
     }
     ASSERT_EQ(intersections.improper_intersections.size(), test_params.expected_result.improper_intersections.size());
@@ -118,6 +118,10 @@ INSTANTIATE_TEST_SUITE_P(
             }, {  // Non-intersecting line segments
                 build_line_segment({11, 1}, {10, 2}),
                 build_line_segment({9, 3}, {11, 3}),
+                {{}, {}, {}},
+            }, {  // Non-intersecting line segments
+                build_line_segment({31.49606296, 0}, {31.49606296, 9.448818519999994}),
+                build_line_segment({31.49606295999999, 134.8031497200001}, {31.49606296, 144.25196848}),
                 {{}, {}, {}},
             }, {  // Simple line segment intersection.
                 build_line_segment({1, 0}, {1, 2}),
@@ -335,7 +339,24 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 build_shape({{0, 0}, {6, 0}, {3, 2}, {4, 1}, {2, 1}, {3, 2}}),
                 false,
-            }}));
+            }, {
+                build_shape({
+                        {31.49606296, 144.25196848},
+                        {0, 144.25196848},
+                        {0, 0},
+                        {31.49606296, 0},
+                        {31.49606296, 9.448818519999994},
+                        {22.04724408, 4.7244092},
+                        {25.1968504, 11.96850392},
+                        {52.87627208, 11.96850392},
+                        {52.87627208, 56.37795144},
+                        {47.20698072, 56.37795144},
+                        {47.20698072, 132.28346456},
+                        {25.1968504, 132.28346456},
+                        {22.04724408, 139.52755928},
+                        {31.49606295999999, 134.8031497200001}}),
+                false,
+                }}));
 
 
 struct IntersectShapeShapeElementTestParams

@@ -674,6 +674,7 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
         const Shape& shape_orig)
 {
     if (!shape_orig.check()) {
+        //write_json({{shape_orig}}, {}, "clean_extreme_slopes_outer_input.json");
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": invalid input shape.");
     }

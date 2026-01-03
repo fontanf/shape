@@ -150,28 +150,23 @@ ShapeElementIntersectionsOutput compute_line_line_intersections(
         if (!equal(signed_distance_point_to_line(line1.start, line2.start, line2.end), 0.0))
             return {};
 
+        Point ref = line1.end - line1.start;
+        std::array<LengthDbl, 4> points_values = {
+            dot_product(line1.start - line1.start, ref),
+            dot_product(line1.end - line1.start, ref),
+            dot_product(line2.start - line1.start, ref),
+            dot_product(line2.end - line1.start, ref)};
+
         // If they are aligned, check if they overlap.
         std::array<ElementPos, 4> sorted_points = {0, 1, 2, 3};
         std::sort(
                 sorted_points.begin(),
                 sorted_points.end(),
-                [&line1, &line2](
+                [&points_values](
                     ElementPos point_pos_1,
                     ElementPos point_pos_2)
                 {
-                    const Point& point_1 =
-                        (point_pos_1 == 0)? line1.start:
-                        (point_pos_1 == 1)? line1.end:
-                        (point_pos_1 == 2)? line2.start:
-                        line2.end;
-                    const Point& point_2 =
-                        (point_pos_2 == 0)? line1.start:
-                        (point_pos_2 == 1)? line1.end:
-                        (point_pos_2 == 2)? line2.start:
-                        line2.end;
-                    if (point_1.x != point_2.x)
-                        return point_1.x < point_2.x;
-                    return point_1.y < point_2.y;
+                    return points_values[point_pos_1] < points_values[point_pos_2];
                 });
 
         // Return the two interior points.
