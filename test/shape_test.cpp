@@ -1,6 +1,10 @@
 #include "shape/shape.hpp"
 
+#include "shape/writer.hpp"
+
 #include <gtest/gtest.h>
+
+#include "test_params.hpp"
 
 using namespace shape;
 
@@ -327,6 +331,37 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
+struct ShapeFindPointStrictlyInsideTestParams
+{
+    Shape shape;
+};
+
+class ShapeFindPointStrictlyInsideTest: public testing::TestWithParam<ShapeFindPointStrictlyInsideTestParams> { };
+
+TEST_P(ShapeFindPointStrictlyInsideTest, ShapeFindPointStrictlyInside)
+{
+    ShapeFindPointStrictlyInsideTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    Point result = test_params.shape.find_point_strictly_inside();
+    std::cout << "result " << result.to_string() << std::endl;
+    EXPECT_TRUE(test_params.shape.contains(result, true));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeFindPointStrictlyInsideTest,
+        testing::ValuesIn(std::vector<ShapeFindPointStrictlyInsideTestParams>{
+            {
+                build_rectangle(2, 4),
+            }, {
+                build_circle(2),
+            }, {
+                build_shape({{0, 100}, {100, 100}, {100, 0}, {200, 0}, {200, 200}, {0, 200}}),
+            }, {
+                build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}}),
+            }}));
+
+
 struct ShapeSplitTestParams
 {
     Shape shape;
@@ -469,211 +504,3 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
                 build_shape({{1, 0}, {0.585786437626905, 0}, {0, 0.585786437626905}, {0, 1}}, true).elements
             }}));
-
-
-struct ShapeWithHolesBridgeTouchingHolesTestParams
-{
-    ShapeWithHoles shape;
-    ShapeWithHoles expected_shape;
-};
-
-class ShapeWithHolesBridgeTouchingHolesTest: public testing::TestWithParam<ShapeWithHolesBridgeTouchingHolesTestParams> { };
-
-TEST_P(ShapeWithHolesBridgeTouchingHolesTest, ShapeWithHolesBridgeTouchingHoles)
-{
-    ShapeWithHolesBridgeTouchingHolesTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
-    std::cout << "expected shape " << test_params.expected_shape.to_string(2) << std::endl;
-    ShapeWithHoles res = test_params.shape.bridge_touching_holes();
-    std::cout << "result " << res.to_string(2) << std::endl;
-    EXPECT_TRUE(equal(res, test_params.expected_shape));
-}
-
-INSTANTIATE_TEST_SUITE_P(
-        Shape,
-        ShapeWithHolesBridgeTouchingHolesTest,
-        testing::ValuesIn(std::vector<ShapeWithHolesBridgeTouchingHolesTestParams>{
-            {  // Shape without hole.
-                {build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}})},
-                {build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}})},
-            }, {  // Shape with one hole not touching its outline.
-                {
-                    build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
-                    {build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}})}
-                }, {
-                    build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
-                    {build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}})}
-                },
-            }, {  // Shape with one hole touching its outline.
-                {
-                    build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
-                    {
-                        build_shape({{19, 4}, {20, 5}, {19, 6}, {18, 5}}),
-                    }
-                },
-                {build_shape({
-                        {0, 0}, {20, 0}, {20, 5},
-                        {19, 4}, {18, 5}, {19, 6},
-                        {20, 5}, {20, 10}, {0, 10}})},
-            }, {  // Shape with one hole touching its outline.
-                {
-                    build_shape({{0, 0}, {20, 0}, {19, 5}, {20, 10}, {0, 10}}),
-                    {
-                        build_shape({{19, 4}, {19, 6}, {17, 6}, {17, 4}}),
-                    }
-                },
-                {build_shape({
-                        {0, 0}, {20, 0}, {19, 5},
-                        {19, 4}, {17, 4}, {17, 6}, {19, 6},
-                        {19, 5}, {20, 10}, {0, 10}})},
-            }, {  // Shape with one hole touching its outline and another hole touching the first hole.
-                {
-                    build_shape({{0, 0}, {20, 0}, {20, 50}, {0, 50}}),
-                    {
-                        build_shape({{10, 1}, {11, 2}, {9, 2}}),
-                        build_shape({{10, 0}, {11, 1}, {9, 1}}),
-                    }
-                },
-                {build_shape({
-                        {0, 0},
-                        {10, 0}, {9, 1},
-                        {10, 1}, {9, 2}, {11, 2}, {10, 1},
-                        {11, 1}, {10, 0},
-                        {20, 0}, {20, 50}, {0, 50}})},
-            }, {  // Shape with 3 holes.
-                {
-                    build_shape({{0, 0}, {20, 0}, {20, 50}, {0, 50}}),
-                    {
-                        build_shape({{10, 1}, {11, 2}, {9, 2}}),
-                        build_shape({{10, 0}, {11, 1}, {9, 1}}),
-                        build_shape({{10, 2}, {11, 3}, {9, 3}}),
-                    }
-                },
-                {build_shape({
-                        {0, 0},
-                        {10, 0}, {9, 1},
-                        {10, 1}, {9, 2},
-                        {10, 2}, {9, 3}, {11, 3}, {10, 2},
-                        {11, 2}, {10, 1},
-                        {11, 1}, {10, 0},
-                        {20, 0}, {20, 50}, {0, 50}})},
-            }, {  // Shape with one hole touching its outline.
-                {
-                    build_shape({{0, 0}, {10, 1}, {20, 0}, {20, 50}, {0, 50}}),
-                    {
-                        build_shape({{9, 1}, {11, 1}, {10, 2}}),
-                    }
-                },
-                {build_shape({
-                        {0, 0},
-                        {10, 1}, {9, 1}, {10, 2}, {11, 1}, {10, 1},
-                        {20, 0}, {20, 50}, {0, 50}})},
-            }, {  // Shape with one hole touching its outline and another hole touching the first hole.
-                {
-                    build_shape({{0, 0}, {10, 1}, {20, 0}, {20, 50}, {0, 50}}),
-                    {
-                        build_shape({{9, 2}, {11, 2}, {10, 3}}),
-                        build_shape({{9, 1}, {11, 1}, {10, 2}}),
-                    }
-                },
-                {build_shape({
-                        {0, 0},
-                        {10, 1}, {9, 1},
-                        {10, 2}, {9, 2}, {10, 3}, {11, 2}, {10, 2},
-                        {11, 1}, {10, 1},
-                        {20, 0}, {20, 50}, {0, 50}})},
-            }, {  // Shape with 3 holes.
-                {
-                    build_shape({{0, 0}, {10, 1}, {20, 0}, {20, 50}, {0, 50}}),
-                    {
-                        build_shape({{9, 2}, {11, 2}, {10, 3}}),
-                        build_shape({{9, 1}, {11, 1}, {10, 2}}),
-                        build_shape({{9, 3}, {11, 3}, {10, 4}}),
-                    }
-                },
-                {build_shape({
-                        {0, 0},
-                        {10, 1}, {9, 1},
-                        {10, 2}, {9, 2},
-                        {10, 3}, {9, 3}, {10, 4}, {11, 3}, {10, 3},
-                        {11, 2}, {10, 2},
-                        {11, 1}, {10, 1},
-                        {20, 0}, {20, 50}, {0, 50}})},
-            },
-            }));
-
-
-struct ShapeWithHolesBridgeHolesTestParams
-{
-    ShapeWithHoles shape;
-    Shape expected_shape;
-};
-
-class ShapeWithHolesBridgeHolesTest: public testing::TestWithParam<ShapeWithHolesBridgeHolesTestParams> { };
-
-TEST_P(ShapeWithHolesBridgeHolesTest, ShapeWithHolesBridgeHoles)
-{
-    ShapeWithHolesBridgeHolesTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
-    std::cout << "expected shape " << test_params.expected_shape.to_string(2) << std::endl;
-    Shape res = test_params.shape.bridge_holes();
-    std::cout << "res " << res.to_string(2) << std::endl;
-    EXPECT_TRUE(equal(res, test_params.expected_shape));
-}
-
-INSTANTIATE_TEST_SUITE_P(
-        Shape,
-        ShapeWithHolesBridgeHolesTest,
-        testing::ValuesIn(std::vector<ShapeWithHolesBridgeHolesTestParams>{
-            {  // Shape without hole.
-                {build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}})},
-                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
-            }, {  // Shape with one hole touching its outline.
-                {
-                    build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
-                    {
-                        build_shape({{19, 4}, {20, 5}, {19, 6}, {18, 5}}),
-                    }
-                },
-                build_shape({
-                        {0, 0}, {20, 0}, {20, 5},
-                        {19, 4}, {18, 5}, {19, 6},
-                        {20, 5}, {20, 10}, {0, 10}}),
-            }, {  // Shape with one hole touching its outline.
-                {
-                    build_shape({{0, 0}, {20, 0}, {19, 5}, {20, 10}, {0, 10}}),
-                    {
-                        build_shape({{19, 4}, {19, 6}, {17, 6}, {17, 4}}),
-                    }
-                },
-                build_shape({
-                        {0, 0}, {20, 0}, {19, 5},
-                        {19, 4}, {17, 4}, {17, 6}, {19, 6},
-                        {19, 5}, {20, 10}, {0, 10}}),
-            }, {  // Shape with one hole not touching its outline.
-                {
-                    build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
-                    {
-                        build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}}),
-                    }
-                },
-                build_shape({
-                        {0, 0}, {20, 0}, {20, 10}, {0, 10}, {0, 5},
-                        {14, 5}, {15, 6}, {16, 5}, {15, 4}, {14, 5},
-                        {0, 5}}),
-            }, {  // Shape with two holes.
-                {
-                    build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
-                    {
-                        build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}}),
-                        build_shape({{10, 4}, {11, 5}, {10, 6}, {9, 5}}),
-                    }
-                },
-                build_shape({
-                        {0, 0}, {20, 0}, {20, 10}, {0, 10}, {0, 5},
-                        {9, 5}, {10, 6}, {11, 5},
-                        {14, 5}, {15, 6}, {16, 5}, {15, 4}, {14, 5},
-                        {11, 5}, {10, 4}, {9, 5},
-                        {0, 5}}),
-            },
-            }));

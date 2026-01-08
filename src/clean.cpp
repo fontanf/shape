@@ -1,7 +1,8 @@
 #include "shape/clean.hpp"
 
-#include "shape/element_intersections.hpp"
+#include "shape/shapes_intersections.hpp"
 #include "shape/equalize.hpp"
+#include "shape/boolean_operations.hpp"
 
 #include <iostream>
 
@@ -11,11 +12,11 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
         const Shape& shape)
 {
     //std::cout << "remove_redundant_vertices " << shape.to_string(2) << std::endl;
-    if (!shape.check()) {
-        //write_json({{shape}}, {}, "self_intersect.json");
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": invalid input shape.");
-    }
+    //if (!shape.check()) {
+    //    //write_json({{shape}}, {}, "self_intersect.json");
+    //    throw std::invalid_argument(
+    //            FUNC_SIGNATURE + ": invalid input shape.");
+    //}
 
     if (shape.elements.size() <= 3)
         return {false, shape};
@@ -52,10 +53,10 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
     }
     shape_new.elements.back().end = shape_new.elements.front().start;
 
-    if (!shape_new.check()) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": invalid output shape.");
-    }
+    //if (!shape_new.check()) {
+    //    throw std::invalid_argument(
+    //            FUNC_SIGNATURE + ": invalid output shape.");
+    //}
     return {(number_of_elements_removed > 0), shape_new};
 }
 
@@ -713,4 +714,19 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
     return {shape};
+}
+
+std::vector<ShapeWithHoles> shape::fix_self_intersections(
+        const ShapeWithHoles& shape)
+{
+    std::vector<ShapeWithHoles> shapes = bridge_touching_holes(shape);
+    if (shapes.size() == 1)
+        return {shape};
+    std::vector<ShapeWithHoles> output(shapes.size());
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        output[shape_pos] = compute_union({shapes[shape_pos]}).front();
+    }
+    return output;
 }

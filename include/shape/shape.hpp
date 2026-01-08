@@ -100,6 +100,8 @@ struct Point
     static Point from_json(basic_json& json_element);
 
     nlohmann::json to_json() const;
+
+    std::string to_svg() const;
 };
 
 Point operator+(
@@ -311,6 +313,11 @@ struct ShapeElement
     static ShapeElement from_json(basic_json& json_element);
 
     nlohmann::json to_json() const;
+
+    std::string to_svg() const;
+
+    void write_svg(
+            const std::string& file_path) const;
 };
 
 ShapeElement build_line_segment(
@@ -433,6 +440,9 @@ struct Shape
             const Point& point,
             bool strict = false) const;
 
+    /** Find a point strictly inside the shape. */
+    Point find_point_strictly_inside() const;
+
     /** Determine which point is closer from the start of the path. */
     bool is_strictly_closer_to_path_start(
             const ShapePoint& point_1,
@@ -475,7 +485,10 @@ struct Shape
     void write_json(
             const std::string& file_path) const;
 
-    std::string to_svg() const;
+    std::string to_svg_path() const;
+
+    std::string to_svg(
+            const std::string& fill_color = "blue") const;
 
     void write_svg(
             const std::string& file_path) const;
@@ -485,6 +498,9 @@ Shape build_triangle(
         const Point& p1,
         const Point& p2,
         const Point& p3);
+
+Shape build_square(
+        LengthDbl size_length);
 
 Shape build_rectangle(
         const Point& p1,
@@ -525,16 +541,8 @@ struct ShapeWithHoles
             const Point& point,
             bool strict = false) const;
 
-    /**
-     * Bridge the touching holes.
-     */
-    ShapeWithHoles bridge_touching_holes() const;
-
-    /**
-     * Bridge the holes to convert the ShapeWithHoles into a Shape without
-     * holes.
-     */
-    Shape bridge_holes() const;
+    /** Find a point strictly inside the shape. */
+    Point find_point_strictly_inside() const;
 
     /*
      * Export
@@ -559,18 +567,6 @@ struct ShapeWithHoles
     void write_svg(
             const std::string& file_path) const;
 };
-
-void write_json(
-        const std::vector<ShapeWithHoles>& shapes,
-        const std::vector<ShapeElement>& elements,
-        const std::string& file_path);
-
-std::pair<Point, Point> compute_min_max(
-        const std::vector<ShapeWithHoles>& shapes);
-
-void write_svg(
-        const std::vector<ShapeWithHoles>& shapes,
-        const std::string& file_path);
 
 ShapeWithHoles operator*(
         LengthDbl scalar,

@@ -5,7 +5,8 @@ import plotly.express as px
 import plotly.subplots
 import numpy as np
 import math
-
+import plotly.io as pio
+pio.renderers.default = "browser"
 
 def element_path(path_x, path_y, element, is_hole=False):
     # How to draw a filled circle segment?
@@ -78,9 +79,9 @@ fig = go.Figure()
 with open(args.path, 'r') as f:
     j = json.load(f)
 
-    # Plot shapes.
-    if "shapes" in j:
-        for shape_pos, shape in enumerate(j["shapes"]):
+    # Plot shapes with holes.
+    if "shapes_with_holes" in j:
+        for shape_pos, shape in enumerate(j["shapes_with_holes"]):
             shape_x = []
             shape_y = []
 
@@ -90,6 +91,27 @@ with open(args.path, 'r') as f:
                 shape_x.append(None)
                 shape_y.append(None)
                 shape_path(shape_x, shape_y, hole, True)
+
+            fig.add_trace(go.Scatter(
+                x=shape_x,
+                y=shape_y,
+                name=f"Shape with holes {shape_pos}",
+                # legendgroup=filepath,
+                    showlegend=True,
+                    fillcolor=colors[shape_pos % len(colors)],
+                    opacity=0.2,
+                    fill="toself",
+                    marker=dict(
+                        color='black',
+                        size=1)))
+
+    # Plot shapes.
+    if "shapes" in j:
+        for shape_pos, shape in enumerate(j["shapes"]):
+            shape_x = []
+            shape_y = []
+
+            shape_path(shape_x, shape_y, shape)
 
             fig.add_trace(go.Scatter(
                 x=shape_x,

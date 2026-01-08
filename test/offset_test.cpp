@@ -1,5 +1,7 @@
 #include "shape/offset.hpp"
 
+#include "shape/writer.hpp"
+
 #include <gtest/gtest.h>
 
 #include "test_params.hpp"
@@ -7,7 +9,7 @@
 using namespace shape;
 
 
-struct InflateTestParams : TestParams<InflateTestParams>
+struct InflateTestParams: TestParams<InflateTestParams>
 {
     ShapeWithHoles shape;
     LengthDbl offset = 0;
@@ -44,16 +46,15 @@ TEST_P(InflateTest, Inflate)
         std::string base_filename = "inflate_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
-            write_json({ test_params.shape }, {}, base_filename + "_shape.json");
-            write_json({ test_params.expected_result }, {}, base_filename + "_expected_result.json");
-            write_json({ result }, {}, base_filename + "_result.json");
+            Writer().add_shape_with_holes(test_params.shape).write_json(base_filename + "_shapes.json");
+            Writer().add_shape_with_holes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
+            Writer().add_shape_with_holes(result).write_json(base_filename + "_result.json");
         }
         if (test_params.write_svg) {
-            write_svg({ test_params.shape }, base_filename + "_shape.svg");
-            write_svg({ test_params.shape, test_params.expected_result }, base_filename + "_expected_result.svg");
-            write_svg({ test_params.shape, result }, base_filename + "_result.svg");
+            Writer().add_shape_with_holes(test_params.shape).write_svg(base_filename + "_shapes.svg");
+            Writer().add_shape_with_holes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
+            Writer().add_shape_with_holes(result).write_svg(base_filename + "_result.svg");
         }
-
     }
 
     EXPECT_TRUE(equal(result, test_params.expected_result));
@@ -121,6 +122,16 @@ TEST_P(DeflateTest, Deflate)
                 shape.write_svg(base_filename + "_result.svg");
         }
 
+        if (test_params.write_json) {
+            Writer().add_shape(test_params.shape).write_json(base_filename + "_shapes.json");
+            Writer().add_shapes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
+            Writer().add_shapes(result).write_json(base_filename + "_result.json");
+        }
+        if (test_params.write_svg) {
+            Writer().add_shape(test_params.shape).write_svg(base_filename + "_shapes.svg");
+            Writer().add_shapes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
+            Writer().add_shapes(result).write_svg(base_filename + "_result.svg");
+        }
     }
 
     ASSERT_EQ(result.size(), test_params.expected_result.size());

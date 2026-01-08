@@ -3,10 +3,11 @@
 #include "shape/equalize.hpp"
 #include "shape/intersection_tree.hpp"
 #include "shape/clean.hpp"
+#include "shape/writer.hpp"
 
 #include "optimizationtools/containers/doubly_indexed_map.hpp"
 
-//#include <iostream>
+#include <iostream>
 //#include <fstream>
 
 using namespace shape;
@@ -20,6 +21,7 @@ enum class BooleanOperation
     Intersection,
     Difference,
     SymmetricDifference,
+    FaceExtraction,
 };
 
 using ComponentId = int64_t;
@@ -86,15 +88,41 @@ ComputeSplittedElementsOutput compute_splitted_elements(
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
             ++shape_pos) {
-        Shape shape = shapes[shape_pos].bridge_holes();
-        for (ElementPos element_pos = 0;
-                element_pos < (ElementPos)shape.elements.size();
-                ++element_pos) {
-            const ShapeElement& element = shape.elements[element_pos];
-            elements.push_back(element);
-            ElementToSplit element_info;
-            element_info.orig_shape_id = shape_pos;
-            elements_info.push_back(element_info);
+        const ShapeWithHoles& shape = shapes[shape_pos];
+        for (ShapePos hole_pos = 0;
+                hole_pos <= shape.holes.size();
+                ++hole_pos) {
+            const Shape& hole = (hole_pos == (ShapePos)shape.holes.size())?
+                shape.shape:
+                shape.holes[hole_pos];
+            for (ElementPos element_pos = 0;
+                    element_pos < (ElementPos)hole.elements.size();
+                    ++element_pos) {
+                const ShapeElement& element = hole.elements[element_pos];
+                if (hole_pos == (ShapePos)shape.holes.size()) {
+                    elements.push_back(element);
+                } else {
+                    elements.push_back(element.reverse());
+                }
+                ElementToSplit element_info;
+                element_info.orig_shape_id = shape_pos;
+                elements_info.push_back(element_info);
+            }
+        }
+        std::vector<ShapeElement> bridges = find_holes_bridges(shape);
+        for (const ShapeElement& element: bridges) {
+            {
+                elements.push_back(element);
+                ElementToSplit element_info;
+                element_info.orig_shape_id = shape_pos;
+                elements_info.push_back(element_info);
+            }
+            {
+                elements.push_back(element.reverse());
+                ElementToSplit element_info;
+                element_info.orig_shape_id = shape_pos;
+                elements_info.push_back(element_info);
+            }
         }
     }
     //std::cout << "elements" << std::endl;
@@ -105,7 +133,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
     IntersectionTree intersection_tree({}, elements, {});
     std::vector<IntersectionTree::ElementElementIntersection> intersections
         = intersection_tree.compute_intersecting_elements(false);
-    std::vector<std::vector<Point>> element_intersections(elements.size());
+    std::vector<std::vector<Point>> elements_intersections(elements.size());
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
             ++shape_pos) {
@@ -131,18 +159,18 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         //    std::cout << "element_2 " << intersection.element_id_2 << " " << elements[intersection.element_id_2].to_string() << std::endl;
         //}
         for (const ShapeElement& overlapping_part: intersection.intersections.overlapping_parts) {
-            element_intersections[intersection.element_id_1].push_back(overlapping_part.start);
-            element_intersections[intersection.element_id_1].push_back(overlapping_part.end);
-            element_intersections[intersection.element_id_2].push_back(overlapping_part.start);
-            element_intersections[intersection.element_id_2].push_back(overlapping_part.end);
+            elements_intersections[intersection.element_id_1].push_back(overlapping_part.start);
+            elements_intersections[intersection.element_id_1].push_back(overlapping_part.end);
+            elements_intersections[intersection.element_id_2].push_back(overlapping_part.start);
+            elements_intersections[intersection.element_id_2].push_back(overlapping_part.end);
         }
         for (const Point& point: intersection.intersections.improper_intersections) {
-            element_intersections[intersection.element_id_1].push_back(point);
-            element_intersections[intersection.element_id_2].push_back(point);
+            elements_intersections[intersection.element_id_1].push_back(point);
+            elements_intersections[intersection.element_id_2].push_back(point);
         }
         for (const Point& point: intersection.intersections.proper_intersections) {
-            element_intersections[intersection.element_id_1].push_back(point);
-            element_intersections[intersection.element_id_2].push_back(point);
+            elements_intersections[intersection.element_id_1].push_back(point);
+            elements_intersections[intersection.element_id_2].push_back(point);
         }
     }
 
@@ -162,7 +190,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             equalize_input.push_back(element.center);
             equalize_to_orig.push_back(&element.center);
         }
-        for (Point& intersection: element_intersections[element_pos]) {
+        for (Point& intersection: elements_intersections[element_pos]) {
             equalize_input.push_back(intersection);
             equalize_to_orig.push_back(&intersection);
         }
@@ -225,33 +253,24 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         //    << std::endl;
         // Sort intersection points of this element.
         std::sort(
-                element_intersections[element_pos].begin(),
-                element_intersections[element_pos].end(),
+                elements_intersections[element_pos].begin(),
+                elements_intersections[element_pos].end(),
                 [&element](
                     const Point& point_1,
                     const Point& point_2)
                 {
-                    switch (element.type) {
-                    case ShapeElementType::LineSegment: {
-                        return distance(element.start, point_1)
-                            < distance(element.start, point_2);
-                    } case ShapeElementType::CircularArc: {
-                        return angle_radian(element.start - element.center, point_1 - element.center)
-                            < angle_radian(element.start - element.center, point_2 - element.center);
-                    }
-                    }
-                    return false;
+                    return element.length(point_1) < element.length(point_2);
                 });
         // Create new elements.
         if (element.type == ShapeElementType::CircularArc
                 && element.orientation == ShapeElementOrientation::Full
-                && !element_intersections[element_pos].empty()) {
-            element.start = element_intersections[element_pos].front();
-            element.end = element_intersections[element_pos].front();
+                && !elements_intersections[element_pos].empty()) {
+            element.start = elements_intersections[element_pos].front();
+            element.end = elements_intersections[element_pos].front();
         }
 
         bool first = true;
-        for (const Point& point_cur: element_intersections[element_pos]) {
+        for (const Point& point_cur: elements_intersections[element_pos]) {
             // Skip segment ends and duplicated intersections.
             if (point_cur == element.start
                     || point_cur == element.end) {
@@ -451,9 +470,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
     //if (boolean_operation == BooleanOperation::Difference) {
     //    std::vector<ShapeElement> elements;
+    //    Writer writer;
     //    for (const auto& splitted_element: splitted_elements)
-    //        elements.push_back(splitted_element.element);
-    //    write_json({}, {elements}, "overlay.json");
+    //        writer.add_element(splitted_element.element);
+    //    writer.write_json("overlay.json");
     //}
 
     IntersectionTree intersection_tree(shapes, {}, {});
@@ -632,6 +652,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         break;
     } case BooleanOperation::SymmetricDifference: {
         break;
+    } case BooleanOperation::FaceExtraction: {
+        break;
     }
     }
 
@@ -737,7 +759,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 break;
 
             // Real check.
-            IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(face, true);
+            IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
+                    face.find_point_strictly_inside(),
+                    true);
             //std::cout << "intersection_output.shape_ids.size() " << intersection_output.shape_ids.size() << std::endl;
             if (intersection_output.shape_ids.empty()) {
                 //std::cout << "add hole" << std::endl;
@@ -767,7 +791,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             }
 
             // Real check.
-            IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(face, true);
+            IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
+                    face.find_point_strictly_inside(),
+                    true);
             if (intersection_output.shape_ids.size() == shapes.size()) {
                 //std::cout << "add face" << std::endl;
                 face = remove_redundant_vertices(face).second;
@@ -791,8 +817,13 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             if (!ok)
                 break;
 
+            //std::cout << face.find_point_strictly_inside().to_string() << std::endl;
+
             // Real check.
-            IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(face, true);
+            IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
+                    face.find_point_strictly_inside(),
+                    true);
+            //std::cout << "intersection_output.shape_ids.size() " << intersection_output.shape_ids.size() << std::endl;
             if (intersection_output.shape_ids.size() == 1
                     && intersection_output.shape_ids[0] == 0) {
                 //std::cout << "add face" << std::endl;
@@ -808,7 +839,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 break;
 
             // Real check.
-            IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(face, true);
+            IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
+                    face.find_point_strictly_inside(),
+                    true);
             if (intersection_output.shape_ids.size() == 1) {
                 face = remove_redundant_vertices(face).second;
                 face = remove_aligned_vertices(face).second;
@@ -816,9 +849,17 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             }
 
             break;
+        } case BooleanOperation::FaceExtraction: {
+            face = remove_redundant_vertices(face).second;
+            face = remove_aligned_vertices(face).second;
+            new_shapes.push_back({face});
+            break;
         }
         }
     }
+
+    if (boolean_operation == BooleanOperation::Union)
+        new_shapes = fix_self_intersections(new_shapes[0]);
 
     return new_shapes;
 }
@@ -888,10 +929,6 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
                 shapes,
                 cse_output.components_splitted_elements[component_id],
                 boolean_operation);
-        if (boolean_operation != BooleanOperation::Union) {
-            //write_json(new_shapes, {}, "union_input.json");
-            new_shapes = compute_union(new_shapes);
-        }
         for (const ShapeWithHoles& new_shape: new_shapes)
             output.push_back(new_shape);
     }
@@ -926,9 +963,10 @@ std::vector<ShapeWithHoles> shape::compute_union(
 std::vector<ShapeWithHoles> shape::compute_intersection(
         const std::vector<ShapeWithHoles>& shapes)
 {
-    return compute_boolean_operation(
+    std::vector<ShapeWithHoles> faces = compute_boolean_operation(
             shapes,
             BooleanOperation::Intersection);
+    return compute_union(faces);
 }
 
 std::vector<ShapeWithHoles> shape::compute_difference(
@@ -939,9 +977,10 @@ std::vector<ShapeWithHoles> shape::compute_difference(
     v.push_back(shape);
     for (const ShapeWithHoles& shape: shapes)
         v.push_back(shape);
-    return compute_boolean_operation(
+    std::vector<ShapeWithHoles> faces = compute_boolean_operation(
             v,
             BooleanOperation::Difference);
+    return compute_union(faces);
 }
 
 std::vector<ShapeWithHoles> shape::compute_symmetric_difference(
@@ -951,7 +990,204 @@ std::vector<ShapeWithHoles> shape::compute_symmetric_difference(
     std::vector<ShapeWithHoles> v;
     v.push_back(shape_1);
     v.push_back(shape_2);
-    return compute_boolean_operation(
+    std::vector<ShapeWithHoles> faces = compute_boolean_operation(
             v,
             BooleanOperation::SymmetricDifference);
+    return compute_union(faces);
+}
+
+std::vector<Shape> shape::extract_faces(
+        const Shape& shape)
+{
+    auto result = compute_boolean_operation(
+            {{shape}},
+            BooleanOperation::FaceExtraction);
+    std::vector<Shape> faces;
+    for (const ShapeWithHoles& shape: result)
+        faces.push_back(shape.shape);
+    return faces;
+}
+
+struct HoleGraph
+{
+    std::vector<std::vector<ShapePos>> components;
+    ShapePos outline_component = -1;
+    std::vector<ShapePos> holes_components;
+};
+
+HoleGraph compute_hole_graph(
+        const ShapeWithHoles& shape)
+{
+    std::vector<ShapeWithHoles> intersection_tree_shapes;
+    for (const Shape& hole: shape.holes)
+        intersection_tree_shapes.push_back({hole});
+    IntersectionTree intersection_tree({intersection_tree_shapes}, {}, {});
+    std::vector<std::pair<ShapePos, ShapePos>> touching_shapes
+        = intersection_tree.compute_intersecting_shapes(false);
+
+    // Identify connected holes.
+    std::vector<std::vector<ShapePos>> graph(shape.holes.size() + 1);
+    for (auto p: touching_shapes) {
+        //std::cout << "edge " << p.first << " " << p.second << std::endl;
+        graph[p.first].push_back(p.second);
+        graph[p.second].push_back(p.first);
+    }
+
+    IntersectionTree intersection_tree_2({}, {shape.shape.elements}, {});
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)shape.holes.size();
+            ++hole_pos) {
+        const Shape& hole = shape.holes[hole_pos];
+        IntersectionTree::IntersectOutput intersections = intersection_tree_2.intersect(hole, false);
+        if (intersections.element_ids.empty())
+            continue;
+        graph[shape.holes.size()].push_back(hole_pos);
+        graph[hole_pos].push_back(shape.holes.size());
+    }
+
+    // Find connected components.
+    HoleGraph output;
+    output.holes_components = std::vector<ShapePos>(shape.holes.size() + 1, -1);
+    ShapePos hole_pos = 0;
+    for (;;) {
+        while (hole_pos <= shape.holes.size()
+                && output.holes_components[hole_pos] != -1) {
+            hole_pos++;
+        }
+        if (hole_pos == shape.holes.size() + 1)
+            break;
+
+        ShapePos component_id = output.components.size();
+        std::vector<ShapePos> component;
+        bool component_contains_outline = false;
+        if (hole_pos == shape.holes.size())
+            component_contains_outline = true;
+        output.holes_components[hole_pos] = component_id;
+        //std::cout << "hole_pos " << hole_pos << std::endl;
+        component.push_back(hole_pos);
+        std::vector<ShapePos> stack = {hole_pos};
+        while (!stack.empty()) {
+            ShapePos shape_cur_pos = stack.back();
+            stack.pop_back();
+            for (ShapePos neighbor: graph[shape_cur_pos]) {
+                if (output.holes_components[neighbor] != -1)
+                    continue;
+                if (neighbor == shape.holes.size())
+                    component_contains_outline = true;
+                stack.push_back(neighbor);
+                //std::cout << "neighbor " << neighbor << std::endl;
+                output.holes_components[neighbor] = component_id;
+                component.push_back(neighbor);
+            }
+        }
+
+        output.components.push_back(component);
+        if (component_contains_outline)
+            output.outline_component = component_id;
+    }
+
+    return output;
+}
+
+std::vector<ShapeElement> shape::find_holes_bridges(
+        const ShapeWithHoles& shape)
+{
+    HoleGraph hole_graph = compute_hole_graph(shape);
+
+    std::vector<ShapeElement> bridges;
+    auto mm = shape.compute_min_max();
+    for (ShapePos component_id = 0;
+            component_id < (ShapePos)hole_graph.components.size();
+            ++component_id) {
+        //std::cout << "component_id " << component_id
+        //    << " / " << components.size() << std::endl;
+        if (component_id == hole_graph.outline_component)
+            continue;
+        const std::vector<ShapePos>& component = hole_graph.components[component_id];
+
+        // Find the left-most point of the component.
+        Point end = {mm.second.x + 1, 0};
+        for (ShapePos hole_pos: component) {
+            //std::cout << "hole_pos " << hole_pos << std::endl;
+            const Shape& hole = shape.holes[hole_pos];
+            auto furthest_points = hole.compute_furthest_points(90);
+            if (strictly_greater(end.x, furthest_points.second.point.x))
+                end = furthest_points.second.point;
+        }
+
+        ShapeElement ray;
+        ray.type = ShapeElementType::LineSegment;
+        ray.start.x = mm.first.x;
+        ray.start.y = end.y;
+        ray.end.x = end.x;
+        ray.end.y = end.y;
+
+        LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+        for (ShapePos shape_pos = 0;
+                shape_pos <= (ShapePos)shape.holes.size();
+                ++shape_pos) {
+            if (shape_pos != (ShapePos)shape.holes.size() && hole_graph.holes_components[shape_pos] == component_id)
+                continue;
+            const Shape& current_shape = (shape_pos == (ShapePos)shape.holes.size())? shape.shape: shape.holes[shape_pos];
+            for (ElementPos element_pos = 0;
+                    element_pos < (ElementPos)current_shape.elements.size();
+                    ++element_pos) {
+                const ShapeElement& element = current_shape.elements[element_pos];
+                ShapeElementIntersectionsOutput intersections = compute_intersections(ray, element);
+                for (const ShapeElement& overlapping_part: intersections.overlapping_parts) {
+                    auto x = overlapping_part.min_max().second.x;
+                    if (strictly_greater(x, end.x))
+                        continue;
+                    if (strictly_lesser(x_max, x))
+                        x_max = x;
+                }
+                for (const Point& intersection: intersections.improper_intersections) {
+                    if (strictly_greater(intersection.x, end.x))
+                        continue;
+                    if (strictly_lesser(x_max, intersection.x))
+                        x_max = intersection.x;
+                }
+                for (const Point& intersection: intersections.proper_intersections) {
+                    if (strictly_greater(intersection.x, end.x))
+                        continue;
+                    if (strictly_lesser(x_max, intersection.x))
+                        x_max = intersection.x;
+                }
+            }
+        }
+        bridges.push_back(build_line_segment({x_max, end.y}, end));
+    }
+    return bridges;
+}
+
+std::vector<ShapeWithHoles> shape::bridge_touching_holes(
+        const ShapeWithHoles& shape)
+{
+    HoleGraph hole_graph = compute_hole_graph(shape);
+
+    std::vector<ShapeWithHoles> v;
+    v.push_back({shape.shape});
+    for (ShapePos hole_pos: hole_graph.components[hole_graph.outline_component]) {
+        if (hole_pos == shape.holes.size())
+            continue;
+        v.push_back({shape.holes[hole_pos]});
+    }
+    std::vector<ShapeWithHoles> faces = compute_boolean_operation(
+            v,
+            BooleanOperation::Difference);
+    std::vector<ShapeWithHoles> output;
+    for (const ShapeWithHoles& face: faces) {
+        ShapeWithHoles shape_with_holes = face;
+        for (ShapePos hole_pos = 0;
+                hole_pos < (ShapePos)shape.holes.size();
+                ++hole_pos) {
+            if (hole_graph.holes_components[hole_pos] == hole_graph.outline_component)
+                continue;
+            const Shape& hole = shape.holes[hole_pos];
+            if (face.contains(hole.find_point_strictly_inside(), true))
+                shape_with_holes.holes.push_back(hole);
+        }
+        output.push_back(shape_with_holes);
+    }
+    return output;
 }

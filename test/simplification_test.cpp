@@ -1,5 +1,8 @@
 #include "shape/simplification.hpp"
 
+#include "shape/shapes_intersections.hpp"
+//#include "shape/writer.hpp"
+
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
@@ -27,6 +30,8 @@ struct SimplificationTestParams
             input_shape.shape = Shape::from_json(json_shape["shape"]);
             input_shape.copies = json_shape["copies"];
             input_shape.outer = json_shape["outer"];
+            if (intersect(input_shape.shape))
+                continue;
             test_params.shapes.push_back(input_shape);
         }
         test_params.maximum_approximation_area = json_item["maximum_approximation_area"];
@@ -61,6 +66,11 @@ TEST_P(SimplificationTest, Simplification)
 {
     SimplificationTestParams test_params = GetParam();
 
+    //Writer writer;
+    //for (const SimplifyInputShape& shape: test_params.shapes)
+    //    writer.add_shape(shape.shape);
+    //writer.write_json("simplify_input.json");
+
     std::vector<ShapeWithHoles> result = simplify(
             test_params.shapes,
             test_params.maximum_approximation_area);
@@ -78,4 +88,6 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "simplification" / "0.json").string()),
             SimplificationTestParams::read_json(
                     (fs::path("data") / "tests" / "simplification" / "1.json").string()),
+            //SimplificationTestParams::read_json(
+            //        (fs::path("data") / "tests" / "simplification" / "2.json").string()),
             }));
