@@ -1,7 +1,8 @@
 #include "shape/clean.hpp"
 
-#include "shape/element_intersections.hpp"
+#include "shape/shapes_intersections.hpp"
 #include "shape/equalize.hpp"
+#include "shape/boolean_operations.hpp"
 
 #include <iostream>
 
@@ -11,11 +12,11 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
         const Shape& shape)
 {
     //std::cout << "remove_redundant_vertices " << shape.to_string(2) << std::endl;
-    if (!shape.check()) {
-        //write_json({{shape}}, {}, "self_intersect.json");
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": invalid input shape.");
-    }
+    //if (!shape.check()) {
+    //    //write_json({{shape}}, {}, "self_intersect.json");
+    //    throw std::invalid_argument(
+    //            FUNC_SIGNATURE + ": invalid input shape.");
+    //}
 
     if (shape.elements.size() <= 3)
         return {false, shape};
@@ -52,10 +53,10 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
     }
     shape_new.elements.back().end = shape_new.elements.front().start;
 
-    if (!shape_new.check()) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": invalid output shape.");
-    }
+    //if (!shape_new.check()) {
+    //    throw std::invalid_argument(
+    //            FUNC_SIGNATURE + ": invalid output shape.");
+    //}
     return {(number_of_elements_removed > 0), shape_new};
 }
 
@@ -713,4 +714,20 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
     return {shape};
+}
+
+std::vector<ShapeWithHoles> shape::split_at_degenerate_points(
+        const ShapeWithHoles& shape)
+{
+    std::vector<Shape> splitted_shapes = extract_faces(shape.shape);
+    std::vector<ShapeWithHoles> output;
+    for (const Shape& splitted_shape: splitted_shapes) {
+        ShapeWithHoles shape_with_holes;
+        shape_with_holes.shape = splitted_shape;
+        for (const Shape& hole: shape.holes)
+            if (intersect(splitted_shape, hole, true))
+                shape_with_holes.holes.push_back(hole);
+        output.push_back(shape_with_holes);
+    }
+    return output;
 }

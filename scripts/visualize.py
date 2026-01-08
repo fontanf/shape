@@ -5,7 +5,8 @@ import plotly.express as px
 import plotly.subplots
 import numpy as np
 import math
-
+import plotly.io as pio
+pio.renderers.default = "browser"
 
 def element_path(path_x, path_y, element, is_hole=False):
     # How to draw a filled circle segment?

@@ -1,7 +1,7 @@
 #include "shape/shape.hpp"
 
 #include "shape/clean.hpp"
-#include "shape/element_intersections.hpp"
+#include "shape/shapes_intersections.hpp"
 #include "shape/intersection_tree.hpp"
 
 #include <cmath>
@@ -59,6 +59,21 @@ std::string Point::to_string() const
         << std::setprecision(precision);
     return ss.str();
     //return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
+}
+
+std::string Point::to_svg() const
+{
+    std::string s = "<path d=\"";
+    s += "M" + std::to_string(this->x) + "," + std::to_string(this->y);
+    s += "\""
+        " stroke=\"black\""
+        " stroke-width=\"0.1\"";
+    //if (!fill_color.empty()) {
+    //    s += " fill=\"" + fill_color + "\""
+    //        " fill-opacity=\"0.2\"";
+    //}
+    s += "/>\n";
+    return s;
 }
 
 Point shape::operator+(
@@ -638,6 +653,84 @@ nlohmann::json ShapeElement::to_json() const
         json["orientation"] = orientation2str(orientation);
     }
     return json;
+}
+
+std::string ShapeElement::to_svg() const
+{
+    std::string s = "<path d=\"";
+    s += "M";
+    if (this->type == ShapeElementType::CircularArc
+            && this->orientation == ShapeElementOrientation::Full) {
+        Point center = {this->center.x, -(this->center.y)};
+        Point start = {this->start.x, -(this->start.y)};
+        LengthDbl radius = distance(center, start);
+        s += std::to_string(center.x - radius) + "," + std::to_string(center.y);
+        s += "a" + std::to_string(radius) + ","
+            + std::to_string(radius) + ",0,1,0,"
+            + std::to_string(radius * 2) + ",0,";
+        s += "a" + std::to_string(radius) + ","
+            + std::to_string(radius) + ",0,1,0,"
+            + std::to_string(-radius * 2) + ",0Z";
+    } else {
+        Point center = {this->center.x, -(this->center.y)};
+        Point start = {this->start.x, -(this->start.y)};
+        Point end = {this->end.x, -(this->end.y)};
+        s += std::to_string(start.x) + "," + std::to_string(start.y);
+        if (this->type == ShapeElementType::LineSegment) {
+            s += "L";
+        } else {
+            LengthDbl radius = distance(center, start);
+            Angle theta = angle_radian(start - center, end - center);
+            int large_arc_flag = (theta > M_PI)? 0: 1;
+            int sweep_flag = (this->orientation == ShapeElementOrientation::Anticlockwise)? 0: 1;
+            s += "A" + std::to_string(radius) + ","
+                + std::to_string(radius) + ",0,"
+                + std::to_string(large_arc_flag) + ","
+                + std::to_string(sweep_flag) + ",";
+        }
+        s += std::to_string(this->end.x)
+            + "," + std::to_string(-(this->end.y));
+    }
+    s += "\""
+        " stroke=\"black\""
+        " stroke-width=\"0.1\""
+        " fill=\"none\"";
+    s += "/>\n";
+    return s;
+}
+
+void ShapeElement::write_svg(
+        const std::string& file_path) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
+    }
+    auto mm = this->min_max();
+
+    LengthDbl width = (mm.second.x - mm.first.x);
+    LengthDbl height = (mm.second.y - mm.first.y);
+
+    std::string s = "<svg viewBox=\""
+        + std::to_string(mm.first.x)
+        + " " + std::to_string(-mm.first.y - height)
+        + " " + std::to_string(width)
+        + " " + std::to_string(height)
+        + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+    file << s;
+
+    file << "<path d=\"" << to_svg() << "\""
+        << " stroke=\"black\""
+        << " stroke-width=\"0.1\""
+        << " fill=\"blue\""
+        << " fill-opacity=\"0.2\""
+        << "/>" << std::endl;
+
+    file << "</svg>" << std::endl;
 }
 
 ShapeElement& ShapeElement::shift(
@@ -1253,6 +1346,68 @@ bool Shape::contains(
     return (intersection_count % 2 == 1);
 }
 
+Point Shape::find_point_strictly_inside() const
+{
+    auto mm = this->compute_min_max();
+    for (Counter k = 2;; ++k) {
+        for (Counter k2 = 1; k2 < k; ++k2) {
+            LengthDbl y = (mm.first.y + mm.second.y) * k2 / k;
+            Point point_min_1 = {
+                std::numeric_limits<LengthDbl>::infinity(),
+                std::numeric_limits<LengthDbl>::infinity()};
+            Point point_min_2 = {
+                std::numeric_limits<LengthDbl>::infinity(),
+                std::numeric_limits<LengthDbl>::infinity()};
+            ShapeElement ray;
+            ray.type = ShapeElementType::LineSegment;
+            ray.start.x = mm.first.x - 1;
+            ray.start.y = y;
+            ray.end.x = mm.second.x + 1;
+            ray.end.y = y;
+            for (ElementPos element_pos = 0;
+                    element_pos < this->elements.size();
+                    ++element_pos) {
+                const ShapeElement& element = this->elements[element_pos];
+                ShapeElementIntersectionsOutput intersections = compute_intersections(ray, element);
+                for (const ShapeElement& overlapping_part: intersections.overlapping_parts) {
+                    const Point& intersection = (overlapping_part.start.x < overlapping_part.end.x)?
+                        overlapping_part.start:
+                        overlapping_part.end;
+                    if (!strictly_lesser(point_min_1.x, intersection.x)) {
+                        point_min_2 = intersection;
+                        point_min_1 = intersection;
+                    } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
+                        point_min_2 = intersection;
+                    }
+                }
+                for (const Point& intersection: intersections.improper_intersections) {
+                    if (!strictly_lesser(point_min_1.x, intersection.x)) {
+                        point_min_2 = point_min_1;
+                        point_min_1 = intersection;
+                    } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
+                        point_min_2 = intersection;
+                    }
+                }
+                for (const Point& intersection: intersections.proper_intersections) {
+                    if (!strictly_lesser(point_min_1.x, intersection.x)) {
+                        point_min_2 = point_min_1;
+                        point_min_1 = intersection;
+                    } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
+                        point_min_2 = intersection;
+                    }
+                }
+            }
+            if (equal(point_min_1.x, point_min_2.x))
+                continue;
+            return {(point_min_1.x + point_min_2.x) / 2, y};
+        }
+    }
+    throw std::logic_error(
+            FUNC_SIGNATURE + ": "
+            "no point found inside the shape.");
+    return {0, 0};
+}
+
 bool Shape::is_strictly_closer_to_path_start(
         const ShapePoint& point_1,
         const ShapePoint& point_2) const
@@ -1440,57 +1595,7 @@ bool Shape::check() const
         }
     }
 
-    // Check that the shape doesn't contain null angles.
-    ElementPos element_prev_pos = this->elements.size() - 1;
-    for (ElementPos element_cur_pos = 0;
-            element_cur_pos < (ElementPos)this->elements.size();
-            ++element_cur_pos) {
-        const ShapeElement& element_prev = this->elements[element_prev_pos];
-        const ShapeElement& element = this->elements[element_cur_pos];
-
-        if (std::isnan(element.start.x)
-                || std::isnan(element.start.y)
-                || std::isnan(element.end.x)
-                || std::isnan(element.end.y)
-                || std::isnan(element.center.x)
-                || std::isnan(element.center.y)) {
-            std::cout << this->to_string(1) << std::endl;
-            std::cout << "element_pos       " << element_cur_pos << std::endl;
-            std::cout << "element       " << element.to_string() << std::endl;
-            return false;
-        }
-
-        if (element_prev.type == ShapeElementType::LineSegment
-                && element.type == ShapeElementType::LineSegment
-                && !(element_prev.start == element_prev.end)
-                && !(element.start == element.end)) {
-            Angle angle = angle_radian(
-                    element_prev.start - element_prev.end,
-                    element.end - element.start);
-            if (angle == 0) {
-                std::cout << this->to_string(1) << std::endl;
-                std::cout << "element_prev_pos  " << element_prev_pos << std::endl;
-                std::cout << "element_pos       " << element_cur_pos << std::endl;
-                std::cout << "element_prev  " << element_prev.to_string() << std::endl;
-                std::cout << "element       " << element.to_string() << std::endl;
-                std::cout << "angle  " << angle << std::endl;
-                return false;
-            }
-
-            if (element_prev.start == element.end) {
-                std::cout << this->to_string(1) << std::endl;
-                std::cout << "element_pos       " << element_cur_pos << std::endl;
-                std::cout << "element_prev_pos  " << element_prev_pos << std::endl;
-                std::cout << "element       " << element.to_string() << std::endl;
-                std::cout << "element_prev  " << element_prev.to_string() << std::endl;
-                return false;
-            }
-        }
-
-        element_prev_pos = element_cur_pos;
-    }
-
-    if (strictly_intersect(*this)) {
+    if (intersect(*this)) {
         std::cout << this->to_string(1) << std::endl;
         std::cout << "shape self intersect." << std::endl;
         return false;
@@ -1582,7 +1687,7 @@ void Shape::write_json(
     file << std::setw(4) << json << std::endl;
 }
 
-std::string Shape::to_svg() const
+std::string Shape::to_svg_path() const
 {
     std::string s = "M";
     if (is_circle()) {
@@ -1617,10 +1722,26 @@ std::string Shape::to_svg() const
             }
         }
         s += std::to_string(elements.front().start.x)
-            + "," + std::to_string(-(elements.front().start.y))
-            + "Z";
+            + "," + std::to_string(-(elements.front().start.y));
+        if (!this->is_path)
+            s += "Z";
     }
 
+    return s;
+}
+
+std::string Shape::to_svg(
+            const std::string& fill_color) const
+{
+    std::string s = "<path d=\"" + this->to_svg_path();
+    s += "\""
+        " stroke=\"black\""
+        " stroke-width=\"0.1\"";
+    if (!fill_color.empty()) {
+        s += " fill=\"" + fill_color + "\""
+            " fill-opacity=\"0.2\"";
+    }
+    s += "/>\n";
     return s;
 }
 
@@ -1668,6 +1789,18 @@ Shape shape::build_triangle(
     shape.elements[0] = build_line_segment(p1, p2);
     shape.elements[1] = build_line_segment(p2, p3);
     shape.elements[2] = build_line_segment(p3, p1);
+    return shape;
+}
+
+Shape shape::build_square(
+        LengthDbl size_length)
+{
+    Shape shape;
+    shape.elements = std::vector<ShapeElement>(4);
+    shape.elements[0] = build_line_segment({0, 0}, {size_length, 0});
+    shape.elements[1] = build_line_segment({size_length, 0}, {size_length, size_length});
+    shape.elements[2] = build_line_segment({size_length, size_length}, {0, size_length});
+    shape.elements[3] = build_line_segment({0, size_length}, {0, 0});
     return shape;
 }
 
@@ -1808,6 +1941,75 @@ bool ShapeWithHoles::contains(
     return true;
 }
 
+Point ShapeWithHoles::find_point_strictly_inside() const
+{
+    auto mm = this->compute_min_max();
+    for (Counter k = 2;; ++k) {
+        for (Counter k2 = 1; k2 < k; ++k2) {
+            LengthDbl y = (mm.first.y + mm.second.y) * k2 / k;
+            Point point_min_1 = {
+                std::numeric_limits<LengthDbl>::infinity(),
+                std::numeric_limits<LengthDbl>::infinity()};
+            Point point_min_2 = {
+                std::numeric_limits<LengthDbl>::infinity(),
+                std::numeric_limits<LengthDbl>::infinity()};
+            ShapeElement ray;
+            ray.type = ShapeElementType::LineSegment;
+            ray.start.x = mm.first.x - 1;
+            ray.start.y = y;
+            ray.end.x = mm.second.x + 1;
+            ray.end.y = y;
+            for (ShapePos shape_pos = -1;
+                    shape_pos < (ShapePos)this->holes.size();
+                    ++shape_pos) {
+                const Shape& shape = (shape_pos == -1)?
+                    this->shape:
+                    this->holes[shape_pos];
+                for (ElementPos element_pos = 0;
+                        element_pos < shape.elements.size();
+                        ++element_pos) {
+                    const ShapeElement& element = shape.elements[element_pos];
+                    ShapeElementIntersectionsOutput intersections = compute_intersections(ray, element);
+                    for (const ShapeElement& overlapping_part: intersections.overlapping_parts) {
+                        const Point& intersection = (overlapping_part.start.x < overlapping_part.end.x)?
+                            overlapping_part.start:
+                            overlapping_part.end;
+                        if (!strictly_lesser(point_min_1.x, intersection.x)) {
+                            point_min_2 = intersection;
+                            point_min_1 = intersection;
+                        } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
+                            point_min_2 = intersection;
+                        }
+                    }
+                    for (const Point& intersection: intersections.improper_intersections) {
+                        if (!strictly_lesser(point_min_1.x, intersection.x)) {
+                            point_min_2 = point_min_1;
+                            point_min_1 = intersection;
+                        } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
+                            point_min_2 = intersection;
+                        }
+                    }
+                    for (const Point& intersection: intersections.proper_intersections) {
+                        if (!strictly_lesser(point_min_1.x, intersection.x)) {
+                            point_min_2 = point_min_1;
+                            point_min_1 = intersection;
+                        } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
+                            point_min_2 = intersection;
+                        }
+                    }
+                }
+            }
+            if (equal(point_min_1.x, point_min_2.x))
+                continue;
+            return {(point_min_1.x + point_min_2.x) / 2, y};
+        }
+    }
+    throw std::logic_error(
+            FUNC_SIGNATURE + ": "
+            "no point found inside the shape.");
+    return {0, 0};
+}
+
 ShapeWithHoles ShapeWithHoles::bridge_touching_holes() const
 {
     ShapeWithHoles shape = *this;
@@ -1856,6 +2058,10 @@ ShapeWithHoles ShapeWithHoles::bridge_touching_holes() const
                     hole_contact_element_pos = hole_element_pos;
                     shape_contact_shape_pos = shape_pos;
                     shape_contact_element_pos = element_pos;
+                    std::cout << "element_pos " << element_pos
+                        << " element " << shape.shape.elements[element_pos].to_string() << std::endl;
+                    std::cout << "hole_element_pos " << hole_element_pos
+                        << " hole_element " << hole_element.to_string() << std::endl;
                 }
             }
         }
@@ -1877,6 +2083,12 @@ ShapeWithHoles ShapeWithHoles::bridge_touching_holes() const
             if (shape_element_pos != shape_contact_element_pos) {
                 new_shape.elements.push_back(shape_element);
             } else {
+                std::cout << "shape_element_pos " << shape_element_pos
+                    << " shape_element " << shape_element.to_string() << std::endl;
+                std::cout << "shape_contact_element_pos " << shape_contact_element_pos
+                    << " shape_contact_element " << shape_contact_element.to_string() << std::endl;
+                std::cout << "hole_contact_element_pos " << hole_contact_element_pos
+                    << " hole_contact_element " << hole_contact_element.to_string() << std::endl;
                 auto intersections = compute_intersections(
                         shape_contact_element,
                         hole_contact_element);
@@ -1889,11 +2101,15 @@ ShapeWithHoles ShapeWithHoles::bridge_touching_holes() const
                     p_hole = hole_contact_element.split(intersection);
                 }
                 // Add first part of the shape element.
-                if (!equal(p_shape.first.start, p_shape.first.end))
+                if (!equal(p_shape.first.start, p_shape.first.end)) {
+                    std::cout << "add p_shape.first " << p_shape.first.to_string() << std::endl;
                     new_shape.elements.push_back(p_shape.first);
+                }
                 // Add first part of the hole element.
-                if (!equal(p_hole.second.start, p_hole.second.end))
+                if (!equal(p_hole.second.start, p_hole.second.end)) {
+                    std::cout << "add p_hole.second " << p_hole.second.to_string() << std::endl;
                     new_shape.elements.push_back(p_hole.second);
+                }
                 // Add hole.
                 if (shape_contact_shape_pos == -1) {
                     for (ElementPos hole_element_pos_tmp = (ElementPos)hole.elements.size() - 1;
@@ -1913,11 +2129,15 @@ ShapeWithHoles ShapeWithHoles::bridge_touching_holes() const
                     }
                 }
                 // Add second part of the hole element.
-                if (!equal(p_hole.first.start, p_hole.first.end))
+                if (!equal(p_hole.first.start, p_hole.first.end)) {
+                    std::cout << "add p_hole.first " << p_hole.first.to_string() << std::endl;
                     new_shape.elements.push_back(p_hole.first);
+                }
                 // Add second part of the element.
-                if (!equal(p_shape.second.start, p_shape.second.end))
+                if (!equal(p_shape.second.start, p_shape.second.end)) {
+                    std::cout << "add p_shape.second " << p_shape.second.to_string() << std::endl;
                     new_shape.elements.push_back(p_shape.second);
+                }
             }
         }
         contact_shape = new_shape;
@@ -2193,7 +2413,7 @@ void ShapeWithHoles::write_json(
 std::string ShapeWithHoles::to_svg(
         const std::string& fill_color) const
 {
-    std::string s = "<path d=\"" + shape.to_svg();
+    std::string s = "<path d=\"" + shape.to_svg_path();
     for (const Shape& hole: holes)
         s += hole.reverse().to_svg();
     s += "\""
@@ -2252,89 +2472,6 @@ ShapeWithHoles shape::operator*(
     for (const Shape& hole: shape.holes)
         shape_new.holes.push_back(scalar * hole);
     return shape_new;
-}
-
-void shape::write_json(
-        const std::vector<ShapeWithHoles>& shapes,
-        const std::vector<ShapeElement>& elements,
-        const std::string& file_path)
-{
-    if (file_path.empty())
-        return;
-    std::ofstream file{file_path};
-    if (!file.good()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "unable to open file \"" + file_path + "\".");
-    }
-
-    nlohmann::json json;
-    for (ShapePos shape_pos = 0;
-            shape_pos < (ShapePos)shapes.size();
-            ++shape_pos) {
-        json["shapes"][shape_pos] = shapes[shape_pos].to_json();
-    }
-    for (ElementPos element_pos = 0;
-            element_pos < (ShapePos)elements.size();
-            ++element_pos) {
-        json["elements"][element_pos] = elements[element_pos].to_json();
-    }
-
-    file << std::setw(4) << json << std::endl;
-}
-
-std::pair<Point, Point> shape::compute_min_max(
-    const std::vector<ShapeWithHoles>& shapes)
-{
-    LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
-    for (const ShapeWithHoles& shape: shapes) {
-        auto points = shape.compute_min_max();
-        x_min = std::min(x_min, points.first.x);
-        x_max = std::max(x_max, points.second.x);
-        y_min = std::min(y_min, points.first.y);
-        y_max = std::max(y_max, points.second.y);
-    }
-    return {{x_min, y_min}, {x_max, y_max}};
-}
-
-void shape::write_svg(
-        const std::vector<ShapeWithHoles>& shapes,
-        const std::string& file_path)
-{
-    if (file_path.empty())
-        return;
-    std::ofstream file{file_path};
-    if (!file.good()) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + ": "
-                "unable to open file \"" + file_path + "\".");
-    }
-
-    auto mm = compute_min_max(shapes);
-    LengthDbl width = (mm.second.x - mm.first.x);
-    LengthDbl height = (mm.second.y - mm.first.y);
-
-    std::string s = "<svg viewBox=\""
-        + std::to_string(mm.first.x)
-        + " " + std::to_string(-mm.first.y - height)
-        + " " + std::to_string(width)
-        + " " + std::to_string(height)
-        + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
-    file << s;
-
-    for (ShapePos shape_pos = 0;
-             shape_pos < (ShapePos) shapes.size();
-             ++shape_pos) {
-        const auto& shape = shapes[shape_pos];
-        file << "<g>" << std::endl;
-        file << shape.to_svg("blue");
-        file << "</g>" << std::endl;
-    }
-
-    file << "</svg>" << std::endl;
 }
 
 bool shape::operator==(

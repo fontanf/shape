@@ -164,6 +164,22 @@ std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
 std::vector<GeneralizedTrapezoid> shape::trapezoidation(
         const ShapeWithHoles& shape_orig)
 {
+    if (!shape_orig.shape.check()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid input shape.");
+    }
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)shape_orig.holes.size();
+            ++hole_pos) {
+        const Shape& hole = shape_orig.holes[hole_pos];
+        if (!hole.check()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "invalid input shape.");
+        }
+    }
+
     //std::cout << "polygon_trapezoidation" << std::endl;
     //std::cout << shape.to_string(0) << std::endl;
     //write_json({shape}, {}, "trapezoidation_input.json");
@@ -171,22 +187,6 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
     //std::cout << shape.to_string(0) << std::endl;
 
     std::vector<GeneralizedTrapezoid> trapezoids;
-
-    if (!shape.shape.check()) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "invalid input shape.");
-    }
-    for (ShapePos hole_pos = 0;
-            hole_pos < (ShapePos)shape.holes.size();
-            ++hole_pos) {
-        const Shape& hole = shape.holes[hole_pos];
-        if (!hole.check()) {
-            throw std::invalid_argument(
-                    FUNC_SIGNATURE + ": "
-                    "invalid input shape.");
-        }
-    }
 
     // Classify the vertices.
     std::vector<std::vector<Vertex>> vertices;

@@ -1,6 +1,10 @@
 #include "shape/shape.hpp"
 
+#include "shape/writer.hpp"
+
 #include <gtest/gtest.h>
+
+#include "test_params.hpp"
 
 using namespace shape;
 
@@ -327,6 +331,35 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
+struct ShapeFindPointStrictlyInsideTestParams
+{
+    Shape shape;
+};
+
+class ShapeFindPointStrictlyInsideTest: public testing::TestWithParam<ShapeFindPointStrictlyInsideTestParams> { };
+
+TEST_P(ShapeFindPointStrictlyInsideTest, ShapeFindPointStrictlyInside)
+{
+    ShapeFindPointStrictlyInsideTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    Point result = test_params.shape.find_point_strictly_inside();
+    std::cout << "result " << result.to_string() << std::endl;
+    EXPECT_TRUE(test_params.shape.contains(result, true));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeFindPointStrictlyInsideTest,
+        testing::ValuesIn(std::vector<ShapeFindPointStrictlyInsideTestParams>{
+            {
+                build_rectangle(2, 4),
+            }, {
+                build_circle(2),
+            }, {
+                build_shape({{0, 100}, {100, 100}, {100, 0}, {200, 0}, {200, 200}, {0, 200}}),
+            }}));
+
+
 struct ShapeSplitTestParams
 {
     Shape shape;
@@ -475,6 +508,31 @@ struct ShapeWithHolesBridgeTouchingHolesTestParams
 {
     ShapeWithHoles shape;
     ShapeWithHoles expected_shape;
+
+
+    static ShapeWithHolesBridgeTouchingHolesTestParams from_json(
+            nlohmann::basic_json<>& json_item)
+    {
+        ShapeWithHolesBridgeTouchingHolesTestParams test_params;
+        test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
+        test_params.expected_shape = ShapeWithHoles::from_json(json_item["expected_shape"]);
+        return test_params;
+    }
+
+    static ShapeWithHolesBridgeTouchingHolesTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
 };
 
 class ShapeWithHolesBridgeTouchingHolesTest: public testing::TestWithParam<ShapeWithHolesBridgeTouchingHolesTestParams> { };
@@ -484,9 +542,14 @@ TEST_P(ShapeWithHolesBridgeTouchingHolesTest, ShapeWithHolesBridgeTouchingHoles)
     ShapeWithHolesBridgeTouchingHolesTestParams test_params = GetParam();
     std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
     std::cout << "expected shape " << test_params.expected_shape.to_string(2) << std::endl;
-    ShapeWithHoles res = test_params.shape.bridge_touching_holes();
-    std::cout << "result " << res.to_string(2) << std::endl;
-    EXPECT_TRUE(equal(res, test_params.expected_shape));
+    ShapeWithHoles result = test_params.shape.bridge_touching_holes();
+    std::cout << "result " << result.to_string(2) << std::endl;
+    //Writer()
+    //    .add_shape_with_holes(test_params.shape)
+    //    .add_shape_with_holes(test_params.expected_shape)
+    //    .add_shape_with_holes(result)
+    //    .write_json("bridge_touching_holes.json");
+    EXPECT_TRUE(equal(result, test_params.expected_shape));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -600,6 +663,8 @@ INSTANTIATE_TEST_SUITE_P(
                         {11, 1}, {10, 1},
                         {20, 0}, {20, 50}, {0, 50}})},
             },
+            ShapeWithHolesBridgeTouchingHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "shape_with_holes" / "bridge_touching_holes" / "0.json").string()),
             }));
 
 

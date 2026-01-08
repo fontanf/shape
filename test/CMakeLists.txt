@@ -7,7 +7,8 @@ target_sources(Shape_shape_test PRIVATE
     test_params.hpp
     trapezoid_test.cpp
     shape_test.cpp
-    element_intersections_test.cpp
+    elements_intersections_test.cpp
+    shapes_intersections_test.cpp
     convex_hull_test.cpp
     clean_test.cpp
     extract_borders_test.cpp

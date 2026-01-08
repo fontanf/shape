@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shape/element_intersections.hpp"
+#include "shape/elements_intersections.hpp"
 
 #include "optimizationtools/containers/indexed_set.hpp"
 

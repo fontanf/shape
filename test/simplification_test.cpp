@@ -78,4 +78,6 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "simplification" / "0.json").string()),
             SimplificationTestParams::read_json(
                     (fs::path("data") / "tests" / "simplification" / "1.json").string()),
+            SimplificationTestParams::read_json(
+                    (fs::path("data") / "tests" / "simplification" / "2.json").string()),
             }));

@@ -25,4 +25,7 @@ ShapeWithHoles clean_extreme_slopes_outer(
 std::vector<Shape> clean_extreme_slopes_inner(
         const Shape& shape);
 
+std::vector<ShapeWithHoles> split_at_degenerate_points(
+        const ShapeWithHoles& shape);
+
 }

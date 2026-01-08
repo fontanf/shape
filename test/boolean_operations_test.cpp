@@ -1,5 +1,7 @@
 #include "shape/boolean_operations.hpp"
 
+#include "shape/writer.hpp"
+
 #include <gtest/gtest.h>
 
 #include "test_params.hpp"
@@ -48,14 +50,14 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
         std::string base_filename = "union_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
-            write_json(test_params.shapes, {}, base_filename + "_shapes.json");
-            write_json(test_params.expected_result, {}, base_filename + "_expected_result.json");
-            write_json(result, {}, base_filename + "_result.json");
+            Writer().add_shapes_with_holes(test_params.shapes).write_json(base_filename + "_shapes.json");
+            Writer().add_shapes_with_holes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
+            Writer().add_shapes_with_holes(result).write_json(base_filename + "_result.json");
         }
         if (test_params.write_svg) {
-            write_svg(test_params.shapes, base_filename + "_shapes.svg");
-            write_svg(test_params.expected_result, base_filename + "_expected_result.svg");
-            write_svg(result, base_filename + "_result.svg");
+            Writer().add_shapes_with_holes(test_params.shapes).write_svg(base_filename + "_shapes.svg");
+            Writer().add_shapes_with_holes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
+            Writer().add_shapes_with_holes(result).write_svg(base_filename + "_result.svg");
         }
 
     }
@@ -117,14 +119,14 @@ TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
         std::string base_filename = "intersection_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
-            write_json(test_params.shapes, {}, base_filename + "_shapes.json");
-            write_json(test_params.expected_result, {}, base_filename + "_expected_result.json");
-            write_json(result, {}, base_filename + "_result.json");
+            Writer().add_shapes_with_holes(test_params.shapes).write_json(base_filename + "_shapes.json");
+            Writer().add_shapes_with_holes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
+            Writer().add_shapes_with_holes(result).write_json(base_filename + "_result.json");
         }
         if (test_params.write_svg) {
-            write_svg(test_params.shapes, base_filename + "_shapes.svg");
-            write_svg(test_params.expected_result, base_filename + "_expected_result.svg");
-            write_svg(result, base_filename + "_result.svg");
+            Writer().add_shapes_with_holes(test_params.shapes).write_svg(base_filename + "_shapes.svg");
+            Writer().add_shapes_with_holes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
+            Writer().add_shapes_with_holes(result).write_svg(base_filename + "_result.svg");
         }
 
     }
@@ -187,24 +189,20 @@ TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
     for (const ShapeWithHoles& shape: result)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
+    test_params.write_json = true;
     if (test_params.write_json || test_params.write_svg) {
         std::string base_filename = "difference_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
-            std::vector<ShapeWithHoles> shapes = {test_params.shape};
-            for (const ShapeWithHoles& shape: test_params.shapes)
-                shapes.push_back(shape);
-            write_json(shapes, {}, base_filename + "_shapes.json");
-            write_json(test_params.expected_result, {}, base_filename + "_expected_result.json");
-            write_json(result, {}, base_filename + "_result.json");
+            Writer().add_shape_with_holes(test_params.shape).add_shapes_with_holes(test_params.shapes).write_json(base_filename + "_shapes.json");
+            Writer().add_shapes_with_holes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
+            Writer().add_shapes_with_holes(result).write_json(base_filename + "_result.json");
         }
         if (test_params.write_svg) {
-            write_svg({ test_params.shape }, base_filename + "_shape.svg");
-            write_svg(test_params.shapes, base_filename + "_shapes.svg");
-            write_svg(test_params.expected_result, base_filename + "_expected_result.svg");
-            write_svg(result, base_filename + "_result.svg");
+            Writer().add_shape_with_holes(test_params.shape).add_shapes_with_holes(test_params.shapes).write_svg(base_filename + "_shapes.svg");
+            Writer().add_shapes_with_holes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
+            Writer().add_shapes_with_holes(result).write_svg(base_filename + "_result.svg");
         }
-
     }
 
     ASSERT_EQ(result.size(), test_params.expected_result.size());
@@ -267,16 +265,14 @@ TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
         std::string base_filename = "symmetric_difference_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
-            write_json({ test_params.shape_1 }, {}, base_filename + "_shape_1.json");
-            write_json({ test_params.shape_2 }, {}, base_filename + "_shape_2.json");
-            write_json(test_params.expected_result, {}, base_filename + "_expected_result.json");
-            write_json(result, {}, base_filename + "_result.json");
+            Writer().add_shape_with_holes(test_params.shape_1).add_shape_with_holes(test_params.shape_2).write_json(base_filename + "_shapes.json");
+            Writer().add_shapes_with_holes(test_params.expected_result).write_json(base_filename + "_expected_result.json");
+            Writer().add_shapes_with_holes(result).write_json(base_filename + "_result.json");
         }
         if (test_params.write_svg) {
-            write_svg({ test_params.shape_1 }, base_filename + "_shape_1.svg");
-            write_svg({ test_params.shape_2 }, base_filename + "_shape_2.svg");
-            write_svg(test_params.expected_result, base_filename + "_expected_result.svg");
-            write_svg(result, base_filename + "_result.svg");
+            Writer().add_shape_with_holes(test_params.shape_1).add_shape_with_holes(test_params.shape_2).write_svg(base_filename + "_shapes.svg");
+            Writer().add_shapes_with_holes(test_params.expected_result).write_svg(base_filename + "_expected_result.svg");
+            Writer().add_shapes_with_holes(result).write_svg(base_filename + "_result.svg");
         }
 
     }

@@ -29,3 +29,52 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 0}, {0, 0}, {100, 0}, {100, 100}}),
                 build_shape({{0, 0}, {100, 0}, {100, 100}})
             }}));
+
+
+struct ShapeWithHolesSplitAtDegenerateVerticesTestParams
+{
+    ShapeWithHoles shape;
+    std::vector<ShapeWithHoles> expected_result;
+};
+
+class ShapeWithHolesSplitAtDegenerateVerticesTest: public testing::TestWithParam<ShapeWithHolesSplitAtDegenerateVerticesTestParams> { };
+
+TEST_P(ShapeWithHolesSplitAtDegenerateVerticesTest, ShapeWithHolesSplitAtDegenerateVertices)
+{
+    ShapeWithHolesSplitAtDegenerateVerticesTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
+    std::cout << "expected shapes:" << std::endl;
+    for (const ShapeWithHoles& shape: test_params.expected_result)
+        std::cout << shape.to_string(2) << std::endl;
+    std::vector<ShapeWithHoles> result = split_at_degenerate_points(test_params.shape);
+    std::cout << "result:" << std::endl;
+    for (const ShapeWithHoles& shape: result)
+        std::cout << shape.to_string(2) << std::endl;
+
+    ASSERT_EQ(result.size(), test_params.expected_result.size());
+    for (const ShapeWithHoles& expected_shape: test_params.expected_result) {
+        EXPECT_NE(std::find_if(
+                      result.begin(),
+                      result.end(),
+                      [&expected_shape](const ShapeWithHoles& shape) { return equal(shape, expected_shape); }),
+                  result.end());
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeWithHolesSplitAtDegenerateVerticesTest,
+        testing::ValuesIn(std::vector<ShapeWithHolesSplitAtDegenerateVerticesTestParams>{
+            {
+                {build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}})},
+                {
+                    {build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}})},
+                },
+            }, {
+                {build_shape({{0, 0}, {1, 0}, {1, 1}, {2, 1}, {2, 2}, {1, 2}, {1, 1}, {0, 1}})},
+                {
+                    {build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}})},
+                    {build_shape({{1, 1}, {2, 1}, {2, 2}, {1, 2}})},
+                },
+            },
+            }));
