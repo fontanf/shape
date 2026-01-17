@@ -498,7 +498,7 @@ Jet shape::operator-(
     Jet jet;
     jet.tangent_angle = jet_1.tangent_angle - jet_2.tangent_angle;
     jet.curvature = jet_1.curvature - jet_2.curvature;
-    if (strictly_lesser(jet.tangent_angle, 0.0))
+    if (jet.tangent_angle < 0.0)
         jet.tangent_angle += 2 * M_PI;
     return jet;
 }
@@ -2205,33 +2205,22 @@ bool shape::operator==(
     return true;
 }
 
-bool shape::equal(
+bool shape::operator<(
         const Jet& jet_1,
         const Jet& jet_2)
 {
-    if (!equal(jet_1.tangent_angle, jet_2.tangent_angle))
-        return false;
-    if (!equal(jet_1.curvature, jet_2.curvature))
-        return false;
-    return true;
+    if (jet_1.tangent_angle != jet_2.tangent_angle)
+        return jet_1.tangent_angle < jet_2.tangent_angle;
+    return jet_1.curvature < jet_2.curvature;
 }
 
-bool shape::strictly_greater(
+bool shape::operator>(
         const Jet& jet_1,
         const Jet& jet_2)
 {
-    if (!equal(jet_1.tangent_angle, jet_2.tangent_angle))
-        return strictly_greater(jet_1.tangent_angle, jet_2.tangent_angle);
-    return strictly_greater(jet_1.curvature, jet_2.curvature);
-}
-
-bool shape::strictly_lesser(
-        const Jet& jet_1,
-        const Jet& jet_2)
-{
-    if (!equal(jet_1.tangent_angle, jet_2.tangent_angle))
-        return strictly_lesser(jet_1.tangent_angle, jet_2.tangent_angle);
-    return strictly_lesser(jet_1.curvature, jet_2.curvature);
+    if (jet_1.tangent_angle != jet_2.tangent_angle)
+        return jet_1.tangent_angle > jet_2.tangent_angle;
+    return jet_1.curvature > jet_2.curvature;
 }
 
 bool shape::operator==(

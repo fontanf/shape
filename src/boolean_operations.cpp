@@ -610,25 +610,14 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             const ShapeElement& element_next = splitted_elements[element_pos_next].element;
             Jet jet = element_next.jet(element_next.start, false) - current_jet;
             if (largest_jet_element_pos == -1
-                    || strictly_lesser(largest_jet, jet)) {
+                    || largest_jet < jet) {
                 largest_jet_element_pos = element_pos_next;
                 largest_jet = jet;
             }
         }
         if (largest_jet_element_pos == -1) {
-            //nlohmann::json json;
-            //for (ElementPos pos = 0;
-            //        pos < (ElementPos)splitted_elements.size();
-            //        ++pos) {
-            //    json["elements"][pos] = splitted_elements[pos].element.to_json();
-            //}
-            //std::string file_path = "overlay.json";
-            //std::ofstream file{file_path};
-            //if (!file.good()) {
-            //    throw std::runtime_error(
-            //            "Unable to open file \"" + file_path + "\".");
-            //}
-            //file << std::setw(4) << json << std::endl;
+            //compute_union_export_inputs("compute_union_input.json", shapes);
+            //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
             throw std::logic_error(
                     FUNC_SIGNATURE + ": "
                     "largest_jet_element_pos is '-1' in outline.");
@@ -719,20 +708,33 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             ElementPos largest_jet_element_pos = -1;
             Jet largest_jet;
             Jet current_jet = element_cur.jet(element_cur.end, true);
+            //std::cout << "element_cur_pos " << element_cur_pos
+            //    << " element_cur " << element_cur.to_string() << std::endl;
             for (ElementPos element_pos_next: node.successors) {
                 const SplittedElement& splitted_element_next = splitted_elements[element_pos_next];
                 const ShapeElement& element_next = splitted_element_next.element;
-                //std::cout << "element_next_pos " << element_pos_next
-                //    << " element_next " << element_next.to_string() << std::endl;
                 Jet jet = element_next.jet(element_next.start, false) - current_jet;
+                //std::cout << "element_next_pos " << element_pos_next
+                //    << " element_next " << element_next.to_string()
+                //    << " jet " << jet.to_string()
+                //    << std::endl;
                 if (largest_jet_element_pos == -1
-                        || strictly_lesser(largest_jet, jet)) {
+                        || largest_jet < jet) {
                     largest_jet_element_pos = element_pos_next;
                     largest_jet = jet;
                 }
             }
-            //std::cout << "largest_angle_element_pos " << largest_angle_element_pos << std::endl;
+            //std::cout << "largest_jet_element_pos " << largest_jet_element_pos << std::endl;
             if (largest_jet_element_pos == -1) {
+                //compute_union_export_inputs("compute_union_input.json", shapes);
+                //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
+
+                //std::vector<ShapeElement> elements;
+                //Writer writer;
+                //for (const auto& splitted_element: splitted_elements)
+                //    writer.add_element(splitted_element.element);
+                //writer.write_json("overlay.json");
+
                 throw std::logic_error(
                         FUNC_SIGNATURE + ": "
                         "largest_jet_element_pos is '-1'");
@@ -754,9 +756,14 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //std::cout << face.to_string(0) << std::endl;
             //std::vector<ShapeElement> elements;
             //Writer writer;
-            //for (const auto& splitted_element: splitted_elements)
+            //for (const auto& splitted_element: splitted_elements) {
+            //    //auto mm = splitted_element.element.min_max();
+            //    //if (mm.first.x < 8.10 || mm.second. x > 8.20
+            //    //        || mm.first.y < 8.10 || mm.second.y > 8.20)
+            //    //    continue;
             //    writer.add_element(splitted_element.element);
             //writer.write_json("overlay.json");
+            //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
             throw std::logic_error(
                     FUNC_SIGNATURE + ": "
                     "face is not closed.");

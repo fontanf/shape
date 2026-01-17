@@ -169,10 +169,10 @@ bool strictly_intersect(
                 //std::cout << "jet_shape_1 " << jet_shape_1.to_string() << std::endl;
                 //std::cout << "jet_shape_2_1 " << jet_shape_2_1.to_string() << std::endl;
                 //std::cout << "jet_shape_2_2 " << jet_shape_2_2.to_string() << std::endl;
-                if (strictly_greater(jet_shape_2_1, jet_shape_1))
-                        return true;
-                if (strictly_greater(jet_shape_2_2, jet_shape_1))
-                        return true;
+                if (jet_shape_2_1 > jet_shape_1)
+                    return true;
+                if (jet_shape_2_2 > jet_shape_1)
+                    return true;
             }
             if (!shape_2.is_path) {
                 if (is_shape_2_hole)
@@ -183,10 +183,10 @@ bool strictly_intersect(
                 //std::cout << "jet_shape_2 " << jet_shape_2.to_string() << std::endl;
                 //std::cout << "jet_shape_1_1 " << jet_shape_1_1.to_string() << std::endl;
                 //std::cout << "jet_shape_1_2 " << jet_shape_1_2.to_string() << std::endl;
-                if (strictly_greater(jet_shape_1_1, jet_shape_2))
-                        return true;
-                if (strictly_greater(jet_shape_1_2, jet_shape_2))
-                        return true;
+                if (jet_shape_1_1 > jet_shape_2)
+                    return true;
+                if (jet_shape_1_2 > jet_shape_2)
+                    return true;
             }
         } else {
             auto p = shape_2_element.split(shape_1_element.end);
@@ -207,10 +207,10 @@ bool strictly_intersect(
                 //std::cout << "jet_shape_1 " << jet_shape_1.to_string() << std::endl;
                 //std::cout << "jet_shape_2_1 " << jet_shape_2_1.to_string() << std::endl;
                 //std::cout << "jet_shape_2_2 " << jet_shape_2_2.to_string() << std::endl;
-                if (strictly_greater(jet_shape_2_1, jet_shape_1))
-                        return true;
-                if (strictly_greater(jet_shape_2_2, jet_shape_1))
-                        return true;
+                if (jet_shape_2_1 > jet_shape_1)
+                    return true;
+                if (jet_shape_2_2 > jet_shape_1)
+                    return true;
             }
             if (!shape_2.is_path) {
                 if (is_shape_2_hole)
@@ -221,10 +221,10 @@ bool strictly_intersect(
                 //std::cout << "jet_shape_2 " << jet_shape_2.to_string() << std::endl;
                 //std::cout << "jet_shape_1_1 " << jet_shape_1_1.to_string() << std::endl;
                 //std::cout << "jet_shape_1_2 " << jet_shape_1_2.to_string() << std::endl;
-                if (strictly_greater(jet_shape_1_1, jet_shape_2))
-                        return true;
-                if (strictly_greater(jet_shape_1_2, jet_shape_2))
-                        return true;
+                if (jet_shape_1_1 > jet_shape_2)
+                    return true;
+                if (jet_shape_1_2 > jet_shape_2)
+                    return true;
             }
         }
     } else if (shape_2_element_end_intersect) {
@@ -248,9 +248,9 @@ bool strictly_intersect(
             //std::cout << "jet_shape_1 " << jet_shape_1.to_string() << std::endl;
             //std::cout << "jet_shape_2_1 " << jet_shape_2_1.to_string() << std::endl;
             //std::cout << "jet_shape_2_2 " << jet_shape_2_2.to_string() << std::endl;
-            if (strictly_greater(jet_shape_2_1, jet_shape_1))
+            if (jet_shape_2_1 > jet_shape_1)
                 return true;
-            if (strictly_greater(jet_shape_2_2, jet_shape_1))
+            if (jet_shape_2_2 > jet_shape_1)
                 return true;
         }
         if (!shape_2.is_path) {
@@ -262,9 +262,9 @@ bool strictly_intersect(
             //std::cout << "jet_shape_2 " << jet_shape_2.to_string() << std::endl;
             //std::cout << "jet_shape_1_1 " << jet_shape_1_1.to_string() << std::endl;
             //std::cout << "jet_shape_1_2 " << jet_shape_1_2.to_string() << std::endl;
-            if (strictly_greater(jet_shape_1_1, jet_shape_2))
+            if (jet_shape_1_1 > jet_shape_2)
                 return true;
-            if (strictly_greater(jet_shape_1_2, jet_shape_2))
+            if (jet_shape_1_2 > jet_shape_2)
                 return true;
         }
     }

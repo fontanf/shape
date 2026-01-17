@@ -103,7 +103,7 @@ TEST_P(ShapeElementJetTest, ShapeElementJet)
     Jet jet = test_params.element.jet(
             test_params.point,
             test_params.reverse);
-    EXPECT_TRUE(equal(jet, test_params.expected_jet));
+    EXPECT_TRUE(jet == test_params.expected_jet);
 }
 
 INSTANTIATE_TEST_SUITE_P(

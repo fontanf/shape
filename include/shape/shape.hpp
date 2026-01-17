@@ -645,15 +645,11 @@ bool operator==(
         const Jet& jet_1,
         const Jet& jet_2);
 
-bool equal(
+bool operator<(
         const Jet& jet_1,
         const Jet& jet_2);
 
-bool strictly_greater(
-        const Jet& jet_1,
-        const Jet& jet_2);
-
-bool strictly_lesser(
+bool operator>(
         const Jet& jet_1,
         const Jet& jet_2);
 
