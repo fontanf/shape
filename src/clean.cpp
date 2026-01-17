@@ -170,6 +170,28 @@ std::pair<bool, ShapeWithHoles> shape::remove_aligned_vertices(
     return {b, res};
 }
 
+Shape shape::remove_backtracks(
+        const Shape& shape)
+{
+    Shape output;
+    output.is_path = shape.is_path;
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)shape.elements.size();
+            ++element_pos) {
+        const ShapeElement& element = shape.elements[element_pos];
+        const ShapeElement& element_next = (element_pos != shape.elements.size())?
+            shape.elements[element_pos + 1]:
+            shape.elements[0];
+        if (equal(element, element_next.reverse())) {
+            element_pos++;
+            continue;
+        }
+        output.elements.push_back(element);
+    }
+
+    return output;
+}
+
 namespace
 {
 

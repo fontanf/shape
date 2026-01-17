@@ -481,41 +481,6 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
     IntersectionTree intersection_tree(shapes, {}, {});
 
-    std::vector<uint8_t> element_is_processed(splitted_elements.size(), 0);
-    for (NodeId node_id = 0;
-            node_id < (NodeId)graph.nodes.size();
-            ++node_id) {
-        NodeId node_cur_id = node_id;
-        for (;;) {
-            const BooleanOperationNode& node = graph.nodes[node_cur_id];
-            ElementPos node_degree = 0;
-            ElementPos element_next_pos = -1;
-            for (ElementPos element_pos: node.successors) {
-                if (element_is_processed[element_pos] == 0) {
-                    node_degree++;
-                    element_next_pos = element_pos;
-                }
-            }
-            //std::cout << "node " << node_id
-            //    << " degree " << node_degree << std::endl;
-            if (node_degree != 1)
-                break;
-            //std::cout << "fix element " << element_next_pos << std::endl;
-            element_is_processed[element_next_pos] = 1;
-            // Find the reverse arc to fix.
-            const BooleanOperationArc& arc_next = graph.arcs[element_next_pos];
-            for (ElementPos element_pos: graph.nodes[arc_next.end_node_id].successors) {
-                const BooleanOperationArc& arc = graph.arcs[element_pos];
-                if (arc.end_node_id == node_cur_id) {
-                    //std::cout << "fix element " << element_pos << std::endl;
-                    element_is_processed[element_pos] = 1;
-                    break;
-                }
-            }
-            node_cur_id = graph.arcs[element_next_pos].end_node_id;
-        }
-    }
-
     // Find an element from the outline.
     // To do so find, all elements from the original elements with the leftest
     // point.
@@ -528,8 +493,6 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)splitted_elements.size();
             ++element_pos) {
-        if (element_is_processed[element_pos])
-            continue;
         const SplittedElement& element = splitted_elements[element_pos];
         if (element.original_direction)
             continue;
@@ -615,6 +578,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
     // Find outer loop.
     //std::cout << "find outer loop..." << std::endl;
+    std::vector<uint8_t> element_is_processed(splitted_elements.size(), 0);
     ElementPos element_cur_pos = element_start_pos;
     Shape outline;
     for (int i = 0;; ++i) {
@@ -758,9 +722,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             for (ElementPos element_pos_next: node.successors) {
                 const SplittedElement& splitted_element_next = splitted_elements[element_pos_next];
                 const ShapeElement& element_next = splitted_element_next.element;
+                //std::cout << "element_next_pos " << element_pos_next
+                //    << " element_next " << element_next.to_string() << std::endl;
                 Jet jet = element_next.jet(element_next.start, false) - current_jet;
-                if (equal(jet, {0, 0}))
-                    continue;
                 if (largest_jet_element_pos == -1
                         || strictly_lesser(largest_jet, jet)) {
                     largest_jet_element_pos = element_pos_next;
@@ -784,6 +748,20 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
         //std::cout << "face finished size " << face.elements.size() << std::endl;
         //std::cout << face.to_string(0) << std::endl;
+
+        // Check if the face is valid.
+        if (!equal(face.elements.back().end, face.elements.front().start)) {
+            //std::cout << face.to_string(0) << std::endl;
+            //std::vector<ShapeElement> elements;
+            //Writer writer;
+            //for (const auto& splitted_element: splitted_elements)
+            //    writer.add_element(splitted_element.element);
+            //writer.write_json("overlay.json");
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": "
+                    "face is not closed.");
+        }
+
         switch (boolean_operation) {
         case BooleanOperation::Union: {
             // Fast check.
@@ -799,6 +777,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //std::cout << "ok " << ok << std::endl;
             if (ok)
                 break;
+
+            // Fix backtracks caused by numerical issues.
+            face = remove_backtracks(face);
 
             // Real check.
             IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
