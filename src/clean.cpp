@@ -3,6 +3,7 @@
 #include "shape/elements_intersections.hpp"
 #include "shape/equalize.hpp"
 #include "shape/boolean_operations.hpp"
+//#include "shape/writer.hpp"
 
 #include <iostream>
 
@@ -12,11 +13,6 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
         const Shape& shape)
 {
     //std::cout << "remove_redundant_vertices " << shape.to_string(2) << std::endl;
-    //if (!shape.check()) {
-    //    //write_json({{shape}}, {}, "self_intersect.json");
-    //    throw std::invalid_argument(
-    //            FUNC_SIGNATURE + ": invalid input shape.");
-    //}
 
     if (shape.elements.size() <= 3)
         return {false, shape};
@@ -342,12 +338,6 @@ Shape clean_extreme_slopes_outer_1(
         shape = shape_new;
     }
 
-    if (!shape.check()) {
-        std::cout << shape_orig.to_string(0) << std::endl;
-        //write_json({{shape_orig}, {shape}}, {}, "clean_extreme_slopes_outer_1_output.json");
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": invalid output shape.");
-    }
     return shape;
 }
 
@@ -483,17 +473,18 @@ Shape clean_extreme_slopes_inner_1(
         shape = shape_new;
     }
 
-    if (!shape.check()) {
-        //write_json({{shape_orig}, {shape}}, {}, "clean_extreme_slopes_outer_2_output.json");
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": invalid output shape.");
-    }
     return shape;
 }
 
 Shape clean_extreme_slopes_outer_2(
         const Shape& shape_orig)
 {
+    if (!shape_orig.check()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid input shape.");
+    }
+
     Shape shape = shape_orig;
     ElementPos element_prev_pos = shape.elements.size() - 1;
     for (ElementPos element_cur_pos = 0;
@@ -582,12 +573,7 @@ Shape clean_extreme_slopes_outer_2(
 
         element_next_pos = element_cur_pos;
     }
-    if (!shape.check()) {
-        //write_json({{shape_orig}, {shape}}, {}, "clean_extreme_slopes_outer_2_output.json");
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "invalid shape after extreme slopes cleaning.");
-    }
+
     return shape;
 }
 
@@ -687,11 +673,7 @@ Shape clean_extreme_slopes_inner_2(
 
         element_next_pos = element_cur_pos;
     }
-    if (!shape.check()) {
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": "
-                "invalid shape after extreme slopes cleaning.");
-    }
+
     return shape;
 }
 
@@ -721,7 +703,13 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
-    //write_json({{shape_orig}, {shape}}, {}, "clean_extreme_slopes_outer_output.json");
+
+    if (!shape.check()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid shape after extreme slopes cleaning.");
+    }
+
     return {shape};
 }
 
@@ -739,12 +727,21 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
+
+    if (!shape.check()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid shape after extreme slopes cleaning.");
+    }
+
     return {shape};
 }
 
 std::vector<ShapeWithHoles> shape::fix_self_intersections(
         const ShapeWithHoles& shape)
 {
+    //std::cout << "fix_self_intersections" << std::endl;
+    //Writer().add_shape_with_holes(shape).write_json("fix_self_intersections_input.json");
     std::vector<ShapeWithHoles> shapes = bridge_touching_holes(shape);
     if (shapes.size() == 1)
         return {shape};
