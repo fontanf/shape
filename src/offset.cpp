@@ -146,6 +146,22 @@ ShapeWithHoles shape::inflate(
     //    file << std::setw(4) << json << std::endl;
     //}
 
+    // Remove small holes.
+    ShapeWithHoles shape_tmp;
+    shape_tmp.shape = shape.shape;
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)shape.holes.size();
+            ++hole_pos) {
+        const Shape& hole = shape.holes[hole_pos];
+        auto wh = hole.compute_width_and_height();
+        if (!strictly_greater(wh.first, 2 * offset)
+                || !strictly_greater(wh.second, 2 * offset)) {
+            continue;
+        }
+        shape_tmp.holes.push_back(hole);
+    }
+    shape = shape_tmp;
+
     std::vector<ShapeWithHoles> union_input = {{shape}};
 
     // Inflate outline.
@@ -213,7 +229,6 @@ ShapeWithHoles shape::inflate(
             ++hole_pos) {
         const Shape& hole = shape.holes[hole_pos];
 
-        auto wh = hole.compute_width_and_height();
         if (hole.is_circle()) {
             Shape circle = hole;
             ShapeElement& element = circle.elements[0];
@@ -224,9 +239,6 @@ ShapeWithHoles shape::inflate(
                 element.end = element.start;
                 union_input.push_back({circle});
             }
-        } else if (!strictly_greater(2 * wh.first, offset)
-                && !strictly_greater(2 * wh.second, offset)) {
-            // Hole is removed.
         } else {
             ElementPos element_prev_pos = hole.elements.size() - 1;
             const ShapeElement& element_prev = hole.elements[element_prev_pos];
