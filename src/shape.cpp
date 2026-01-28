@@ -61,6 +61,14 @@ std::string Point::to_string() const
     //return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
 }
 
+nlohmann::json Point::to_json() const
+{
+    nlohmann::json json;
+    json["x"] = this->x;
+    json["y"] = this->y;
+    return json;
+}
+
 std::string Point::to_svg() const
 {
     std::string s = "<path d=\"";
@@ -682,13 +690,10 @@ nlohmann::json ShapeElement::to_json() const
 {
     nlohmann::json json;
     json["type"] = element2str(type);
-    json["start"]["x"] = start.x;
-    json["start"]["y"] = start.y;
-    json["end"]["x"] = end.x;
-    json["end"]["y"] = end.y;
+    json["start"] = start.to_json();
+    json["end"] = end.to_json();
     if (type == ShapeElementType::CircularArc) {
-        json["center"]["x"] = center.x;
-        json["center"]["y"] = center.y;
+        json["center"] = center.to_json();
         json["orientation"] = orientation2str(orientation);
     }
     return json;

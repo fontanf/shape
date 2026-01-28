@@ -1021,18 +1021,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
 std::vector<ShapeWithHoles> shape::compute_union(
         const std::vector<ShapeWithHoles>& shapes)
 {
-    // Write input to json for tests.
-    //{
-    //    std::string file_path = "union_input.json";
-    //    std::ofstream file{file_path};
-    //    nlohmann::json json;
-    //    for (ShapePos shape_pos = 0;
-    //            shape_pos < (ShapePos)shapes.size();
-    //            ++shape_pos) {
-    //        json["shapes"][shape_pos] = shapes[shape_pos].shape.to_json();
-    //    }
-    //    file << std::setw(4) << json << std::endl;
-    //}
+    //compute_union_export_inputs(
+    //        "compute_union_inputs.json",
+    //        shapes,
+    //        {ShapeWithHoles()});
 
     return compute_boolean_operation(
             shapes,

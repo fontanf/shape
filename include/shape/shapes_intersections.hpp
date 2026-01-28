@@ -59,7 +59,7 @@ void compute_intersections_export_inputs(
         const std::string& file_path,
         const Shape& path,
         const Shape& shape,
-        bool only_min_max = false);
+        bool only_min_max);
 
 std::vector<PathShapeIntersectionPoint> compute_strict_intersections(
         const Shape& path,
@@ -70,7 +70,7 @@ void compute_strict_intersections_export_inputs(
         const std::string& file_path,
         const Shape& path,
         const Shape& shape,
-        bool only_first = false);
+        bool only_first);
 
 bool intersect(
         const ShapeWithHoles& shape,

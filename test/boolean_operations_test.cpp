@@ -139,8 +139,9 @@ struct ComputeBooleanUnionTestParams: TestParams<ComputeBooleanUnionTestParams>
         ComputeBooleanUnionTestParams test_params = TestParams::from_json(json_item);
         for (auto& json_shape: json_item["shapes"].items())
             test_params.shapes.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json_item["expected_output"].items())
-            test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+        if (json_item.contains("expected_output"))
+            for (auto& json_shape: json_item["expected_output"].items())
+                test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
     }
 };
@@ -160,6 +161,14 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
     //Writer().add_shapes_with_holes(test_params.shapes).write_json("compute_union_input.json");
     //Writer().add_shapes_with_holes(test_params.expected_output).write_json("compute_union_expected_output.json");
 
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)test_params.shapes.size();
+            ++shape_pos) {
+        const ShapeWithHoles& shape = test_params.shapes[shape_pos];
+        if (!shape.shape.check()) {
+            throw std::invalid_argument(FUNC_SIGNATURE);
+        }
+    }
     auto output = compute_union(
             test_params.shapes);
     std::cout << "output" << std::endl;

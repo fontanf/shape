@@ -110,7 +110,8 @@ struct InflateShapeWithHolesTestParams: TestParams<InflateShapeWithHolesTestPara
         InflateShapeWithHolesTestParams test_params = TestParams::from_json(json_item);
         test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
         test_params.offset = json_item["offset"];
-        test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
+        if (json_item.contains("expected_output"))
+            test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
         return test_params;
     }
 };
@@ -126,6 +127,9 @@ TEST_P(InflateShapeWithHolesTest, InflateShapeWithHoles)
     std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
     Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(test_params.expected_output).write_json("inflate_input.json");
 
+    if (!test_params.shape.shape.check()) {
+        throw std::invalid_argument(FUNC_SIGNATURE);
+    }
     auto output = inflate(
         test_params.shape,
         test_params.offset);
@@ -168,8 +172,10 @@ struct DeflateTestParams: TestParams<DeflateTestParams>
         DeflateTestParams test_params = TestParams::from_json(json_item);
         test_params.shape = Shape::from_json(json_item["shape"]);
         test_params.offset = json_item["offset"];
-        for (auto& json_shape: json_item["expected_output"].items())
-            test_params.expected_output.emplace_back(Shape::from_json(json_shape.value()));
+
+        if (json_item.contains("expected_output"))
+            for (auto& json_shape: json_item["expected_output"].items())
+                test_params.expected_output.emplace_back(Shape::from_json(json_shape.value()));
         return test_params;
     }
 };
