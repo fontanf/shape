@@ -433,6 +433,14 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
         }
     }
 
+    if (equal(arc.start, arc_2.start)
+            || equal(arc.start, arc_2.end)) {
+        return {{}, {arc.start}, {}};
+    } else if (equal(arc.end, arc_2.start)
+            || equal(arc.end, arc_2.end)) {
+        return {{}, {arc.end}, {}};
+    }
+
     LengthDbl xm = arc.center.x;
     LengthDbl ym = arc.center.y;
     LengthDbl xm2 = arc_2.center.x;
