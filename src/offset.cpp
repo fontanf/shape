@@ -5,7 +5,7 @@
 //#include "shape/writer.hpp"
 
 //#include <iostream>
-//#include <fstream>
+#include <fstream>
 
 using namespace shape;
 
@@ -123,7 +123,7 @@ ShapeWithHoles shape::inflate(
 {
     //std::cout << std::endl;
     //std::cout << "inflate offset " << offset << " shape " << shape_orig.to_string(0) << std::endl;
-    //write_json({shape_orig}, {}, "inflate_input.json");
+    //inflate_export_inputs("inflate_input.json", shape_orig, offset);
     if (offset < 0.0) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": offset must be >= 0.0; "
@@ -287,6 +287,7 @@ ShapeWithHoles shape::inflate(
     }
 
     //write_json(union_input, {}, "union_input.json");
+    //compute_union_export_inputs("compute_union_input.json", union_input);
     return compute_union(union_input).front();
 }
 
@@ -502,4 +503,28 @@ std::vector<Shape> shape::deflate(
     for (const ShapeWithHoles& shape: difference_output)
         output.push_back(shape.shape);
     return output;
+}
+
+void shape::inflate_export_inputs(
+        const std::string& file_path,
+        const ShapeWithHoles& shape,
+        LengthDbl offset)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["shape"] = shape.to_json();
+    json["offset"] = offset;
+    file << std::setw(4) << json << std::endl;
+}
+
+void shape::inflate_export_inputs(
+        const std::string& file_path,
+        const Shape& shape,
+        LengthDbl offset)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["shape"] = shape.to_json();
+    json["offset"] = offset;
+    file << std::setw(4) << json << std::endl;
 }
