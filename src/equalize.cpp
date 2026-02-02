@@ -24,6 +24,8 @@ std::vector<Point> shape::equalize_points(
     ElementPos node_id = 0;
     std::vector<uint8_t> visited(points.size(), 0);
     std::vector<Point> new_points = points;
+    std::vector<ElementPos> current_component;
+    Point current_component_point = {0, 0};
     for (;;) {
         while (node_id < points.size()
                 && visited[node_id]) {
@@ -34,6 +36,8 @@ std::vector<Point> shape::equalize_points(
 
         const Point& point = points[node_id];
         visited[node_id] = 1;
+        current_component = {node_id};
+        current_component_point = points[node_id];
         std::vector<ElementPos> stack = {node_id};
         while (!stack.empty()) {
             ElementPos node_id_cur = stack.back();
@@ -43,11 +47,15 @@ std::vector<Point> shape::equalize_points(
                     continue;
                 stack.push_back(neighbor);
                 visited[neighbor] = 1;
-                new_points[neighbor] = point;
+                current_component.push_back(neighbor);
+                current_component_point = current_component_point + points[neighbor];
                 //std::cout << "new_points[neighbor] " << new_points[neighbor].to_string()
                 //    << " -> " << point.to_string() << std::endl;
             }
         }
+        current_component_point = 1.0 / current_component.size() * current_component_point;
+        for (ElementPos point_pos: current_component)
+            new_points[point_pos] = current_component_point;
     }
 
     return new_points;
