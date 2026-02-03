@@ -9,12 +9,37 @@ using namespace shape;
 std::vector<Point> shape::equalize_points(
         const std::vector<Point>& points)
 {
-    IntersectionTree intersection_tree({}, {}, points);
+    //std::cout << "equalize_points " << points.size() << std::endl;
+
+    std::vector<std::pair<Point, ElementPos>> sorted_points(points.size());
+    for (ElementPos pos = 0; pos < (ElementPos)points.size(); ++pos)
+        sorted_points[pos] = {points[pos], pos};
+    std::sort(
+            sorted_points.begin(),
+            sorted_points.end(),
+            [](const auto& pair_1, const auto pair_2)
+            {
+                if (pair_1.first.x != pair_2.first.x)
+                    return pair_1.first.x < pair_2.first.x;
+                return pair_1.first.y < pair_2.first.y;
+            });
+    std::vector<std::vector<ElementPos>> unique_to_orig;
+    std::vector<Point> unique_points;
+    for (const auto& pair: sorted_points) {
+        if (unique_points.empty() || !(pair.first == unique_points.back())) {
+            unique_to_orig.push_back({});
+            unique_points.push_back(pair.first);
+        }
+        unique_to_orig.back().push_back(pair.second);
+    }
+    //std::cout << "unique_points " << unique_points.size() << std::endl;
+
+    IntersectionTree intersection_tree({}, {}, unique_points);
     std::vector<std::pair<ElementPos, ElementPos>> equal_points
         = intersection_tree.compute_equal_points();
 
     // Build graph.
-    std::vector<std::vector<ElementPos>> graph(points.size());
+    std::vector<std::vector<ElementPos>> graph(unique_points.size());
     for (auto p: equal_points) {
         graph[p.first].push_back(p.second);
         graph[p.second].push_back(p.first);
@@ -22,22 +47,22 @@ std::vector<Point> shape::equalize_points(
 
     // For each connected component, build a point.
     ElementPos node_id = 0;
-    std::vector<uint8_t> visited(points.size(), 0);
+    std::vector<uint8_t> visited(unique_points.size(), 0);
     std::vector<Point> new_points = points;
     std::vector<ElementPos> current_component;
     Point current_component_point = {0, 0};
     for (;;) {
-        while (node_id < points.size()
+        while (node_id < unique_points.size()
                 && visited[node_id]) {
             node_id++;
         }
-        if (node_id == points.size())
+        if (node_id == unique_points.size())
             break;
 
-        const Point& point = points[node_id];
+        const Point& point = unique_points[node_id];
         visited[node_id] = 1;
         current_component = {node_id};
-        current_component_point = points[node_id];
+        current_component_point = unique_points[node_id];
         std::vector<ElementPos> stack = {node_id};
         while (!stack.empty()) {
             ElementPos node_id_cur = stack.back();
@@ -48,16 +73,18 @@ std::vector<Point> shape::equalize_points(
                 stack.push_back(neighbor);
                 visited[neighbor] = 1;
                 current_component.push_back(neighbor);
-                current_component_point = current_component_point + points[neighbor];
+                current_component_point = current_component_point + unique_points[neighbor];
                 //std::cout << "new_points[neighbor] " << new_points[neighbor].to_string()
                 //    << " -> " << point.to_string() << std::endl;
             }
         }
         current_component_point = 1.0 / current_component.size() * current_component_point;
         for (ElementPos point_pos: current_component)
-            new_points[point_pos] = current_component_point;
+            for (ElementPos orig_point_pos: unique_to_orig[point_pos])
+                new_points[orig_point_pos] = current_component_point;
     }
 
+    //std::cout << "equal_points end" << std::endl;
     return new_points;
 }
 
