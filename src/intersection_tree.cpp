@@ -30,12 +30,16 @@ LengthDbl find_median(
 
     LengthDbl median_next = +std::numeric_limits<LengthDbl>::infinity();
     LengthDbl median_prev = -std::numeric_limits<LengthDbl>::infinity();
-    for (auto it = values_right.begin(); it != values_right.begin() + k; ++it)
-        if (median_prev < *it && !equal(*it, median))
+    for (auto it = values_right.begin(); it != values_right.end(); ++it) {
+        if (median_prev < *it && !strictly_greater(*it, median))
             median_prev = *it;
-    for (auto it = values_right.begin(); it != values_right.begin() + k; ++it)
-        if (median_prev > *it && !equal(*it, median))
-            median_prev = *it;
+        if (median_next > *it && !strictly_lesser(*it, median))
+            median_next = *it;
+    }
+    //std::cout << "median_prev " << median_prev
+    //    << " median " << median
+    //    << " median_next " << median_next
+    //    << std::endl;
     if (strictly_lesser(median_next, max)) {
         return (median + median_next) / 2;
     } else if (strictly_greater(median_prev, min)) {
