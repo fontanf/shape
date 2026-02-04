@@ -38,16 +38,20 @@ bool shape::intersect(
                 return true;
             if (!intersection.intersections.overlapping_parts.empty())
                 return true;
-            if (intersection.element_id_1 + 1 == intersection.element_id_2) {
-                const ShapeElement& element = shape.elements[intersection.element_id_1];
-                for (const Point& point: intersection.intersections.improper_intersections)
-                    if (!equal(point, element.end))
-                        return true;
-            } else if (intersection.element_id_2 + 1 == intersection.element_id_1) {
-                const ShapeElement& element = shape.elements[intersection.element_id_2];
-                for (const Point& point: intersection.intersections.improper_intersections)
-                    if (!equal(point, element.end))
-                        return true;
+            for (const Point& point: intersection.intersections.improper_intersections) {
+                bool ok = false;
+                if ((intersection.element_id_1 + 1 == intersection.element_id_2)) {
+                    const ShapeElement& element = shape.elements[intersection.element_id_1];
+                    if (equal(point, element.end))
+                        ok = true;
+                }
+                if ((intersection.element_id_2 + 1 == intersection.element_id_1)) {
+                    const ShapeElement& element = shape.elements[intersection.element_id_2];
+                    if (equal(point, element.end))
+                        ok = true;
+                }
+                if (!ok)
+                    return true;
             }
         }
     } else {
@@ -57,18 +61,22 @@ bool shape::intersect(
                 return true;
             if (!intersection.intersections.overlapping_parts.empty())
                 return true;
-            if ((intersection.element_id_1 + 1 == intersection.element_id_2)
-                    || (intersection.element_id_1 == n - 1 && intersection.element_id_2 == 0)) {
-                const ShapeElement& element = shape.elements[intersection.element_id_1];
-                for (const Point& point: intersection.intersections.improper_intersections)
-                    if (!equal(point, element.end))
-                        return true;
-            } else if ((intersection.element_id_2 + 1 == intersection.element_id_1)
-                    || (intersection.element_id_2 == n - 1 && intersection.element_id_1 == 0)) {
-                const ShapeElement& element = shape.elements[intersection.element_id_2];
-                for (const Point& point: intersection.intersections.improper_intersections)
-                    if (!equal(point, element.end))
-                        return true;
+            for (const Point& point: intersection.intersections.improper_intersections) {
+                bool ok = false;
+                if ((intersection.element_id_1 + 1 == intersection.element_id_2)
+                        || (intersection.element_id_1 == n - 1 && intersection.element_id_2 == 0)) {
+                    const ShapeElement& element = shape.elements[intersection.element_id_1];
+                    if (equal(point, element.end))
+                        ok = true;
+                }
+                if ((intersection.element_id_2 + 1 == intersection.element_id_1)
+                        || (intersection.element_id_2 == n - 1 && intersection.element_id_1 == 0)) {
+                    const ShapeElement& element = shape.elements[intersection.element_id_2];
+                    if (equal(point, element.end))
+                        ok = true;
+                }
+                if (!ok)
+                    return true;
             }
         }
     }
