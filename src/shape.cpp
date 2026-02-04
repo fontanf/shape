@@ -91,13 +91,6 @@ Point shape::operator+(
     return {point_1.x + point_2.x, point_1.y + point_2.y};
 }
 
-Point shape::operator-(
-        const Point& point_1,
-        const Point& point_2)
-{
-    return {point_1.x - point_2.x, point_1.y - point_2.y};
-}
-
 Point shape::operator*(
         LengthDbl scalar,
         const Point& point)
@@ -112,12 +105,6 @@ Point shape::operator/(
     return {point.x / scalar, point.y / scalar};
 }
 
-LengthDbl shape::norm(
-        const Point& vector)
-{
-    return std::sqrt(vector.x * vector.x + vector.y * vector.y);
-}
-
 Point shape::normalize(
         const Point& vector)
 {
@@ -128,13 +115,6 @@ LengthDbl shape::squared_norm(
         const Point& vector)
 {
     return vector.x * vector.x + vector.y * vector.y;
-}
-
-LengthDbl shape::distance(
-        const Point& point_1,
-        const Point& point_2)
-{
-    return norm(point_2 - point_1);
 }
 
 LengthDbl shape::squared_distance(
@@ -151,18 +131,6 @@ LengthDbl shape::distance_point_to_line(
 {
     return std::abs(
             (line_point_2.y - line_point_1.y) * point.x
-            - (line_point_2.x - line_point_1.x) * point.y
-            + line_point_2.x * line_point_1.y
-            - line_point_2.y * line_point_1.x)
-        / distance(line_point_1, line_point_2);
-}
-
-LengthDbl shape::signed_distance_point_to_line(
-        const Point& point,
-        const Point& line_point_1,
-        const Point& line_point_2)
-{
-    return ((line_point_2.y - line_point_1.y) * point.x
             - (line_point_2.x - line_point_1.x) * point.y
             + line_point_2.x * line_point_1.y
             - line_point_2.y * line_point_1.x)

@@ -108,9 +108,12 @@ Point operator+(
         const Point& point_1,
         const Point& point_2);
 
-Point operator-(
+inline Point operator-(
         const Point& point_1,
-        const Point& point_2);
+        const Point& point_2)
+{
+    return {point_1.x - point_2.x, point_1.y - point_2.y};
+}
 
 Point operator*(
         LengthDbl scalar,
@@ -120,8 +123,11 @@ Point operator/(
         const Point& point,
         LengthDbl scalar);
 
-LengthDbl norm(
-        const Point& vector);
+inline LengthDbl norm(
+        const Point& vector)
+{
+    return std::sqrt(vector.x * vector.x + vector.y * vector.y);
+}
 
 Point normalize(
         const Point& vector);
@@ -129,9 +135,12 @@ Point normalize(
 LengthDbl squared_norm(
         const Point& vector);
 
-LengthDbl distance(
+inline LengthDbl distance(
         const Point& point_1,
-        const Point& point_2);
+        const Point& point_2)
+{
+    return norm(point_2 - point_1);
+}
 
 LengthDbl squared_distance(
         const Point& point_1,
@@ -142,10 +151,17 @@ LengthDbl distance_point_to_line(
         const Point& line_point_1,
         const Point& line_point_2);
 
-LengthDbl signed_distance_point_to_line(
+inline LengthDbl signed_distance_point_to_line(
         const Point& point,
         const Point& line_point_1,
-        const Point& line_point_2);
+        const Point& line_point_2)
+{
+    return ((line_point_2.y - line_point_1.y) * point.x
+            - (line_point_2.x - line_point_1.x) * point.y
+            + line_point_2.x * line_point_1.y
+            - line_point_2.y * line_point_1.x)
+        / distance(line_point_1, line_point_2);
+}
 
 LengthDbl dot_product(
         const Point& vector_1,
