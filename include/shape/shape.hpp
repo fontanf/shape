@@ -363,15 +363,6 @@ ShapeElement operator*(
         LengthDbl scalar,
         const ShapeElement& element);
 
-/**
- * Convert a shape element of type CircularArc into multiple shape elements
- * of type LineSegment.
- */
-std::vector<ShapeElement> approximate_circular_arc_by_line_segments(
-        const ShapeElement& circular_arc,
-        LengthDbl segment_length,
-        bool outer);
-
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Shape /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -544,11 +535,6 @@ Shape build_circle(LengthDbl radius);
 Shape operator*(
         LengthDbl scalar,
         const Shape& shape);
-
-Shape approximate_by_line_segments(
-        const Shape& shape,
-        LengthDbl segment_length,
-        bool outer);
 
 /**
  * Structure for a shape with holes.

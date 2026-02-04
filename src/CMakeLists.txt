@@ -13,6 +13,7 @@ target_sources(Shape_shape PRIVATE
     equalize.cpp
     offset.cpp
     simplification.cpp
+    approximation.cpp
     supports.cpp
     writer.cpp)
 target_include_directories(Shape_shape PUBLIC
