@@ -7,11 +7,9 @@ namespace shape
 
 struct SimplifyInputShape
 {
-    Shape shape;
+    ShapeWithHoles shape;
 
     ShapePos copies;
-
-    bool outer = true;
 };
 
 std::vector<ShapeWithHoles> simplify(

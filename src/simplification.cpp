@@ -6,7 +6,7 @@
 
 #include "optimizationtools/containers/indexed_binary_heap.hpp"
 
-//#include <iostream>
+#include <iostream>
 #include <fstream>
 
 using namespace shape;
@@ -16,7 +16,7 @@ namespace
 
 struct ApproximatedElementKey
 {
-    ShapePos shape_pos = -1;
+    ShapePos approximated_shape_pos = -1;
 
     ElementPos element_pos = -1;
 };
@@ -36,6 +36,10 @@ struct ApproximatedShapeElement
 
 struct ApproximatedShape
 {
+    ShapePos shape_with_holes_pos = -1;
+
+    ShapePos hole_pos = -1;
+
     ElementPos number_of_elements = 0;
 
     Point min = {-std::numeric_limits<LengthDbl>::infinity(), -std::numeric_limits<LengthDbl>::infinity()};
@@ -46,8 +50,6 @@ struct ApproximatedShape
     bool outer = true;
 
     std::vector<ApproximatedShapeElement> elements;
-
-    std::vector<ShapeWithHoles> union_input;
 
     Shape shape() const
     {
@@ -91,7 +93,7 @@ AreaDbl compute_approximation_cost(
         std::vector<ApproximatedShape>& approximated_shapes,
         const ApproximatedElementKey& element_key)
 {
-    ApproximatedShape& shape = approximated_shapes[element_key.shape_pos];
+    ApproximatedShape& shape = approximated_shapes[element_key.approximated_shape_pos];
     if (element_key.element_pos >= (ElementPos)shape.elements.size()) {
         throw std::runtime_error(
                 FUNC_SIGNATURE + "; "
@@ -234,10 +236,11 @@ AreaDbl compute_approximation_cost(
 }
 
 void apply_approximation(
+        std::vector<std::vector<ShapeWithHoles>>& union_inputs,
         std::vector<ApproximatedShape>& approximated_shapes,
         const ApproximatedElementKey& element_key)
 {
-    ApproximatedShape& shape = approximated_shapes[element_key.shape_pos];
+    ApproximatedShape& shape = approximated_shapes[element_key.approximated_shape_pos];
     ApproximatedShapeElement& element = shape.elements[element_key.element_pos];
     //std::cout << "element_pos " << element_key.element_pos << " / " << shape.elements.size() << std::endl;
     //std::cout << "element_prev_pos " << element.element_prev_pos << std::endl;
@@ -279,7 +282,7 @@ void apply_approximation(
                 if (denom == 0.0) {
                     throw std::runtime_error(
                             FUNC_SIGNATURE + "; "
-                            "shape_pos: " + std::to_string(element_key.shape_pos) + "; "
+                            "shape_pos: " + std::to_string(element_key.approximated_shape_pos) + "; "
                             "element_pos: " + std::to_string(element_key.element_pos) + "; "
                             "element_prev.element: " + element_prev.element.to_string() + "; "
                             "element.element: " + element.element.to_string() + "; "
@@ -293,7 +296,7 @@ void apply_approximation(
                 //std::cout << "xp " << xp << " yp " << yp << std::endl;
                 element_prev.element.end = {xp, yp};
                 element_next.element.start = {xp, yp};
-                shape.union_input.push_back({build_triangle(
+                union_inputs[shape.shape_with_holes_pos].push_back({build_triangle(
                             element.element.start,
                             {xp, yp},
                             element.element.end)});
@@ -310,7 +313,7 @@ void apply_approximation(
         } else {
             // angle_next < M_PI
             element_next.element.start = element.element.start;
-            shape.union_input.push_back({build_triangle(
+            union_inputs[shape.shape_with_holes_pos].push_back({build_triangle(
                         element.element.start,
                         element_next.element.end,
                         element.element.end)});
@@ -346,7 +349,7 @@ void apply_approximation(
                         {xp, yp});
                 element_prev.element.end = {xp, yp};
                 element_next.element.start = {xp, yp};
-                shape.union_input.push_back({build_triangle(
+                union_inputs[shape.shape_with_holes_pos].push_back({build_triangle(
                             element.element.start,
                             element.element.end,
                             {xp, yp})});
@@ -360,7 +363,7 @@ void apply_approximation(
         } else {
             // angle_next < M_PI
             element_next.element.start = element.element.start;
-            shape.union_input.push_back({build_triangle(
+            union_inputs[shape.shape_with_holes_pos].push_back({build_triangle(
                         element.element.start,
                         element.element.end,
                         element_next.element.end)});
@@ -380,7 +383,7 @@ std::vector<ShapeWithHoles> shape::simplify(
         const std::vector<SimplifyInputShape>& shapes,
         AreaDbl maximum_approximation_area)
 {
-    //std::cout << "shape_simplification" << std::endl;
+    //std::cout << "shape_simplification " << maximum_approximation_area << std::endl;
     //for (const SimplifyInputShape& shape: shapes)
     //    std::cout << shape.shape.to_string(2) << std::endl;
 
@@ -390,9 +393,9 @@ std::vector<ShapeWithHoles> shape::simplify(
             ++shape_pos) {
         const SimplifyInputShape& shape = shapes[shape_pos];
         for (ElementPos element_pos = 0;
-                element_pos < (ElementPos)shape.shape.elements.size();
+                element_pos < (ElementPos)shape.shape.shape.elements.size();
                 ++element_pos) {
-            const ShapeElement& element = shape.shape.elements[element_pos];
+            const ShapeElement& element = shape.shape.shape.elements[element_pos];
             if (element.type == ShapeElementType::CircularArc) {
                 throw std::invalid_argument(
                         FUNC_SIGNATURE + ": "
@@ -402,7 +405,7 @@ std::vector<ShapeWithHoles> shape::simplify(
                         "element: " + element.to_string() + ".");
             }
         }
-        if (!shape.shape.check()) {
+        if (!shape.shape.shape.check()) {
             throw std::invalid_argument(
                     FUNC_SIGNATURE + ": "
                     "invalid input shape; "
@@ -411,6 +414,7 @@ std::vector<ShapeWithHoles> shape::simplify(
     }
 
     // Build element_keys, approximated_bin_types, approximated_item_types.
+    std::vector<std::vector<ShapeWithHoles>> union_inputs(shapes.size());
     std::vector<ApproximatedElementKey> element_keys;
     std::vector<ApproximatedShape> approximated_shapes;
     AreaDbl total_bin_area = 0.0;
@@ -418,43 +422,51 @@ std::vector<ShapeWithHoles> shape::simplify(
     ElementPos total_number_of_elements = 0;
 
     // Add elements from bin types.
-    for (ShapePos shape_pos = 0;
-            shape_pos < (ShapePos)shapes.size();
-            ++shape_pos) {
-        const SimplifyInputShape& input_shape = shapes[shape_pos];
-        Shape shape = shape::remove_redundant_vertices(input_shape.shape).second;
-        ApproximatedShape approximated_shape;
+    for (ShapePos shape_with_holes_pos = 0;
+            shape_with_holes_pos < (ShapePos)shapes.size();
+            ++shape_with_holes_pos) {
+        const SimplifyInputShape& input_shape = shapes[shape_with_holes_pos];
+        ShapeWithHoles shape_with_holes = shape::remove_redundant_vertices(input_shape.shape).second;
+        union_inputs[shape_with_holes_pos].push_back(shape_with_holes);
 
-        auto mm = shape.compute_min_max();
-        approximated_shape.min = mm.first;
-        approximated_shape.max = mm.second;
-        approximated_shape.copies = input_shape.copies;
-        approximated_shape.outer = input_shape.outer;
-        if (approximated_shape.outer)
-            approximated_shape.union_input.push_back({input_shape.shape});
+        for (ShapePos hole_pos = -1;
+                hole_pos < (ShapePos)shape_with_holes.holes.size();
+                ++hole_pos) {
+            const Shape& shape = (hole_pos == -1)? shape_with_holes.shape: shape_with_holes.holes[hole_pos];
 
-        total_number_of_elements += input_shape.copies * shape.elements.size();
-        for (ElementPos element_pos = 0;
-                element_pos < (ElementPos)shape.elements.size();
-                ++element_pos) {
-            const ShapeElement& element = shape.elements[element_pos];
-            ApproximatedShapeElement approximated_element;
-            approximated_element.element = element;
-            approximated_element.element_prev_pos = (element_pos != 0)?
-                element_pos - 1:
-                shape.elements.size() - 1;
-            approximated_element.element_next_pos = (element_pos != (ElementPos)shape.elements.size() - 1)?
-                element_pos + 1:
-                0;
-            approximated_element.element_key_id = element_keys.size();
-            approximated_shape.elements.push_back(approximated_element);
-            approximated_shape.number_of_elements++;
-            ApproximatedElementKey element_key;
-            element_key.shape_pos = shape_pos;
-            element_key.element_pos = element_pos;
-            element_keys.push_back(element_key);
+            ShapePos approximated_shape_pos = approximated_shapes.size();
+            ApproximatedShape approximated_shape;
+            approximated_shape.shape_with_holes_pos = shape_with_holes_pos;
+            approximated_shape.hole_pos = hole_pos;
+            auto mm = shape.compute_min_max();
+            approximated_shape.min = mm.first;
+            approximated_shape.max = mm.second;
+            approximated_shape.copies = input_shape.copies;
+            approximated_shape.outer = (hole_pos == -1);
+
+            total_number_of_elements += input_shape.copies * shape.elements.size();
+            for (ElementPos element_pos = 0;
+                    element_pos < (ElementPos)shape.elements.size();
+                    ++element_pos) {
+                const ShapeElement& element = shape.elements[element_pos];
+                ApproximatedShapeElement approximated_element;
+                approximated_element.element = element;
+                approximated_element.element_prev_pos = (element_pos != 0)?
+                    element_pos - 1:
+                    shape.elements.size() - 1;
+                approximated_element.element_next_pos = (element_pos != (ElementPos)shape.elements.size() - 1)?
+                    element_pos + 1:
+                    0;
+                approximated_element.element_key_id = element_keys.size();
+                approximated_shape.elements.push_back(approximated_element);
+                approximated_shape.number_of_elements++;
+                ApproximatedElementKey element_key;
+                element_key.approximated_shape_pos = approximated_shape_pos;
+                element_key.element_pos = element_pos;
+                element_keys.push_back(element_key);
+            }
+            approximated_shapes.push_back(approximated_shape);
         }
-        approximated_shapes.push_back(approximated_shape);
     }
 
     // Initialize priority_queue.
@@ -464,7 +476,7 @@ std::vector<ShapeWithHoles> shape::simplify(
             element_key_id < (ElementPos)element_keys.size();
             ++element_key_id) {
         const ApproximatedElementKey& element_key = element_keys[element_key_id];
-        ApproximatedShape& shape = approximated_shapes[element_key.shape_pos];
+        ApproximatedShape& shape = approximated_shapes[element_key.approximated_shape_pos];
         //std::cout << "element_key_id " << element_key_id
         //    << " shape_pos " << element_key.shape_pos
         //    << " element_pos " << element_key.element_pos
@@ -486,7 +498,7 @@ std::vector<ShapeWithHoles> shape::simplify(
     while (!priority_queue.empty()) {
 
         // Check stop criterion based on average number of element per item.
-        if (total_number_of_elements <= 8 * shapes.size())
+        if (total_number_of_elements <= 8 * approximated_shapes.size())
             break;
 
         // Draw highest priority element.
@@ -505,7 +517,7 @@ std::vector<ShapeWithHoles> shape::simplify(
             break;
         }
 
-        ApproximatedShape& shape = approximated_shapes[element_keys[element_key_id].shape_pos];
+        ApproximatedShape& shape = approximated_shapes[element_keys[element_key_id].approximated_shape_pos];
 
         if (shape.number_of_elements <= 4)
             continue;
@@ -529,25 +541,26 @@ std::vector<ShapeWithHoles> shape::simplify(
         ElementPos element_next_next_pos = shape.elements[element_next_pos].element_next_pos;
         ElementPos element_next_next_next_pos = shape.elements[element_next_next_pos].element_next_pos;
         apply_approximation(
+                union_inputs,
                 approximated_shapes,
                 element_key);
 
         // Update priority queue values.
         AreaDbl cost_prev = compute_approximation_cost(
                 approximated_shapes,
-                {element_key.shape_pos, element_prev_pos});
+                {element_key.approximated_shape_pos, element_prev_pos});
         AreaDbl cost_prev_prev = compute_approximation_cost(
                 approximated_shapes,
-                {element_key.shape_pos, element_prev_prev_pos});
+                {element_key.approximated_shape_pos, element_prev_prev_pos});
         AreaDbl cost_next = compute_approximation_cost(
                 approximated_shapes,
-                {element_key.shape_pos, element_next_pos});
+                {element_key.approximated_shape_pos, element_next_pos});
         AreaDbl cost_next_next = compute_approximation_cost(
                 approximated_shapes,
-                {element_key.shape_pos, element_next_next_pos});
+                {element_key.approximated_shape_pos, element_next_next_pos});
         AreaDbl cost_next_next_next = compute_approximation_cost(
                 approximated_shapes,
-                {element_key.shape_pos, element_next_next_next_pos});
+                {element_key.approximated_shape_pos, element_next_next_next_pos});
         //std::cout << "element_prev_pos " << element_prev_pos
         //    << " cost_prev " << cost_prev << std::endl;
         //std::cout << "element_prev_prev_pos " << element_prev_prev_pos
@@ -592,44 +605,22 @@ std::vector<ShapeWithHoles> shape::simplify(
     //std::cout << "end" << std::endl;
 
     // Build output.
-    std::vector<ShapeWithHoles> shapes_new;
+    std::vector<ShapeWithHoles> shapes_new(shapes.size());
+    for (ShapePos approximated_shape_pos = 0;
+            approximated_shape_pos < (ShapePos)approximated_shapes.size();
+            ++approximated_shape_pos) {
+        const ApproximatedShape& approximated_shape = approximated_shapes[approximated_shape_pos];
+        if (approximated_shape.hole_pos == -1) {
+            shapes_new[approximated_shape.shape_with_holes_pos].shape = approximated_shape.shape();
+        } else {
+            shapes_new[approximated_shape.shape_with_holes_pos].holes.push_back(approximated_shape.shape());
+        }
+    }
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
             ++shape_pos) {
-        const SimplifyInputShape& shape = shapes[shape_pos];
-        const ApproximatedShape& approximated_shape = approximated_shapes[shape_pos];
-        //write_json({{approximated_shape.shape()}}, {}, "approximated_shape.json");
-        ShapeWithHoles shape_new;
-        if (shape.outer) {
-            Shape shape_tmp = approximated_shape.shape();
-            if (!intersect(shape_tmp)) {
-                shape_tmp = remove_redundant_vertices(shape_tmp).second;
-                shape_tmp = remove_aligned_vertices(shape_tmp).second;
-                shape_new.shape = shape_tmp;
-            } else {
-                shape_new = compute_union(approximated_shape.union_input).front();
-            }
-            //if (strictly_lesser(shape_new.shape.compute_area(), shapes[shape_pos].shape.compute_area())) {
-            //    write_json({{shapes[shape_pos].shape}, {shape_new}}, {}, "inconsistent_area.json");
-            //    throw std::logic_error(
-            //            FUNC_SIGNATURE + ": inconsistent area; "
-            //            "shape_new.shape.compute_area(): " + std::to_string(shape_new.shape.compute_area()) + "; "
-            //            "shapes[shape_pos].shape.compute_area(): " + std::to_string(shapes[shape_pos].shape.compute_area()) + ".");
-            //}
-        } else {
-            Shape shape_tmp = approximated_shape.shape();
-            if (!intersect(shape_tmp)) {
-                shape_tmp = remove_redundant_vertices(shape_tmp).second;
-                shape_tmp = remove_aligned_vertices(shape_tmp).second;
-                shape_new.holes.push_back(shape_tmp);
-            } else {
-                auto difference_output = compute_difference({shape.shape}, approximated_shape.union_input);
-                for (const ShapeWithHoles& s: difference_output) {
-                    shape_new.holes.push_back(s.shape);
-                }
-            }
-        }
-        shapes_new.push_back(shape_new);
+        if (intersect(shapes_new[shape_pos]))
+            shapes_new[shape_pos] = compute_union(union_inputs[shape_pos]).front();
     }
 
     //std::cout << "shape_simplification end" << std::endl;
@@ -648,7 +639,6 @@ void shape::simplify_export_inputs(
             ++shape_pos) {
         json["shapes"][shape_pos]["shape"] = shapes[shape_pos].shape.to_json();
         json["shapes"][shape_pos]["copies"] = shapes[shape_pos].copies;
-        json["shapes"][shape_pos]["outer"] = shapes[shape_pos].outer;
     }
     json["maximum_approximation_area"] = maximum_approximation_area;
     file << std::setw(4) << json << std::endl;

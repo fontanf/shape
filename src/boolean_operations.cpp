@@ -1021,10 +1021,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
 std::vector<ShapeWithHoles> shape::compute_union(
         const std::vector<ShapeWithHoles>& shapes)
 {
+    //std::cout << "compute_union " << shapes.size() << std::endl;
     //compute_union_export_inputs(
     //        "compute_union_inputs.json",
-    //        shapes,
-    //        {ShapeWithHoles()});
+    //        shapes);
 
     return compute_boolean_operation(
             shapes,
