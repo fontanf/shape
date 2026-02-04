@@ -77,6 +77,9 @@ bool intersect(
         const ShapeElement& element,
         bool strict = false);
 
+bool intersect(
+        const ShapeWithHoles& shape_with_holes);
+
 inline bool intersect(
         const ShapeElement& element,
         const ShapeWithHoles& shape_with_holes,

@@ -870,6 +870,17 @@ void shape::compute_strict_intersections_export_inputs(
 }
 
 bool shape::intersect(
+        const ShapeWithHoles& shape_with_holes)
+{
+    if (intersect(shape_with_holes.shape))
+        return true;
+    for (const Shape& hole: shape_with_holes.holes)
+        if (intersect(hole))
+            return true;
+    return false;
+}
+
+bool shape::intersect(
         const ShapeWithHoles& shape_with_holes,
         const ShapeElement& element,
         bool strict)
