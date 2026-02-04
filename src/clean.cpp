@@ -168,6 +168,22 @@ std::pair<bool, ShapeWithHoles> shape::remove_aligned_vertices(
     return {b, res};
 }
 
+ShapeWithHoles shape::remove_small_holes(
+        const ShapeWithHoles& shape_with_holes,
+        AreaDbl area_limit)
+{
+    //std::cout << "remove_small_holes " << shape_with_holes.holes.size() << std::endl;
+    ShapeWithHoles new_shape_with_holes;
+    new_shape_with_holes.shape = shape_with_holes.shape;
+    for (const Shape& hole: shape_with_holes.holes) {
+        if (strictly_lesser(hole.compute_area(), area_limit))
+            continue;
+        new_shape_with_holes.holes.push_back(hole);
+    }
+    //std::cout << "remove_small_holes end " << new_shape_with_holes.holes.size() << std::endl;
+    return new_shape_with_holes;
+}
+
 Shape shape::remove_backtracks(
         const Shape& shape)
 {

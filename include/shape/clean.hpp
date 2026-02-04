@@ -22,6 +22,11 @@ std::pair<bool, ShapeWithHoles> remove_aligned_vertices(
         const ShapeWithHoles& shape);
 
 
+ShapeWithHoles remove_small_holes(
+        const ShapeWithHoles& shape_with_holes,
+        AreaDbl area_limit);
+
+
 ShapeWithHoles clean_extreme_slopes_outer(
         const Shape& shape);
 
