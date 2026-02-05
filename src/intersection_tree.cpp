@@ -580,7 +580,7 @@ std::vector<std::pair<ShapePos, ShapePos>> IntersectionTree::compute_intersectin
     return intersecting_shapes;
 }
 
-std::vector<IntersectionTree::ElementElementIntersection> IntersectionTree::compute_intersecting_elements(bool strict) const
+std::vector<ElementElementIntersection> IntersectionTree::compute_intersecting_elements(bool strict) const
 {
     //std::cout << "compute_intersecting_elements..." << std::endl;
     if (elements_->empty())

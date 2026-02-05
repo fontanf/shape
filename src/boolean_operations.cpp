@@ -132,7 +132,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
     //std::cout << "elements end" << std::endl;
 
     IntersectionTree intersection_tree({}, elements, {});
-    std::vector<IntersectionTree::ElementElementIntersection> intersections
+    std::vector<ElementElementIntersection> intersections
         = intersection_tree.compute_intersecting_elements(false);
     std::vector<std::vector<Point>> elements_intersections(elements.size());
     for (ShapePos shape_pos = 0;
@@ -140,7 +140,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             ++shape_pos) {
         output.shape_component_ids.set(shape_pos, shape_pos);
     }
-    for (const IntersectionTree::ElementElementIntersection& intersection: intersections) {
+    for (const ElementElementIntersection& intersection: intersections) {
         // Update output.shape_component_ids.
         ShapePos shape_pos_1 = elements_info[intersection.element_id_1].orig_shape_id;
         ShapePos shape_pos_2 = elements_info[intersection.element_id_2].orig_shape_id;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shape/shape.hpp"
+#include "shape/elements_intersections.hpp"
 
 namespace shape
 {
@@ -12,7 +13,14 @@ bool intersect(
 bool intersect(
         const Shape& shape);
 
-std::vector<std::pair<ElementPos, ElementPos>> compute_intersecting_elements(
+struct ElementElementIntersection
+{
+    ElementPos element_id_1 = -1;
+    ElementPos element_id_2 = -1;
+    ShapeElementIntersectionsOutput intersections;
+};
+
+std::vector<ElementElementIntersection> compute_intersecting_elements(
         const Shape& shape);
 
 bool intersect(

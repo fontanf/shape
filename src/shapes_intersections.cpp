@@ -30,10 +30,10 @@ bool shape::intersect(
         const Shape& shape)
 {
     IntersectionTree intersection_tree({}, {shape.elements}, {});
-    std::vector<IntersectionTree::ElementElementIntersection> intersecting_elements
+    std::vector<ElementElementIntersection> intersecting_elements
         = intersection_tree.compute_intersecting_elements(false);
     if (shape.is_path) {
-        for (const IntersectionTree::ElementElementIntersection& intersection: intersecting_elements) {
+        for (const ElementElementIntersection& intersection: intersecting_elements) {
             if (!intersection.intersections.proper_intersections.empty())
                 return true;
             if (!intersection.intersections.overlapping_parts.empty())
@@ -56,7 +56,7 @@ bool shape::intersect(
         }
     } else {
         ElementPos n = shape.elements.size();
-        for (const IntersectionTree::ElementElementIntersection& intersection: intersecting_elements) {
+        for (const ElementElementIntersection& intersection: intersecting_elements) {
             if (!intersection.intersections.proper_intersections.empty())
                 return true;
             if (!intersection.intersections.overlapping_parts.empty())
@@ -83,25 +83,71 @@ bool shape::intersect(
     return false;
 }
 
-std::vector<std::pair<ElementPos, ElementPos>> shape::compute_intersecting_elements(
+std::vector<ElementElementIntersection> shape::compute_intersecting_elements(
         const Shape& shape)
 {
-    std::vector<std::pair<ElementPos, ElementPos>> output;
-    for (ElementPos element_1_pos = 0;
-            element_1_pos < (ElementPos)shape.elements.size();
-            ++element_1_pos) {
-        const ShapeElement& element_1 = shape.elements[element_1_pos];
-        for (ElementPos element_2_pos = element_1_pos + 2;
-                element_2_pos < (ElementPos)shape.elements.size();
-                ++element_2_pos) {
-            if (!shape.is_path
-                    && element_1_pos == 0
-                    && element_2_pos == shape.elements.size() - 1) {
+    std::vector<ElementElementIntersection> output;
+    IntersectionTree intersection_tree({}, {shape.elements}, {});
+    std::vector<ElementElementIntersection> intersecting_elements
+        = intersection_tree.compute_intersecting_elements(false);
+    if (shape.is_path) {
+        for (const ElementElementIntersection& intersection: intersecting_elements) {
+            if (!intersection.intersections.proper_intersections.empty()) {
+                output.push_back(intersection);
                 continue;
             }
-            const ShapeElement& element_2 = shape.elements[element_2_pos];
-            if (intersect(element_1, element_2))
-                output.push_back({element_1_pos, element_2_pos});
+            if (!intersection.intersections.overlapping_parts.empty()) {
+                output.push_back(intersection);
+                continue;
+            }
+            for (const Point& point: intersection.intersections.improper_intersections) {
+                bool ok = false;
+                if ((intersection.element_id_1 + 1 == intersection.element_id_2)) {
+                    const ShapeElement& element = shape.elements[intersection.element_id_1];
+                    if (equal(point, element.end))
+                        ok = true;
+                }
+                if ((intersection.element_id_2 + 1 == intersection.element_id_1)) {
+                    const ShapeElement& element = shape.elements[intersection.element_id_2];
+                    if (equal(point, element.end))
+                        ok = true;
+                }
+                if (!ok) {
+                    output.push_back(intersection);
+                    break;
+                }
+            }
+        }
+    } else {
+        ElementPos n = shape.elements.size();
+        for (const ElementElementIntersection& intersection: intersecting_elements) {
+            if (!intersection.intersections.proper_intersections.empty()) {
+                output.push_back(intersection);
+                continue;
+            }
+            if (!intersection.intersections.overlapping_parts.empty()) {
+                output.push_back(intersection);
+                continue;
+            }
+            for (const Point& point: intersection.intersections.improper_intersections) {
+                bool ok = false;
+                if ((intersection.element_id_1 + 1 == intersection.element_id_2)
+                        || (intersection.element_id_1 == n - 1 && intersection.element_id_2 == 0)) {
+                    const ShapeElement& element = shape.elements[intersection.element_id_1];
+                    if (equal(point, element.end))
+                        ok = true;
+                }
+                if ((intersection.element_id_2 + 1 == intersection.element_id_1)
+                        || (intersection.element_id_2 == n - 1 && intersection.element_id_1 == 0)) {
+                    const ShapeElement& element = shape.elements[intersection.element_id_2];
+                    if (equal(point, element.end))
+                        ok = true;
+                }
+                if (!ok) {
+                    output.push_back(intersection);
+                    break;
+                }
+            }
         }
     }
     return output;
