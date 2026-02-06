@@ -129,12 +129,10 @@ with open(args.path, 'r') as f:
 
     # Plot elements.
     if "elements" in j:
-        element_x = []
-        element_y = []
         for element_pos, element in enumerate(j["elements"]):
+            element_x = []
+            element_y = []
             element_path(element_x, element_y, element)
-            element_x.append(None)
-            element_y.append(None)
 
             fig.add_trace(go.Scatter(
                 x=element_x,
