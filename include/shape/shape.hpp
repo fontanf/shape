@@ -332,6 +332,9 @@ struct ShapeElement
     /** Split an element at a given point. */
     std::pair<ShapeElement, ShapeElement> split(const Point& point) const;
 
+    /** Re-compute the center of a circular arc. */
+    void recompute_center();
+
     std::string to_string() const;
 
     template <class basic_json>

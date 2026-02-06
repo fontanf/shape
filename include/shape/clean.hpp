@@ -11,8 +11,16 @@ std::pair<bool, Shape> remove_redundant_vertices(
 std::pair<bool, ShapeWithHoles> remove_redundant_vertices(
         const ShapeWithHoles& shape);
 
+
 Shape remove_backtracks(
         const Shape& shape);
+
+
+Shape recompute_centers(
+        const Shape& shape);
+
+ShapeWithHoles recompute_centers(
+        const ShapeWithHoles& shape_with_holes);
 
 
 std::pair<bool, Shape> remove_aligned_vertices(

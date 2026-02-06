@@ -242,6 +242,33 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
+struct ShapeElementRecomputeCenterTestParams
+{
+    ShapeElement element;
+};
+
+class ShapeElementRecomputeCenterTest: public testing::TestWithParam<ShapeElementRecomputeCenterTestParams> { };
+
+TEST_P(ShapeElementRecomputeCenterTest, ShapeElementRecomputeCenter)
+{
+    ShapeElementRecomputeCenterTestParams test_params = GetParam();
+    std::cout << "element " << test_params.element.to_string() << std::endl;
+    ShapeElement element = test_params.element;
+    element.recompute_center();
+    std::cout << "output " << element.to_string() << std::endl;
+    EXPECT_TRUE(equal(element, test_params.element));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeElementRecomputeCenterTest,
+        testing::ValuesIn(std::vector<ShapeElementRecomputeCenterTestParams>{
+            {build_circular_arc({0, 1}, {1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise)},
+            {build_circular_arc({1, 0}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise)},
+            {build_circular_arc({1, 2}, {2, 1}, {1, 1}, ShapeElementOrientation::Anticlockwise)},
+            }));
+
+
 struct ShapeComputeAreaTestParams
 {
     Shape shape;

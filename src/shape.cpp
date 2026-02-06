@@ -449,6 +449,18 @@ std::pair<ShapeElement, ShapeElement> ShapeElement::split(const Point& point) co
     return {};
 }
 
+void ShapeElement::recompute_center()
+{
+    if (this->type != ShapeElementType::CircularArc) {
+        throw std::invalid_argument(FUNC_SIGNATURE);
+    }
+    Point middle = (this->start + this->end) / 2;
+    Point diff = (this->end - this->start);
+    Point normal = {-diff.y, diff.x};
+    LengthDbl t = dot_product((this->center - middle), normal) / dot_product(normal, normal);
+    this->center = middle + t * normal;
+}
+
 int shape::counter_clockwise(
         const Point& point_1,
         const Point& point_2,

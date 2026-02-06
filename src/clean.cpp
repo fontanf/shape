@@ -212,6 +212,30 @@ Shape shape::remove_backtracks(
     return output;
 }
 
+Shape shape::recompute_centers(
+        const Shape& shape)
+{
+    Shape new_shape = shape;
+    for (ShapeElement& element: new_shape.elements)
+        if (element.type == ShapeElementType::CircularArc)
+            element.recompute_center();
+    return new_shape;
+}
+
+ShapeWithHoles shape::recompute_centers(
+        const ShapeWithHoles& shape_with_holes)
+{
+    ShapeWithHoles new_shape_with_holes = shape_with_holes;
+    for (ShapeElement& element: new_shape_with_holes.shape.elements)
+        if (element.type == ShapeElementType::CircularArc)
+            element.recompute_center();
+    for (Shape& hole: new_shape_with_holes.holes)
+        for (ShapeElement& element: hole.elements)
+            if (element.type == ShapeElementType::CircularArc)
+                element.recompute_center();
+    return new_shape_with_holes;
+}
+
 namespace
 {
 
