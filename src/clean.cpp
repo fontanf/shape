@@ -731,17 +731,19 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": invalid input shape.");
     }
+
     Shape shape = shape_orig;
+
     shape = equalize_shape(shape);
-    if (!shape.check()) {
-        //write_json({{shape_orig}, {shape}}, {}, "self_intersect_after_equalize.json");
-        throw std::invalid_argument(
-                FUNC_SIGNATURE + ": invalid shape after equalize_shape.");
-    }
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
 
     shape = clean_extreme_slopes_outer_1(shape);
+
+    shape = equalize_shape(shape);
+    shape = remove_redundant_vertices(shape).second;
+    shape = remove_aligned_vertices(shape).second;
+
     shape = clean_extreme_slopes_outer_2(shape);
 
     shape = equalize_shape(shape);
@@ -761,11 +763,17 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
         const Shape& shape_orig)
 {
     Shape shape = shape_orig;
+
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
 
     shape = clean_extreme_slopes_inner_1(shape);
+
+    shape = equalize_shape(shape);
+    shape = remove_redundant_vertices(shape).second;
+    shape = remove_aligned_vertices(shape).second;
+
     shape = clean_extreme_slopes_inner_2(shape);
 
     shape = equalize_shape(shape);
