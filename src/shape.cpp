@@ -42,20 +42,17 @@ LengthDbl shape::smallest_power_of_two_greater_or_equal(LengthDbl value)
 
 std::string shape::to_string(double value)
 {
-    std::streamsize precision = std::cout.precision();
     std::stringstream ss;
-    ss << std::setprecision(std::numeric_limits<LengthDbl>::digits10 + 1)
-        << value << std::setprecision(precision);
+    ss << std::setprecision(std::numeric_limits<LengthDbl>::max_digits10)
+        << value;
     return ss.str();
 }
 
 std::string Point::to_string() const
 {
-    std::streamsize precision = std::cout.precision();
     std::stringstream ss;
-    ss << std::setprecision(std::numeric_limits<LengthDbl>::digits10 + 1)
-        << "(" << x << ", " << y << ")"
-        << std::setprecision(precision);
+    ss << std::setprecision(std::numeric_limits<LengthDbl>::max_digits10)
+        << "(" << x << ", " << y << ")";
     return ss.str();
     //return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
 }
