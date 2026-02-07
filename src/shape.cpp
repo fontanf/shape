@@ -2073,7 +2073,7 @@ bool shape::operator<(
                 || (equal(jet_2.tangent_angle, 0) && !strictly_lesser(jet_2.curvature, 0))) {
             return false;
         } else {
-            return strictly_greater(jet_1.curvature, jet_2.curvature);
+            return strictly_lesser(jet_1.curvature, jet_2.curvature);
         }
     } else if (equal(jet_2.tangent_angle, 0) && strictly_lesser(jet_2.curvature, 0)) {
         return true;

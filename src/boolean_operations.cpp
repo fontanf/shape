@@ -784,15 +784,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         // Check if the face is valid.
         if (!equal(face.elements.back().end, face.elements.front().start)) {
             //std::cout << face.to_string(0) << std::endl;
-            //std::vector<ShapeElement> elements;
             //Writer writer;
-            //for (const auto& splitted_element: splitted_elements) {
-            //    auto mm = splitted_element.element.min_max();
-            //    //if (mm.first.x < 5.57 || mm.second. x > 5.58
-            //    //        || mm.first.y < 19.91 || mm.second.y > 19.92)
-            //    //    continue;
+            //for (const auto& splitted_element: splitted_elements)
             //    writer.add_element(splitted_element.element);
-            //}
             //writer.write_json("overlay.json");
             //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
             //compute_union_export_inputs(
