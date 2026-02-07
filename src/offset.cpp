@@ -286,7 +286,7 @@ ShapeWithHoles shape::inflate(
         }
     }
 
-    //write_json(union_input, {}, "union_input.json");
+    //Writer().add_shapes_with_holes(union_input).write_json("shapes.json");
     //compute_union_export_inputs("compute_union_input.json", union_input);
     return compute_union(union_input).front();
 }

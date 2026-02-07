@@ -223,8 +223,13 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
     //std::cout << "arc " << arc.to_string() << std::endl;
 
     Point ps[2];
-    if (line.start == arc.start
-            || line.start == arc.end) {
+    LengthDbl radius = distance(arc.start, arc.center);
+    bool circle_contains_line_start = equal(distance(line.start, arc.center), radius);
+    bool circle_contains_line_end = equal(distance(line.end, arc.center), radius);
+    if (circle_contains_line_start && circle_contains_line_end) {
+        ps[0] = line.start;
+        ps[1] = line.end;
+    } else if (circle_contains_line_start) {
         ps[0] = line.start;
         if (line.end == arc.start
                 || line.end == arc.end) {
@@ -238,8 +243,7 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
             ps[1].x = ps[0].x + t2 * d.x;
             ps[1].y = ps[0].y + t2 * d.y;
         }
-    } else if (line.end == arc.start
-            || line.end == arc.end) {
+    } else if (circle_contains_line_end) {
         ps[0] = line.end;
         Point d = line.end - line.start;
         LengthDbl dd = d.x * d.x + d.y * d.y;
