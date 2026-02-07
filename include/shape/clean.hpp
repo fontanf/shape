@@ -41,6 +41,7 @@ ShapeWithHoles clean_extreme_slopes_outer(
 std::vector<Shape> clean_extreme_slopes_inner(
         const Shape& shape);
 
+
 std::vector<ShapeWithHoles> fix_self_intersections(
         const ShapeWithHoles& shape);
 
