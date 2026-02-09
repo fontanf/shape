@@ -10,21 +10,26 @@ std::pair<bool, Point> shape::compute_line_intersection(
         const Point& p21,
         const Point& p22)
 {
-    if (equal(
-                signed_distance_point_to_line(p11, p21, p22),
-                signed_distance_point_to_line(p12, p21, p22))) {
+    LengthDbl dist_1start_2 = signed_distance_point_to_line(p11, p21, p22);
+    LengthDbl dist_1end_2 = signed_distance_point_to_line(p12, p21, p22);
+    LengthDbl dist_2start_1 = signed_distance_point_to_line(p21, p11, p12);
+    LengthDbl dist_2end_1 = signed_distance_point_to_line(p22, p11, p12);
+    //std::cout << "dist_1start_2 " << dist_1start_2 << std::endl;
+    //std::cout << "dist_1end_2 " << dist_1end_2 << std::endl;
+    //std::cout << "dist_2start_1 " << dist_2start_1 << std::endl;
+    //std::cout << "dist_2end_1 " << dist_2end_1 << std::endl;
+    if (equal(dist_1start_2, dist_1end_2)
+            || equal(dist_2start_1, dist_2end_1)) {
+        //std::cout << "a" << std::endl;
         return {false, {0, 0}};
     } else if (p11 == p21 || p11 == p22) {
-        LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
-        if (equal(denom, 0.0))
-            return {false, {0, 0}};
+        //std::cout << "b" << std::endl;
         return {true, p11};
     } else if (p12 == p21 || p12 == p22) {
-        LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
-        if (equal(denom, 0.0))
-            return {false, {0, 0}};
+        //std::cout << "c" << std::endl;
         return {true, p12};
     } else if (p11.x == p12.x) {
+        //std::cout << "d" << std::endl;
         if (p21.x == p22.x)
             return {false, {0, 0}};
         if (p21.y == p22.y)
@@ -47,6 +52,7 @@ std::pair<bool, Point> shape::compute_line_intersection(
 
         return {true, p};
     } else if (p11.y == p12.y) {
+        //std::cout << "e" << std::endl;
         if (p21.y == p22.y)
             return {false, {0, 0}};
         if (p21.x == p22.x)
@@ -69,6 +75,7 @@ std::pair<bool, Point> shape::compute_line_intersection(
 
         return {true, p};
     } else if (p21.x == p22.x) {
+        //std::cout << "f" << std::endl;
         if (p11.x == p12.x)
             return {false, {0, 0}};
         double a = (p12.y - p11.y) / (p12.x - p11.x);
@@ -89,6 +96,7 @@ std::pair<bool, Point> shape::compute_line_intersection(
 
         return {true, p};
     } else if (p21.y == p22.y) {
+        //std::cout << "g" << std::endl;
         if (p11.y == p12.y)
             return {false, {0, 0}};
         double a = (p12.x - p11.x) / (p12.y - p11.y);
@@ -108,15 +116,36 @@ std::pair<bool, Point> shape::compute_line_intersection(
         }
 
         return {true, p};
-    } else if (equal(signed_distance_point_to_line(p11, p21, p22), 0.0)) {
-        if (equal(signed_distance_point_to_line(p12, p21, p22), 0.0)) {
-            return {false, {0, 0}};
-        } else {
-            return {true, p11};
-        }
-    } else if (equal(signed_distance_point_to_line(p12, p21, p22), 0.0)) {
+    } else if (equal(dist_1start_2, 0.0)) {
+        //std::cout << "h" << std::endl;
+        if (equal(dist_2start_1, 0.0))
+            return (std::abs(dist_1start_2) < std::abs(dist_2start_1))?
+                std::pair<bool, Point>{true, p11}:
+                std::pair<bool, Point>{true, p21};
+        if (equal(dist_2end_1, 0.0))
+            return (std::abs(dist_1start_2) < std::abs(dist_2end_1))?
+                std::pair<bool, Point>{true, p11}:
+                std::pair<bool, Point>{true, p22};
+        return {true, p11};
+    } else if (equal(dist_1end_2, 0.0)) {
+        //std::cout << "i" << std::endl;
+        if (equal(dist_2start_1, 0.0))
+            return (std::abs(dist_1end_2) < std::abs(dist_2start_1))?
+                std::pair<bool, Point>{true, p12}:
+                std::pair<bool, Point>{true, p21};
+        if (equal(dist_2end_1, 0.0))
+            return (std::abs(dist_1end_2) < std::abs(dist_2end_1))?
+                std::pair<bool, Point>{true, p12}:
+                std::pair<bool, Point>{true, p22};
         return {true, p12};
+    } else if (equal(dist_2start_1, 0.0)) {
+        //std::cout << "j" << std::endl;
+        return {true, p21};
+    } else if (equal(dist_2end_1, 0.0)) {
+        //std::cout << "k" << std::endl;
+        return {true, p22};
     } else {
+        //std::cout << "l" << std::endl;
         Point p;
         LengthDbl denom = (p11.x - p12.x) * (p21.y - p22.y) - (p11.y - p12.y) * (p21.x - p22.x);
         p.x = ((p11.x * p12.y - p11.y * p12.x) * (p21.x - p22.x) - (p11.x - p12.x) * (p21.x * p22.y - p21.y * p22.x)) / denom;
@@ -149,8 +178,10 @@ ShapeElementIntersectionsOutput compute_line_line_intersections(
 
     if (!p.first) {
         // If they are colinear, check if they are aligned.
-        if (!equal(signed_distance_point_to_line(line1.start, line2.start, line2.end), 0.0))
+        if (!equal(signed_distance_point_to_line(line1.start, line2.start, line2.end), 0.0)
+                && !equal(signed_distance_point_to_line(line2.start, line1.start, line1.end), 0.0)) {
             return {};
+        }
 
         Point ref = line1.end - line1.start;
         std::array<LengthDbl, 4> points_values = {
@@ -437,93 +468,123 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
         }
     }
 
-    if (equal(arc.start, arc_2.start)
-            || equal(arc.start, arc_2.end)) {
-        return {{}, {arc.start}, {}};
-    } else if (equal(arc.end, arc_2.start)
-            || equal(arc.end, arc_2.end)) {
-        return {{}, {arc.end}, {}};
-    }
+    std::vector<Point> points;
+    ElementPos p_size = 0;
+    LengthDbl radius_1 = distance(arc.start, arc.center);
+    LengthDbl radius_2 = distance(arc_2.start, arc_2.center);
+    bool circle_1_contains_arc_2_start = equal(distance(arc_2.start, arc.center), radius_1);
+    bool circle_1_contains_arc_2_end = equal(distance(arc_2.end, arc.center), radius_1);
+    bool circle_2_contains_arc_1_start = equal(distance(arc.start, arc_2.center), radius_1);
+    bool circle_2_contains_arc_1_end = equal(distance(arc.end, arc_2.center), radius_1);
+    if (circle_1_contains_arc_2_start)
+        if (points.empty() || !(equal(arc_2.start, points.back())))
+            points.push_back(arc_2.start);
+    if (circle_1_contains_arc_2_end)
+        if (points.empty() || !(equal(arc_2.end, points.back())))
+            points.push_back(arc_2.end);
+    if (circle_2_contains_arc_1_start)
+        if (points.empty() || !(equal(arc.start, points.back())))
+            points.push_back(arc.start);
+    if (circle_2_contains_arc_1_end)
+        if (points.empty() || !(equal(arc.end, points.back())))
+            points.push_back(arc.end);
+    if (points.size() == 2) {
+        ShapeElementIntersectionsOutput output;
+        return {{}, points, {}};
+    } else if (points.size() == 1) {
+        Point u = arc_2.center - arc.center;
+        LengthDbl l2 = dot_product(u, u);
 
-    LengthDbl xm = arc.center.x;
-    LengthDbl ym = arc.center.y;
-    LengthDbl xm2 = arc_2.center.x;
-    LengthDbl ym2 = arc_2.center.y;
-    LengthDbl a = 2 * (xm2 - xm);
-    LengthDbl b = 2 * (ym2 - ym);
-    LengthDbl c = rsq - (xm * xm) - (ym * ym)
-        - r2sq + (xm2 * xm2) + (ym2 * ym2);
-    //std::cout << "a " << a << " b " << b << " c " << c << std::endl;
+        LengthDbl alpha = (l2 + radius_1 * radius_1 - radius_2 * radius_2) / (2 * l2);
+        Point m = arc.center + alpha * u;
+        Point p = 2 * m - points[0];
 
-    LengthDbl c_prime = c - a * xm - b * ym;
-
-    // No intersection.
-    if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
-        return {};
-
-    std::vector<Point> intersections;
-    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
-    //std::cout << "discriminant " << discriminant << std::endl;
-    if (discriminant < 0)
-        discriminant = 0;
-    LengthDbl denom = a * a + b * b;
-    LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
-    LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
-    LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
-    LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
-    Point ps[2];
-    ps[0].x = xm + eta_1;
-    ps[0].y = ym + teta_1;
-    ps[1].x = xm + eta_2;
-    ps[1].y = ym + teta_2;
-    //std::cout << "ps[0] " << ps[0].to_string() << std::endl;
-    //std::cout << "ps[1] " << ps[1].to_string() << std::endl;
-
-    // Single intersection point.
-    if (equal(ps[0], ps[1])) {
-        Point p;
-        p.x = (ps[0].x + ps[1].x) / 2.0;
-        p.y = (ps[0].y + ps[1].y) / 2.0;
-        //std::cout << "p " << p.to_string() << std::endl;
-
-        if (equal(p, arc.start)) {
-            p = arc.start;
-        } else if (equal(p, arc.end)) {
-            p = arc.end;
-        } else if (equal(p, arc_2.start)) {
-            p = arc_2.start;
-        } else if (equal(p, arc_2.end)) {
-            p = arc_2.end;
-        }
+        if (equal(p, points[0]))
+            return {{}, points, {}};
         if (arc.contains(p) && arc_2.contains(p)) {
-            return {{}, {p}, {}};
+            return {{}, points, {p}};
         } else {
+            return {{}, points, {}};
+        }
+    } else {
+
+        LengthDbl xm = arc.center.x;
+        LengthDbl ym = arc.center.y;
+        LengthDbl xm2 = arc_2.center.x;
+        LengthDbl ym2 = arc_2.center.y;
+        LengthDbl a = 2 * (xm2 - xm);
+        LengthDbl b = 2 * (ym2 - ym);
+        LengthDbl c = rsq - (xm * xm) - (ym * ym)
+            - r2sq + (xm2 * xm2) + (ym2 * ym2);
+        //std::cout << "a " << a << " b " << b << " c " << c << std::endl;
+
+        LengthDbl c_prime = c - a * xm - b * ym;
+
+        // No intersection.
+        if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
             return {};
+
+        std::vector<Point> intersections;
+        LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
+        //std::cout << "discriminant " << discriminant << std::endl;
+        if (discriminant < 0)
+            discriminant = 0;
+        LengthDbl denom = a * a + b * b;
+        LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
+        LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
+        LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
+        LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
+        points = {{xm + eta_1, ym + teta_1}, {xm + eta_2, ym + teta_2}};
+        //std::cout << "p0 " << points[0].to_string() << std::endl;
+        //std::cout << "p1 " << points[1].to_string() << std::endl;
+
+        // Single intersection point.
+        if (equal(points[0], points[1])) {
+            Point p;
+            p.x = (points[0].x + points[1].x) / 2.0;
+            p.y = (points[0].y + points[1].y) / 2.0;
+            //std::cout << "p " << p.to_string() << std::endl;
+
+            if (equal(p, arc.start)) {
+                p = arc.start;
+            } else if (equal(p, arc.end)) {
+                p = arc.end;
+            } else if (equal(p, arc_2.start)) {
+                p = arc_2.start;
+            } else if (equal(p, arc_2.end)) {
+                p = arc_2.end;
+            }
+            if (arc.contains(p) && arc_2.contains(p)) {
+                return {{}, {p}, {}};
+            } else {
+                return {};
+            }
         }
+
+        ShapeElementIntersectionsOutput output;
+        for (const Point& p: points) {
+            //std::cout << "p " << p.to_string() << std::endl;
+            // Check if any intersection coincides with an arc endpoint
+            if (equal(p, arc.start)) {
+                if (arc_2.contains(p))
+                    output.improper_intersections.push_back(arc.start);
+            } else if (equal(p, arc.end)) {
+                if (arc_2.contains(p))
+                    output.improper_intersections.push_back(arc.end);
+            } else if (equal(p, arc_2.start)) {
+                if (arc.contains(p))
+                    output.improper_intersections.push_back(arc_2.start);
+            } else if (equal(p, arc_2.end)) {
+                if (arc.contains(p))
+                    output.improper_intersections.push_back(arc_2.end);
+            } else if (arc.contains(p) && arc_2.contains(p)) {
+                output.proper_intersections.push_back(p);
+            }
+        }
+        return output;
     }
 
-    ShapeElementIntersectionsOutput output;
-    for (Point& p: ps) {
-        //std::cout << "p " << p.to_string() << std::endl;
-        // Check if any intersection coincides with an arc endpoint
-        if (equal(p, arc.start)) {
-            if (arc_2.contains(p))
-                output.improper_intersections.push_back(arc.start);
-        } else if (equal(p, arc.end)) {
-            if (arc_2.contains(p))
-                output.improper_intersections.push_back(arc.end);
-        } else if (equal(p, arc_2.start)) {
-            if (arc.contains(p))
-                output.improper_intersections.push_back(arc_2.start);
-        } else if (equal(p, arc_2.end)) {
-            if (arc.contains(p))
-                output.improper_intersections.push_back(arc_2.end);
-        } else if (arc.contains(p) && arc_2.contains(p)) {
-            output.proper_intersections.push_back(p);
-        }
-    }
-
-    return output;
+    return {};
 }
 
 }

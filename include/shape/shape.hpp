@@ -126,7 +126,7 @@ Point operator/(
 inline LengthDbl norm(
         const Point& vector)
 {
-    return std::sqrt(vector.x * vector.x + vector.y * vector.y);
+    return std::hypot(vector.x, vector.y);
 }
 
 Point normalize(
@@ -333,7 +333,7 @@ struct ShapeElement
     std::pair<ShapeElement, ShapeElement> split(const Point& point) const;
 
     /** Re-compute the center of a circular arc. */
-    void recompute_center();
+    Point recompute_center() const;
 
     std::string to_string() const;
 

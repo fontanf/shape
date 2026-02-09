@@ -99,7 +99,11 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             for (ElementPos element_pos = 0;
                     element_pos < (ElementPos)hole.elements.size();
                     ++element_pos) {
-                const ShapeElement& element = hole.elements[element_pos];
+                ShapeElement element = hole.elements[element_pos];
+                if (element.type == shape::ShapeElementType::CircularArc
+                        && !(element.start == element.end)) {
+                    element.center = element.recompute_center();
+                }
                 if (hole_pos == (ShapePos)shape.holes.size()) {
                     elements.push_back(element);
                 } else {
@@ -520,6 +524,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     //for (const SplittedElement& splitted_element: splitted_elements)
     //    std::cout << splitted_element.element.to_string() << std::endl;
     //Writer().add_shapes_with_holes(shapes).write_json("compute_boolean_operation_component_input.json");
+    //Writer writer;
+    //for (const auto& splitted_element: splitted_elements)
+    //    writer.add_element(splitted_element.element);
+    //writer.write_json("overlay.json");
 
     std::vector<ShapeWithHoles> new_shapes;
     BooleanOperationGraph graph = compute_graph(splitted_elements);
