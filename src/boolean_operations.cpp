@@ -379,6 +379,12 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                     continue;
                 }
 
+                if (p.first.type == shape::ShapeElementType::CircularArc
+                        && p.first.contains((p.first.start + p.first.end) / 2)) {
+                    //std::cout << "change to line segment" << std::endl;
+                    p.first.type = shape::ShapeElementType::LineSegment;
+                }
+
                 SplittedElement new_element;
                 new_element.element = p.first;
                 new_element.orig_shape_id = shape_pos;
