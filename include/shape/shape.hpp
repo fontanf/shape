@@ -183,6 +183,10 @@ Angle angle_radian(
         const Point& vector_1,
         const Point& vector_2);
 
+Angle signed_angle_radian(
+        const Point& vector_1,
+        const Point& vector_2);
+
 inline AreaDbl compute_area(
         const Point& point_1,
         const Point& point_2,

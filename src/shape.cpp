@@ -252,10 +252,22 @@ Angle shape::angle_radian(
         const Point& vector_1,
         const Point& vector_2)
 {
-    Angle a = atan2(vector_2.y, vector_2.x) - atan2(vector_1.y, vector_1.x);
+    //Angle a = atan2(vector_2.y, vector_2.x) - atan2(vector_1.y, vector_1.x);
+    Angle a = std::atan2(
+            vector_1.x * vector_2.y - vector_1.y * vector_2.x,
+            vector_1.x * vector_2.x + vector_1.y * vector_2.y);
     if (a < 0)
         a += 2 * M_PI;
     return a;
+}
+
+Angle shape::signed_angle_radian(
+        const Point& vector_1,
+        const Point& vector_2)
+{
+    return std::atan2(
+            vector_1.x * vector_2.y - vector_1.y * vector_2.x,
+            vector_1.x * vector_2.x + vector_1.y * vector_2.y);
 }
 
 Point ShapeElement::middle(
@@ -503,37 +515,35 @@ bool ShapeElement::contains(const Point& point) const
                 distance(this->start, point) + distance(point, this->end),
                 distance(this->start, this->end));
     } case ShapeElementType::CircularArc: {
+        LengthDbl radius = distance(this->start, this->center);
         // Check if point lies on circle
-        if (!equal(
-                    distance(point, this->center),
-                    distance(this->start, this->center))) {
+        if (!equal(distance(point, this->center), radius))
             return false;
-        }
 
         if (this->orientation == ShapeElementOrientation::Full)
             return true;
 
         // Calculate angles
-        Angle point_angle = angle_radian(point - this->center);
-        Angle start_angle = angle_radian(this->start - this->center);
-        Angle end_angle = angle_radian(this->end - this->center);
+        Point vs = this->start - this->center;
+        Point ve = this->end - this->center;
+        Point vp = point - this->center;
 
         if (this->orientation == ShapeElementOrientation::Anticlockwise) {
-            Angle a0 = angle_radian(
-                    this->start - this->center,
-                    this->end - this->center);
-            Angle a = angle_radian(
-                    this->start - this->center,
-                    point - this->center);
-            return !strictly_greater(a, a0);
+            LengthDbl l0 = signed_angle_radian(vs, ve) * radius;
+            if (strictly_lesser(l0, 0.0))
+                l0 += 2 * M_PI * radius;
+            LengthDbl l = signed_angle_radian(vs, vp) * radius;
+            if (strictly_lesser(l, 0.0))
+                l += 2 * M_PI * radius;
+            return !strictly_greater(l, l0);
         } else {
-            Angle a0 = angle_radian(
-                    this->end - this->center,
-                    this->start - this->center);
-            Angle a = angle_radian(
-                    this->end - this->center,
-                    point - this->center);
-            return !strictly_greater(a, a0);
+            LengthDbl l0 = signed_angle_radian(ve, vs) * radius;
+            if (strictly_lesser(l0, 0.0))
+                l0 += 2 * M_PI * radius;
+            LengthDbl l = signed_angle_radian(ve, vp) * radius;
+            if (strictly_lesser(l, 0.0))
+                l += 2 * M_PI * radius;
+            return !strictly_greater(l, l0);
         }
     }
     }
