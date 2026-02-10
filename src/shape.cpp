@@ -499,7 +499,9 @@ bool ShapeElement::contains(const Point& point) const
 {
     switch (type) {
     case ShapeElementType::LineSegment: {
-        return equal(
+        if (!equal(distance_point_to_line(point, this->start, this->end), 0.0))
+            return false;
+        return !strictly_greater(
                 distance(this->start, point) + distance(point, this->end),
                 distance(this->start, this->end));
     } case ShapeElementType::CircularArc: {

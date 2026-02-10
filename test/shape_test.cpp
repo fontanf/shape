@@ -242,6 +242,38 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
+struct ShapeElementContainsTestParams
+{
+    ShapeElement element;
+    Point point;
+    bool expected_output;
+};
+
+class ShapeElementContainsTest: public testing::TestWithParam<ShapeElementContainsTestParams> { };
+
+TEST_P(ShapeElementContainsTest, ShapeElementContains)
+{
+    ShapeElementContainsTestParams test_params = GetParam();
+    std::cout << "element " << test_params.element.to_string() << std::endl;
+    std::cout << "point " << test_params.point.to_string() << std::endl;
+    std::cout << "expceted output " << test_params.expected_output << std::endl;
+    bool output = test_params.element.contains(test_params.point);
+    std::cout << "output " << output << std::endl;
+    EXPECT_EQ(output, test_params.expected_output);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        ShapeElement,
+        ShapeElementContainsTest,
+        testing::ValuesIn(std::vector<ShapeElementContainsTestParams>{
+            {
+                build_line_segment({173.76745440585034, 708.07662627064951}, {175.56776284529906, 711.01702947644321}),
+                {174.91570697722955, 709.95140487030301},
+                false,
+            },
+            }));
+
+
 struct ShapeElementRecomputeCenterTestParams
 {
     ShapeElement element;
