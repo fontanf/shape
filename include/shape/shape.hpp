@@ -366,10 +366,6 @@ ShapeElement build_circular_arc(
         const Point& center,
         const ShapeElementOrientation& orientation);
 
-bool operator<(
-        const ShapeElement& element_1,
-        const ShapeElement& element_2);
-
 ShapeElement operator*(
         LengthDbl scalar,
         const ShapeElement& element);

@@ -950,29 +950,6 @@ ShapeElementOrientation shape::opposite(ShapeElementOrientation orientation)
     return ShapeElementOrientation::Full;
 }
 
-bool shape::operator<(
-        const ShapeElement& element_1,
-        const ShapeElement& element_2)
-{
-    if (element_1.type != element_2.type)
-        return element_1.type < element_2.type;
-    if (element_1.start.x != element_2.start.x)
-        return element_1.start.x < element_2.start.x;
-    if (element_1.start.y != element_2.start.y)
-        return element_1.start.y < element_2.start.y;
-    if (element_1.end.x != element_2.end.x)
-        return element_1.end.x < element_2.end.x;
-    if (element_1.end.y != element_2.end.y)
-        return element_1.end.y < element_2.end.y;
-    if (element_1.center.x != element_2.center.x)
-        return element_1.center.x < element_2.center.x;
-    if (element_1.center.y != element_2.center.y)
-        return element_1.center.y < element_2.center.y;
-    if (element_1.orientation != element_2.orientation)
-        return element_1.orientation < element_2.orientation;
-    return false;
-}
-
 ShapeElement shape::operator*(
         LengthDbl scalar,
         const ShapeElement& element)

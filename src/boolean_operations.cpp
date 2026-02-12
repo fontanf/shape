@@ -52,7 +52,23 @@ bool operator<(
         const SplittedElement& element_1,
         const SplittedElement& element_2)
 {
-    return element_1.element < element_2.element;
+    if (element_1.element.type != element_2.element.type)
+        return element_1.element.type < element_2.element.type;
+    if (element_1.element.start.x != element_2.element.start.x)
+        return element_1.element.start.x < element_2.element.start.x;
+    if (element_1.element.start.y != element_2.element.start.y)
+        return element_1.element.start.y < element_2.element.start.y;
+    if (element_1.element.end.x != element_2.element.end.x)
+        return element_1.element.end.x < element_2.element.end.x;
+    if (element_1.element.end.y != element_2.element.end.y)
+        return element_1.element.end.y < element_2.element.end.y;
+    if (element_1.element.center.x != element_2.element.center.x)
+        return element_1.element.center.x < element_2.element.center.x;
+    if (element_1.element.center.y != element_2.element.center.y)
+        return element_1.element.center.y < element_2.element.center.y;
+    if (element_1.element.orientation != element_2.element.orientation)
+        return element_1.element.orientation < element_2.element.orientation;
+    return false;
 }
 
 struct ComputeSplittedElementsOutput
@@ -296,6 +312,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         }
     }
 
+    // Build splitted elements.
     output.components_splitted_elements = std::vector<std::vector<SplittedElement>>(shapes.size());
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)elements.size();
@@ -361,12 +378,6 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 new_element.original_direction = true;
                 output.components_splitted_elements[component_id].push_back(new_element);
 
-                SplittedElement new_element_reversed;
-                new_element_reversed.element = e.reverse();
-                new_element_reversed.orig_shape_id = shape_pos;
-                new_element_reversed.original_direction = false;
-                output.components_splitted_elements[component_id].push_back(new_element_reversed);
-
                 //std::cout << "  - " << point_cur.to_string() << std::endl;
                 //std::cout << "    " << new_element.element.to_string() << std::endl;
                 //std::cout << "    length " << new_element.element.length() << std::endl;
@@ -391,12 +402,6 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 new_element.original_direction = true;
                 output.components_splitted_elements[component_id].push_back(new_element);
 
-                SplittedElement new_element_reversed;
-                new_element_reversed.element = p.first.reverse();
-                new_element_reversed.orig_shape_id = shape_pos;
-                new_element_reversed.original_direction = false;
-                output.components_splitted_elements[component_id].push_back(new_element_reversed);
-
                 //std::cout << "  - " << point_cur.to_string() << std::endl;
                 //std::cout << "    " << new_element.element.to_string() << std::endl;
                 //std::cout << "    length " << new_element.element.length() << std::endl;
@@ -411,14 +416,26 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             new_element.original_direction = true;
             output.components_splitted_elements[component_id].push_back(new_element);
 
-            SplittedElement new_element_reversed;
-            new_element_reversed.element = element.reverse();
-            new_element_reversed.orig_shape_id = elements_info[element_pos].orig_shape_id;
-            new_element_reversed.original_direction = false;
-            output.components_splitted_elements[component_id].push_back(new_element_reversed);
-
             //std::cout << "  - " << new_element.element.to_string() << std::endl;
             //std::cout << "    length " << new_element.element.length() << std::endl;
+        }
+    }
+
+    // Reverse some elements to help detecting duplicates.
+    for (auto it = output.shape_component_ids.values_begin();
+            it != output.shape_component_ids.values_end();
+            ++it) {
+        ComponentId component_id = *it;
+        auto& splitted_elements = output.components_splitted_elements[component_id];
+        for (SplittedElement& splitted_element: splitted_elements) {
+            if (splitted_element.element.start.x < splitted_element.element.end.x)
+                continue;
+            if (splitted_element.element.start.x == splitted_element.element.end.x
+                    && splitted_element.element.start.y < splitted_element.element.end.y) {
+                continue;
+            }
+            splitted_element.element = splitted_element.element.reverse();
+            splitted_element.original_direction = !splitted_element.original_direction;
         }
     }
 
@@ -427,9 +444,9 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             it != output.shape_component_ids.values_end();
             ++it) {
         ComponentId component_id = *it;
-        auto& vec = output.components_splitted_elements[component_id];
-        std::sort(vec.begin(), vec.end());
-        vec.erase(unique(vec.begin(), vec.end()), vec.end());
+        auto& splitted_elements = output.components_splitted_elements[component_id];
+        std::sort(splitted_elements.begin(), splitted_elements.end());
+        splitted_elements.erase(unique(splitted_elements.begin(), splitted_elements.end()), splitted_elements.end());
     }
 
     //std::cout << "output.shape_component_ids.number_of_values() " << output.shape_component_ids.number_of_values() << std::endl;
@@ -444,12 +461,12 @@ struct BooleanOperationArc
     NodeId source_node_id = -1;
 
     NodeId end_node_id = -1;
-
-    ElementPos element_pos = -1;
 };
 
 struct BooleanOperationNode
 {
+    std::vector<ElementPos> predecessors;
+
     std::vector<ElementPos> successors;
 };
 
@@ -461,7 +478,7 @@ struct BooleanOperationGraph
 };
 
 BooleanOperationGraph compute_graph(
-        const std::vector<SplittedElement>& splitted_elements)
+        std::vector<SplittedElement>& splitted_elements)
 {
     // Sort all element points.
     //std::cout << "compute_graph splitted_elements.size() " << splitted_elements.size() << std::endl;
@@ -514,16 +531,37 @@ BooleanOperationGraph compute_graph(
             graph.nodes[node_id].successors.push_back(element_pos);
         } else {
             graph.arcs[element_pos].end_node_id = node_id;
+            graph.nodes[node_id].predecessors.push_back(element_pos);
         }
         point_prev = point;
     }
+
+    // Add reverse arcs.
+    ElementPos initial_size = graph.arcs.size();
+    for (ElementPos arc_id = 0; arc_id < initial_size; ++arc_id) {
+        const BooleanOperationArc& arc = graph.arcs[arc_id];
+        const SplittedElement& splitted_element = splitted_elements[arc_id];
+        ElementPos arc_reversed_id = graph.arcs.size();
+        BooleanOperationArc arc_reversed;
+        arc_reversed.source_node_id = arc.end_node_id;
+        arc_reversed.end_node_id = arc.source_node_id;
+        SplittedElement splitted_element_reversed;
+        splitted_element_reversed.element = splitted_element.element.reverse();
+        splitted_element_reversed.orig_shape_id = splitted_element.orig_shape_id;
+        splitted_element_reversed.original_direction = !splitted_element.original_direction;
+        splitted_elements.push_back(splitted_element_reversed);
+        graph.arcs.push_back(arc_reversed);
+        graph.nodes[arc_reversed.source_node_id].successors.push_back(arc_reversed_id);
+        graph.nodes[arc_reversed.end_node_id].predecessors.push_back(arc_reversed_id);
+    }
+
     //std::cout << "compute_graph end" << std::endl;
     return graph;
 }
 
 std::vector<ShapeWithHoles> compute_boolean_operation_component(
         const std::vector<ShapeWithHoles>& shapes,
-        const std::vector<SplittedElement>& splitted_elements,
+        std::vector<SplittedElement>& splitted_elements,
         BooleanOperation boolean_operation)
 {
     //std::cout << "compute_boolean_operation_component" << std::endl;
