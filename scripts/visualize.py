@@ -28,7 +28,7 @@ def element_path(path_x, path_y, element, is_hole=False):
         if t == "CircularArc":
             if orientation in ["Anticlockwise", "anticlockwise", "A", "a"]:
                 orientation = "Clockwise"
-            if orientation in ["Clockwise", "clockwise", "C", "c"]:
+            elif orientation in ["Clockwise", "clockwise", "C", "c"]:
                 orientation = "Anticlockwise"
 
     if len(path_x) == 0 or path_x[-1] is None:
