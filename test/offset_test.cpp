@@ -108,6 +108,32 @@ INSTANTIATE_TEST_SUITE_P(
                             {8, 0, 1}}),
                 },
             },
+            {
+                build_path({{1, 0}, {0, 0, 1}, {0, 1}}),
+                1,
+                {
+                    build_shape({
+                            {0, 0},
+                            {1, 0, 1},
+                            {2, 0},
+                            {0, 0, 1},
+                            {0, 2},
+                            {0, 1, 1}})
+                },
+            },
+            {
+                build_path({{1, 0}, {0, 0, 1}, {0, 1}}),
+                2,
+                {
+                    build_shape({
+                            {-0.82287565553229536, -0.82287565553229536},
+                            {1, 0, 1},
+                            {3, 0},
+                            {0, 0, 1},
+                            {0, 3},
+                            {0, 1, 1}})
+                },
+            },
             InflateShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "offset" / "inflate_shape" / "0.json").string()),
             InflateShapeTestParams::read_json(

@@ -63,56 +63,100 @@ Shape inflate_element(
         break;
 
     } case shape::ShapeElementType::CircularArc: {
-        Point normal_start = (element.orientation == shape::ShapeElementOrientation::Anticlockwise)?
-            element.start - element.center:
-            element.center - element.start;
-        LengthDbl normal_start_length = norm(normal_start);
-        normal_start.x = normal_start.x / normal_start_length;
-        normal_start.y = normal_start.y / normal_start_length;
-        Point normal_end = (element.orientation == shape::ShapeElementOrientation::Anticlockwise)?
-            element.end - element.center:
-            element.center - element.end;
-        LengthDbl normal_end_length = norm(normal_end);
-        normal_end.x = normal_end.x / normal_end_length;
-        normal_end.y = normal_end.y / normal_end_length;
+        if (element.orientation == shape::ShapeElementOrientation::Clockwise)
+            return inflate_element(element.reverse(), deflate, inflate);
+        LengthDbl radius = distance(element.center, element.start);
+        if (equal(deflate, radius)) {
+            Point normal_start = (element.orientation == shape::ShapeElementOrientation::Anticlockwise)?
+                element.start - element.center:
+                element.center - element.start;
+            LengthDbl normal_start_length = norm(normal_start);
+            normal_start.x = normal_start.x / normal_start_length;
+            normal_start.y = normal_start.y / normal_start_length;
+            Point normal_end = (element.orientation == shape::ShapeElementOrientation::Anticlockwise)?
+                element.end - element.center:
+                element.center - element.end;
+            LengthDbl normal_end_length = norm(normal_end);
+            normal_end.x = normal_end.x / normal_end_length;
+            normal_end.y = normal_end.y / normal_end_length;
 
-        Point p1;
-        p1.x = element.start.x + inflate * normal_start.x;
-        p1.y = element.start.y + inflate * normal_start.y;
-        Point p2;
-        p2.x = element.end.x + inflate * normal_end.x;
-        p2.y = element.end.y + inflate * normal_end.y;
-        Point p3;
-        p3.x = element.end.x - deflate * normal_end.x;
-        p3.y = element.end.y - deflate * normal_end.y;
-        Point p4;
-        p4.x = element.start.x - deflate * normal_start.x;
-        p4.y = element.start.y - deflate * normal_start.y;
+            Point p1;
+            p1.x = element.start.x + inflate * normal_start.x;
+            p1.y = element.start.y + inflate * normal_start.y;
+            Point p2;
+            p2.x = element.end.x + inflate * normal_end.x;
+            p2.y = element.end.y + inflate * normal_end.y;
 
-        ShapeElement element_1;
-        element_1.type = ShapeElementType::CircularArc;
-        element_1.start = p1;
-        element_1.end = p2;
-        element_1.center = element.center;
-        element_1.orientation = element.orientation;
-        shape.elements.push_back(element_1);
-        ShapeElement element_2;
-        element_2.type = ShapeElementType::LineSegment;
-        element_2.start = p2;
-        element_2.end = p3;
-        shape.elements.push_back(element_2);
-        ShapeElement element_3;
-        element_3.type = ShapeElementType::CircularArc;
-        element_3.start = p3;
-        element_3.end = p4;
-        element_3.center = element.center;
-        element_3.orientation = opposite(element.orientation);
-        shape.elements.push_back(element_3);
-        ShapeElement element_4;
-        element_4.type = ShapeElementType::LineSegment;
-        element_4.start = p4;
-        element_4.end = p1;
-        shape.elements.push_back(element_4);
+            ShapeElement element_1;
+            element_1.type = ShapeElementType::CircularArc;
+            element_1.start = p1;
+            element_1.end = p2;
+            element_1.center = element.center;
+            element_1.orientation = element.orientation;
+            shape.elements.push_back(element_1);
+            ShapeElement element_2;
+            element_2.type = ShapeElementType::LineSegment;
+            element_2.start = p2;
+            element_2.end = element.center;
+            shape.elements.push_back(element_2);
+            ShapeElement element_4;
+            element_4.type = ShapeElementType::LineSegment;
+            element_4.start = element.center;
+            element_4.end = p1;
+            shape.elements.push_back(element_4);
+
+        } else {
+            Point normal_start = (element.orientation == shape::ShapeElementOrientation::Anticlockwise)?
+                element.start - element.center:
+                element.center - element.start;
+            LengthDbl normal_start_length = norm(normal_start);
+            normal_start.x = normal_start.x / normal_start_length;
+            normal_start.y = normal_start.y / normal_start_length;
+            Point normal_end = (element.orientation == shape::ShapeElementOrientation::Anticlockwise)?
+                element.end - element.center:
+                element.center - element.end;
+            LengthDbl normal_end_length = norm(normal_end);
+            normal_end.x = normal_end.x / normal_end_length;
+            normal_end.y = normal_end.y / normal_end_length;
+
+            Point p1;
+            p1.x = element.start.x + inflate * normal_start.x;
+            p1.y = element.start.y + inflate * normal_start.y;
+            Point p2;
+            p2.x = element.end.x + inflate * normal_end.x;
+            p2.y = element.end.y + inflate * normal_end.y;
+            Point p3;
+            p3.x = element.end.x - deflate * normal_end.x;
+            p3.y = element.end.y - deflate * normal_end.y;
+            Point p4;
+            p4.x = element.start.x - deflate * normal_start.x;
+            p4.y = element.start.y - deflate * normal_start.y;
+
+            ShapeElement element_1;
+            element_1.type = ShapeElementType::CircularArc;
+            element_1.start = p1;
+            element_1.end = p2;
+            element_1.center = element.center;
+            element_1.orientation = element.orientation;
+            shape.elements.push_back(element_1);
+            ShapeElement element_2;
+            element_2.type = ShapeElementType::LineSegment;
+            element_2.start = p2;
+            element_2.end = p3;
+            shape.elements.push_back(element_2);
+            ShapeElement element_3;
+            element_3.type = ShapeElementType::CircularArc;
+            element_3.start = p3;
+            element_3.end = p4;
+            element_3.center = element.center;
+            element_3.orientation = opposite(element.orientation);
+            shape.elements.push_back(element_3);
+            ShapeElement element_4;
+            element_4.type = ShapeElementType::LineSegment;
+            element_4.start = p4;
+            element_4.end = p1;
+            shape.elements.push_back(element_4);
+        }
         break;
     }
     }
@@ -478,7 +522,7 @@ ShapeWithHoles shape::inflate(
     }
 
     //compute_union_export_inputs("union_input.json", union_input);
-    //Writer().add_shapes_with_holes(union_input).write_json("shapes.json");
+    //Writer().add_shape(shape_orig).add_shapes_with_holes(union_input).write_json("shapes.json");
     return compute_union(union_input).front();
 }
 
