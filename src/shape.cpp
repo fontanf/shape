@@ -1358,6 +1358,28 @@ ShapePoint Shape::find_point_between(
     }
 }
 
+Point ShapeElement::normal(
+        const Point& point) const
+{
+    switch (type) {
+    case ShapeElementType::LineSegment: {
+        Point normal;
+        normal.x = this->end.y - this->start.y;
+        normal.y = this->start.x - this->end.x;
+        return normalize(normal);
+    } case ShapeElementType::CircularArc: {
+        Point normal = point - this->center;
+        if (this->orientation != ShapeElementOrientation::Clockwise) {
+            return normalize(normal);
+        } else {
+            return normalize(-1 * normal);
+        }
+    }
+    }
+    return {};
+
+}
+
 Shape& Shape::shift(
         LengthDbl x,
         LengthDbl y)

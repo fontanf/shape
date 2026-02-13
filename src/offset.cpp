@@ -181,7 +181,6 @@ ShapeWithHoles shape::inflate(
     } else {
         ElementPos element_prev_pos = shape.shape.elements.size() - 1;
         const ShapeElement& element_prev = shape.shape.elements[element_prev_pos];
-        Shape rectangle_prev = inflate_element(element_prev, offset, 0);
         for (ElementPos element_pos = 0;
                 element_pos < (ElementPos)shape.shape.elements.size();
                 ++element_pos) {
@@ -197,34 +196,34 @@ ShapeWithHoles shape::inflate(
                     - element_prev.jet(element_prev.end, true)).tangent_angle;
 
             if (angle >= M_PI) {
+                Point point_prev = element_prev.end + offset * element_prev.normal(element_prev.end);
+                Point point_curr = element.start + offset * element.normal(element.start);
                 ShapeWithHoles sector;
                 ShapeElement element_1;
                 element_1.type = ShapeElementType::CircularArc;
-                element_1.start = rectangle_prev.elements[0].end;
-                element_1.end = rectangle.elements[0].start;
+                element_1.start = point_prev;
+                element_1.end = point_curr;
                 element_1.center = element.start;
                 element_1.orientation = ShapeElementOrientation::Anticlockwise;
                 sector.shape.elements.push_back(element_1);
                 ShapeElement element_2;
                 element_2.type = ShapeElementType::LineSegment;
-                element_2.start = rectangle.elements[0].start;
+                element_2.start = point_curr;
                 element_2.end = element.start;
                 sector.shape.elements.push_back(element_2);
                 ShapeElement element_3;
                 element_3.type = ShapeElementType::LineSegment;
                 element_3.start = element.start;
-                element_3.end = rectangle_prev.elements[0].end;
+                element_3.end = point_prev;
                 sector.shape.elements.push_back(element_3);
                 //std::cout << "sector " << sector.to_string(0) << std::endl;
                 union_input.push_back(sector);
             }
 
-            //std::cout << "rectangle_prev " << rectangle_prev.to_string(0) << std::endl;
             //std::cout << "rectangle " << rectangle.to_string(0) << std::endl;
             union_input.push_back({rectangle});
 
             element_prev_pos = element_pos;
-            rectangle_prev = rectangle;
         }
     }
 
@@ -247,7 +246,6 @@ ShapeWithHoles shape::inflate(
         } else {
             ElementPos element_prev_pos = hole.elements.size() - 1;
             const ShapeElement& element_prev = hole.elements[element_prev_pos];
-            Shape rectangle_prev = inflate_element(element_prev, 0, offset);
             for (ElementPos element_pos = 0;
                     element_pos < (ElementPos)hole.elements.size();
                     ++element_pos) {
@@ -261,23 +259,25 @@ ShapeWithHoles shape::inflate(
                         - element_prev.jet(element_prev.end, true)).tangent_angle;
 
                 if (angle <= M_PI) {
+                    Point point_prev = element_prev.end - offset * element_prev.normal(element_prev.end);
+                    Point point_curr = element.start - offset * element.normal(element.start);
                     ShapeWithHoles sector;
                     ShapeElement element_1;
                     element_1.type = ShapeElementType::CircularArc;
-                    element_1.start = rectangle.elements[2].end;
-                    element_1.end = rectangle_prev.elements[1].end;
+                    element_1.start = point_curr;
+                    element_1.end = point_prev;
                     element_1.center = element.start;
                     element_1.orientation = ShapeElementOrientation::Anticlockwise;
                     sector.shape.elements.push_back(element_1);
                     ShapeElement element_2;
                     element_2.type = ShapeElementType::LineSegment;
-                    element_2.start = rectangle_prev.elements[1].end;
+                    element_2.start = point_prev;
                     element_2.end = element.start;
                     sector.shape.elements.push_back(element_2);
                     ShapeElement element_3;
                     element_3.type = ShapeElementType::LineSegment;
                     element_3.start = element.start;
-                    element_3.end = rectangle.elements[2].end;
+                    element_3.end = point_curr;
                     sector.shape.elements.push_back(element_3);
                     union_input.push_back(sector);
                 }
@@ -285,7 +285,6 @@ ShapeWithHoles shape::inflate(
                 union_input.push_back({rectangle});
 
                 element_prev_pos = element_pos;
-                rectangle_prev = rectangle;
             }
         }
     }
@@ -341,9 +340,6 @@ ShapeWithHoles shape::inflate(
     // Inflate outline.
     ElementPos element_prev_pos = shape.elements.size() - 1;
     const ShapeElement& element_prev = shape.elements[element_prev_pos];
-    Shape rectangle_prev = (!shape.is_path)?
-            inflate_element(element_prev, offset, 0):
-            inflate_element(element_prev, offset, offset);
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)shape.elements.size();
             ++element_pos) {
@@ -356,7 +352,6 @@ ShapeWithHoles shape::inflate(
 
         //std::cout << "element_pos " << element_pos << std::endl;
         //std::cout << "rectangle " << rectangle.to_string(2) << std::endl;
-        //std::cout << "rectangle_prev " << rectangle_prev.to_string(2) << std::endl;
 
         Angle angle = (
                 element.jet(element.start, false)
@@ -365,23 +360,25 @@ ShapeWithHoles shape::inflate(
 
         if (!shape.is_path) {
             if (angle >= M_PI) {
+                Point point_prev = element_prev.end + offset * element_prev.normal(element_prev.end);
+                Point point_curr = element.start + offset * element.normal(element.start);
                 ShapeWithHoles sector;
                 ShapeElement element_1;
                 element_1.type = ShapeElementType::CircularArc;
-                element_1.start = rectangle_prev.elements[0].end;
-                element_1.end = rectangle.elements[0].start;
+                element_1.start = point_prev;
+                element_1.end = point_curr;
                 element_1.center = element.start;
                 element_1.orientation = ShapeElementOrientation::Anticlockwise;
                 sector.shape.elements.push_back(element_1);
                 ShapeElement element_2;
                 element_2.type = ShapeElementType::LineSegment;
-                element_2.start = rectangle.elements[0].start;
+                element_2.start = point_curr;
                 element_2.end = element.start;
                 sector.shape.elements.push_back(element_2);
                 ShapeElement element_3;
                 element_3.type = ShapeElementType::LineSegment;
                 element_3.start = element.start;
-                element_3.end = rectangle_prev.elements[0].end;
+                element_3.end = point_prev;
                 sector.shape.elements.push_back(element_3);
                 union_input.push_back(sector);
             }
@@ -389,62 +386,68 @@ ShapeWithHoles shape::inflate(
             //std::cout << element.to_string() << std::endl;
             //std::cout << "angle " << to_string(angle) << std::endl;
             if (element_pos == 0) {
+                Point point_curr_1 = element.start + offset * element.normal(element.start);
+                Point point_curr_2 = element.start - offset * element.normal(element.start);
                 ShapeWithHoles sector;
                 ShapeElement element_1;
-                element_1.type = ShapeElementType::CircularArc;
-                element_1.start = rectangle.elements[3].start;
-                element_1.end = rectangle.elements[3].end;
-                element_1.center = element.start;
-                element_1.orientation = ShapeElementOrientation::Anticlockwise;
+                element_1.type = ShapeElementType::LineSegment;
+                element_1.start = point_curr_1;
+                element_1.end = point_curr_2;
                 sector.shape.elements.push_back(element_1);
                 ShapeElement element_2;
-                element_2.type = ShapeElementType::LineSegment;
-                element_2.start = rectangle.elements[3].end;
-                element_2.end = rectangle.elements[3].start;
+                element_2.type = ShapeElementType::CircularArc;
+                element_2.start = point_curr_2;
+                element_2.end = point_curr_1;
+                element_2.center = element.start;
+                element_2.orientation = ShapeElementOrientation::Anticlockwise;
                 sector.shape.elements.push_back(element_2);
                 union_input.push_back(sector);
             } else if (equal(angle, M_PI)) {
                 //std::cout << "equal" << std::endl;
             } else if (angle >= M_PI) {
                 //std::cout << "greater" << std::endl;
+                Point point_prev = element_prev.end + offset * element_prev.normal(element_prev.end);
+                Point point_curr = element.start + offset * element.normal(element.start);
                 ShapeWithHoles sector;
                 ShapeElement element_1;
                 element_1.type = ShapeElementType::CircularArc;
-                element_1.start = rectangle_prev.elements[0].end;
-                element_1.end = rectangle.elements[0].start;
+                element_1.start = point_prev;
+                element_1.end = point_curr;
                 element_1.center = element.start;
                 element_1.orientation = ShapeElementOrientation::Anticlockwise;
                 sector.shape.elements.push_back(element_1);
                 ShapeElement element_2;
                 element_2.type = ShapeElementType::LineSegment;
-                element_2.start = rectangle.elements[0].start;
+                element_2.start = point_curr;
                 element_2.end = element.start;
                 sector.shape.elements.push_back(element_2);
                 ShapeElement element_3;
                 element_3.type = ShapeElementType::LineSegment;
                 element_3.start = element.start;
-                element_3.end = rectangle_prev.elements[0].end;
+                element_3.end = point_prev;
                 sector.shape.elements.push_back(element_3);
                 union_input.push_back(sector);
             } else {
                 //std::cout << "smaller" << std::endl;
+                Point point_prev = element_prev.end - offset * element_prev.normal(element_prev.end);
+                Point point_curr = element.start - offset * element.normal(element.start);
                 ShapeWithHoles sector;
                 ShapeElement element_1;
                 element_1.type = ShapeElementType::CircularArc;
-                element_1.start = rectangle.elements[2].end;
-                element_1.end = rectangle_prev.elements[2].start;
+                element_1.start = point_curr;
+                element_1.end = point_prev;
                 element_1.center = element.start;
                 element_1.orientation = ShapeElementOrientation::Anticlockwise;
                 sector.shape.elements.push_back(element_1);
                 ShapeElement element_2;
                 element_2.type = ShapeElementType::LineSegment;
-                element_2.start = rectangle_prev.elements[2].start;
+                element_2.start = point_prev;
                 element_2.end = element.start;
                 sector.shape.elements.push_back(element_2);
                 ShapeElement element_3;
                 element_3.type = ShapeElementType::LineSegment;
                 element_3.start = element.start;
-                element_3.end = rectangle.elements[2].end;
+                element_3.end = point_curr;
                 sector.shape.elements.push_back(element_3);
                 union_input.push_back(sector);
             }
@@ -453,22 +456,23 @@ ShapeWithHoles shape::inflate(
         union_input.push_back({rectangle});
 
         element_prev_pos = element_pos;
-        rectangle_prev = rectangle;
     }
 
     if (shape.is_path) {
+        Point point_prev_1 = element_prev.end + offset * element_prev.normal(element_prev.end);
+        Point point_prev_2 = element_prev.end - offset * element_prev.normal(element_prev.end);
         ShapeWithHoles sector;
         ShapeElement element_1;
-        element_1.type = ShapeElementType::CircularArc;
-        element_1.start = rectangle_prev.elements[1].start;
-        element_1.end = rectangle_prev.elements[1].end;
-        element_1.center = shape.elements.back().end;
-        element_1.orientation = ShapeElementOrientation::Anticlockwise;
+        element_1.type = ShapeElementType::LineSegment;
+        element_1.start = point_prev_2;
+        element_1.end = point_prev_1;
         sector.shape.elements.push_back(element_1);
         ShapeElement element_2;
-        element_2.type = ShapeElementType::LineSegment;
-        element_2.start = rectangle_prev.elements[1].end;
-        element_2.end = rectangle_prev.elements[1].start;
+        element_2.type = ShapeElementType::CircularArc;
+        element_2.start = point_prev_1;
+        element_2.end = point_prev_2;
+        element_2.center = element_prev.end;
+        element_2.orientation = ShapeElementOrientation::Anticlockwise;
         sector.shape.elements.push_back(element_2);
         union_input.push_back(sector);
     }
@@ -520,7 +524,6 @@ std::vector<Shape> shape::deflate(
     // Inflate outline.
     ElementPos element_prev_pos = shape.elements.size() - 1;
     const ShapeElement& element_prev = shape.elements[element_prev_pos];
-    Shape rectangle_prev = inflate_element(element_prev, 0, offset);
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)shape.elements.size();
             ++element_pos) {
@@ -534,23 +537,25 @@ std::vector<Shape> shape::deflate(
                 - element_prev.jet(element_prev.end, true)).tangent_angle;
 
         if (angle <= M_PI) {
+            Point point_prev = element_prev.end - offset * element_prev.normal(element_prev.end);
+            Point point_curr = element.start - offset * element.normal(element.start);
             ShapeWithHoles sector;
             ShapeElement element_1;
             element_1.type = ShapeElementType::CircularArc;
-            element_1.start = rectangle.elements[2].end;
-            element_1.end = rectangle_prev.elements[1].end;
+            element_1.start = point_curr;
+            element_1.end = point_prev;
             element_1.center = element.start;
             element_1.orientation = ShapeElementOrientation::Anticlockwise;
             sector.shape.elements.push_back(element_1);
             ShapeElement element_2;
             element_2.type = ShapeElementType::LineSegment;
-            element_2.start = rectangle_prev.elements[1].start;
+            element_2.start = point_prev;
             element_2.end = element.start;
             sector.shape.elements.push_back(element_2);
             ShapeElement element_3;
             element_3.type = ShapeElementType::LineSegment;
             element_3.start = element.start;
-            element_3.end = rectangle.elements[2].end;
+            element_3.end = point_curr;
             sector.shape.elements.push_back(element_3);
             difference_input.push_back(sector);
         }
@@ -558,7 +563,6 @@ std::vector<Shape> shape::deflate(
         difference_input.push_back({rectangle});
 
         element_prev_pos = element_pos;
-        rectangle_prev = rectangle;
     }
 
     auto difference_output = compute_difference({shape}, difference_input);

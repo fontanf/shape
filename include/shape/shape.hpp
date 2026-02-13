@@ -287,6 +287,14 @@ struct ShapeElement
             const Point& point_1,
             const Point& point_2) const;
 
+    /**
+     * Get the normal at a given point of the element.
+     *
+     * The normal is pointing towards the exterior.
+     */
+    Point normal(
+            const Point& point) const;
+
     /** Jet of the element. */
     Jet jet(
             const Point& point,
