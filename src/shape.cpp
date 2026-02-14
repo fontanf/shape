@@ -583,10 +583,17 @@ Point ShapeElement::point(LengthDbl length) const
     case ShapeElementType::LineSegment: {
         return this->start + length / this->length() * (this->end - this->start);
     } case ShapeElementType::CircularArc: {
-        Angle theta = angle_radian(this->start - this->center, this->end - this->center);
-        return this->start.rotate_radians(
-                this->center,
-                length / this->length() * theta);
+        if (this->orientation != ShapeElementOrientation::Clockwise) {
+            Angle theta = angle_radian(this->start - this->center, this->end - this->center);
+            return this->start.rotate_radians(
+                    this->center,
+                    length / this->length() * theta);
+        } else {
+            Angle theta = angle_radian(this->end - this->center, this->start - this->center);
+            return this->start.rotate_radians(
+                    this->center,
+                    2 * M_PI - length / this->length() * theta);
+        }
     } default: {
         throw std::invalid_argument(FUNC_SIGNATURE);
         return {0, 0};

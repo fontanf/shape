@@ -39,6 +39,37 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
+struct ShapeElementPointTestParams
+{
+    ShapeElement element;
+    LengthDbl length;
+    Point expected_output;
+};
+
+class ShapeElementPointTest: public testing::TestWithParam<ShapeElementPointTestParams> { };
+
+TEST_P(ShapeElementPointTest, ShapeElementPoint)
+{
+    ShapeElementPointTestParams test_params = GetParam();
+    std::cout << "element " << test_params.element.to_string() << std::endl;
+    std::cout << "length " << test_params.length << std::endl;
+    std::cout << "expected_output " << test_params.expected_output.to_string() << std::endl;
+    Point output = test_params.element.point(test_params.length);
+    EXPECT_TRUE(equal(output, test_params.expected_output));
+    std::cout << "output " << output.to_string() << std::endl;
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeElementPointTest,
+        testing::ValuesIn(std::vector<ShapeElementPointTestParams>{
+            {build_line_segment({0, 0}, {0, 2}), 1, {0, 1}},
+            {build_line_segment({0, 0}, {2, 0}), 1, {1, 0}},
+            {build_circular_arc({1, 0}, {-1, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise), M_PI / 2, {0, 1}},
+            {build_circular_arc({1, 0}, {-1, 1}, {0, 0}, ShapeElementOrientation::Clockwise), M_PI / 2, {0, -1}},
+            }));
+
+
 struct ShapeElementFindPointBetweenTestParams
 {
     ShapeElement element;
