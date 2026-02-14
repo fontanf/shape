@@ -461,6 +461,8 @@ struct BooleanOperationArc
     NodeId source_node_id = -1;
 
     NodeId end_node_id = -1;
+
+    ElementPos reverse_arc_id = -1;
 };
 
 struct BooleanOperationNode
@@ -539,12 +541,14 @@ BooleanOperationGraph compute_graph(
     // Add reverse arcs.
     ElementPos initial_size = graph.arcs.size();
     for (ElementPos arc_id = 0; arc_id < initial_size; ++arc_id) {
-        const BooleanOperationArc& arc = graph.arcs[arc_id];
+        BooleanOperationArc& arc = graph.arcs[arc_id];
         const SplittedElement& splitted_element = splitted_elements[arc_id];
         ElementPos arc_reversed_id = graph.arcs.size();
         BooleanOperationArc arc_reversed;
         arc_reversed.source_node_id = arc.end_node_id;
         arc_reversed.end_node_id = arc.source_node_id;
+        arc_reversed.reverse_arc_id = arc_id;
+        arc.reverse_arc_id = arc_reversed_id;
         SplittedElement splitted_element_reversed;
         splitted_element_reversed.element = splitted_element.element.reverse();
         splitted_element_reversed.orig_shape_id = splitted_element.orig_shape_id;
@@ -552,7 +556,6 @@ BooleanOperationGraph compute_graph(
         splitted_elements.push_back(splitted_element_reversed);
         graph.arcs.push_back(arc_reversed);
         graph.nodes[arc_reversed.source_node_id].successors.push_back(arc_reversed_id);
-        graph.nodes[arc_reversed.end_node_id].predecessors.push_back(arc_reversed_id);
     }
 
     //std::cout << "compute_graph end" << std::endl;
@@ -575,6 +578,68 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
     std::vector<ShapeWithHoles> new_shapes;
     BooleanOperationGraph graph = compute_graph(splitted_elements);
+
+    std::vector<ElementPos> arcs_next(graph.arcs.size(), -1);
+    for (NodeId node_id = 0; node_id < (NodeId)graph.nodes.size(); ++node_id) {
+        BooleanOperationNode& node = graph.nodes[node_id];
+        LengthDbl l = std::numeric_limits<LengthDbl>::infinity();
+        for (ElementPos arc_id: node.successors) {
+            const SplittedElement& splitted_element = splitted_elements[arc_id];
+            l = (std::min)(l, splitted_element.element.length());
+        }
+        // Sort the arcs at this node.
+        std::sort(
+                node.successors.begin(),
+                node.successors.end(),
+                [&l, &splitted_elements](
+                    ElementPos arc_1_id,
+                    ElementPos arc_2_id)
+                {
+                    const SplittedElement& splitted_element_1 = splitted_elements[arc_1_id];
+                    const SplittedElement& splitted_element_2 = splitted_elements[arc_2_id];
+                    //std::cout << "element_1 " << splitted_element_1.element.to_string() << std::endl;
+                    //std::cout << "element_2 " << splitted_element_2.element.to_string() << std::endl;
+                    Point p1 = splitted_element_1.element.point(l);
+                    Point p2 = splitted_element_2.element.point(l);
+                    //std::cout << "p1 " << p1.to_string() << std::endl;
+                    //std::cout << "p2 " << p2.to_string() << std::endl;
+                    p1 = p1 - splitted_element_1.element.start;
+                    p2 = p2 - splitted_element_2.element.start;
+                    if (p1.y >= 0 && p2.y < 0) {
+                        //std::cout << "return " << "true" << std::endl;
+                        return true;
+                    }
+                    if (p1.y < 0 && p2.y >= 0) {
+                        //std::cout << "return " << "false" << std::endl;
+                        return false;
+                    }
+                    if (p1.y == 0 && p2.y == 0) {
+                        //std::cout << "return " << (p1.x < p2.x) << std::endl;
+                        return p1.x > p2.x;
+                    }
+                    LengthDbl v = p1.x * p2.y - p1.y * p2.x;
+                    //std::cout << "p1 " << p1.to_string() << std::endl;
+                    //std::cout << "p2 " << p2.to_string() << std::endl;
+                    //std::cout << "v " << v << std::endl;
+                    //std::cout << "return " << (v > 0) << std::endl;
+                    return v > 0;
+                });
+        // Update arcs_next.
+        ElementPos arc_prev_id = node.successors.back();
+        //std::cout << "node_id " << node_id << std::endl;
+        for (ElementPos arc_id: node.successors) {
+            const BooleanOperationArc& arc = graph.arcs[arc_id];
+            arcs_next[arc.reverse_arc_id] = arc_prev_id;
+            //std::cout << arc_id
+            //    << " " << splitted_elements[arc_id].element.to_string() << std::endl;
+            //std::cout << arc.reverse_arc_id << " -> " << arc_prev_id << std::endl;
+            //std::cout << arc.reverse_arc_id
+            //    << " " << splitted_elements[arc.reverse_arc_id].element.to_string() << std::endl;
+            //std::cout << arc_prev_id
+            //    << " " << splitted_elements[arc_prev_id].element.to_string() << std::endl;
+            arc_prev_id = arc_id;
+        }
+    }
 
     //if (boolean_operation == BooleanOperation::Difference) {
     //    std::vector<ShapeElement> elements;
@@ -660,55 +725,15 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     std::vector<uint8_t> element_is_processed(splitted_elements.size(), 0);
     ElementPos element_cur_pos = element_start_pos;
     Shape outline;
-    for (int i = 0;; ++i) {
-        // Check infinite loop.
-        if (i >= 2 * splitted_elements.size()) {
-            throw std::runtime_error(
-                    FUNC_SIGNATURE + ": infinite loop in outline.");
-        }
-
+    while (!element_is_processed[element_cur_pos]) {
         const ShapeElement& element_cur = splitted_elements[element_cur_pos].element;
-        const BooleanOperationArc& arc = graph.arcs[element_cur_pos];
-        const BooleanOperationNode& node = graph.nodes[arc.end_node_id];
+        //std::cout << "element_cur " << element_cur_pos
+        //    << " " << element_cur.to_string() << std::endl;
         element_is_processed[element_cur_pos] = 1;
         outline.elements.push_back(element_cur);
-
         if (element_cur.orientation == ShapeElementOrientation::Full)
             break;
-
-        // Find the next element with the smallest angle.
-        //std::cout
-        //    << "element_cur_pos " << element_cur_pos
-        //    << " " << element_cur.to_string()
-        //    << " node_id " << arc.end_node_id << " / " << graph.nodes.size()
-        //    << std::endl;
-        ElementPos largest_jet_element_pos = -1;
-        Jet largest_jet;
-        Jet current_jet = element_cur.jet(element_cur.end, true);
-        for (ElementPos element_pos_next: node.successors) {
-            const ShapeElement& element_next = splitted_elements[element_pos_next].element;
-            Jet jet = element_next.jet(element_next.start, false) - current_jet;
-            //std::cout << "  element_next_pos " << element_pos_next << std::endl
-            //    << "    " << element_next.to_string() << std::endl
-            //    << "    jet " << jet.to_string() << std::endl;
-            if (largest_jet_element_pos == -1
-                    || largest_jet < jet) {
-                largest_jet_element_pos = element_pos_next;
-                largest_jet = jet;
-            }
-        }
-        if (largest_jet_element_pos == -1) {
-            //compute_union_export_inputs("compute_union_input.json", shapes);
-            //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
-            throw std::logic_error(
-                    FUNC_SIGNATURE + ": "
-                    "largest_jet_element_pos is '-1' in outline.");
-        }
-
-        // Update current element.
-        element_cur_pos = largest_jet_element_pos;
-        if (element_cur_pos == element_start_pos)
-            break;
+        element_cur_pos = arcs_next[element_cur_pos];
     }
     //std::cout << "shape " << outline.to_string(0) << std::endl;
     switch (boolean_operation) {
@@ -762,72 +787,18 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         Shape face;
         std::vector<uint8_t> is_inside(shapes.size());
         ElementPos element_cur_pos = element_start_pos;
-        for (int i = 0;; ++i) {
-            // Check infinite loop.
-            if (i >= 2 * splitted_elements.size()) {
-                throw std::runtime_error(
-                        FUNC_SIGNATURE + ": infinite loop in faces.");
-            }
-
+        while (!element_is_processed[element_cur_pos]) {
             const SplittedElement& splitted_element_cur = splitted_elements[element_cur_pos];
             const ShapeElement& element_cur = splitted_element_cur.element;
-            const BooleanOperationArc& arc = graph.arcs[element_cur_pos];
-            const BooleanOperationNode& node = graph.nodes[arc.end_node_id];
+            //std::cout << "element_cur " << element_cur_pos
+            //    << " " << element_cur.to_string() << std::endl;
             face.elements.push_back(element_cur);
             element_is_processed[element_cur_pos] = 1;
             if (splitted_element_cur.original_direction)
                 is_inside[splitted_element_cur.orig_shape_id] = 1;
             if (element_cur.orientation == ShapeElementOrientation::Full)
                 break;
-
-            // Find the next element with the smallest angle.
-            //std::cout
-            //    << "element_cur_pos " << element_cur_pos
-            //    << " " << element_cur.to_string()
-            //    << " node_id " << arc.end_node_id << " / " << graph.nodes.size()
-            //    << " original_direction " << splitted_element_cur.original_direction
-            //    << std::endl;
-            ElementPos largest_jet_element_pos = -1;
-            Jet largest_jet;
-            Jet current_jet = element_cur.jet(element_cur.end, true);
-            //std::cout << "element_cur_pos " << element_cur_pos << std::endl
-            //    << "    " << element_cur.to_string() << std::endl;
-            for (ElementPos element_pos_next: node.successors) {
-                const SplittedElement& splitted_element_next = splitted_elements[element_pos_next];
-                const ShapeElement& element_next = splitted_element_next.element;
-                Jet jet = element_next.jet(element_next.start, false) - current_jet;
-                //std::cout << "  element_next_pos " << element_pos_next << std::endl
-                //    << "    " << element_next.to_string() << std::endl
-                //    << "    jet " << jet.to_string() << std::endl
-                //    << "    element_is_processed " << (int)element_is_processed[element_pos_next] << std::endl;
-                if (largest_jet_element_pos == -1
-                        || largest_jet < jet) {
-                    largest_jet_element_pos = element_pos_next;
-                    largest_jet = jet;
-                }
-            }
-            //std::cout << "largest_jet_element_pos " << largest_jet_element_pos << std::endl;
-            if (largest_jet_element_pos == -1) {
-                //compute_union_export_inputs("compute_union_input.json", shapes);
-                //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
-
-                //std::vector<ShapeElement> elements;
-                //Writer writer;
-                //for (const auto& splitted_element: splitted_elements)
-                //    writer.add_element(splitted_element.element);
-                //writer.write_json("overlay.json");
-
-                throw std::logic_error(
-                        FUNC_SIGNATURE + ": "
-                        "largest_jet_element_pos is '-1'");
-            }
-
-            // Update current element.
-            element_cur_pos = largest_jet_element_pos;
-
-            // Check if hole is finished.
-            if (element_is_processed[element_cur_pos])
-                break;
+            element_cur_pos = arcs_next[element_cur_pos];
         }
 
         //std::cout << "face finished size " << face.elements.size() << std::endl;

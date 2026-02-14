@@ -180,7 +180,7 @@ TEST_P(InflateShapeWithHolesTest, InflateShapeWithHoles)
         test_params.shape,
         test_params.offset);
     std::cout << "output " << output.to_string(0) << std::endl;
-    //Writer().add_shape_with_holes(output).write_json("inflate_output.json");
+    //Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(output).write_json("inflate_output.json");
 
     if (test_params.write_json || test_params.write_svg) {
         std::string base_filename = "inflate_" + fs::path(test_params.name).filename().replace_extension("").string();
