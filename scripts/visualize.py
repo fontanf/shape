@@ -92,18 +92,23 @@ with open(args.path, 'r') as f:
                 shape_y.append(None)
                 shape_path(shape_x, shape_y, hole, True)
 
+            legend_name = (
+                    shape["label"]
+                    if "label" in shape.keys() and shape["label"] != ""
+                    else f"Shape with holes {shape_pos}")
+            color = (colors[shape_pos % len(colors)])
             fig.add_trace(go.Scatter(
                 x=shape_x,
                 y=shape_y,
-                name=f"Shape with holes {shape_pos}",
+                name=legend_name,
                 # legendgroup=filepath,
-                    showlegend=True,
-                    fillcolor=(colors[shape_pos % len(colors)]),
-                    opacity=0.2,
-                    fill="toself",
-                    marker=dict(
-                        color='black',
-                        size=1)))
+                showlegend=True,
+                fillcolor=color,
+                opacity=0.2,
+                fill="toself",
+                marker=dict(
+                    color='black',
+                    size=1)))
 
     # Plot shapes.
     if "shapes" in j:
@@ -113,19 +118,23 @@ with open(args.path, 'r') as f:
 
             shape_path(shape_x, shape_y, shape)
 
+            legend_name = (
+                    shape["label"]
+                    if "label" in shape.keys() and shape["label"] != ""
+                    else f"Shape {shape_pos}")
             color = colors[shape_pos % len(colors)];
             fig.add_trace(go.Scatter(
                 x=shape_x,
                 y=shape_y,
-                name=f"Shape {shape_pos}",
+                name=legend_name,
                 # legendgroup=filepath,
-                    showlegend=True,
-                    fillcolor=color,
-                    opacity=0.2,
-                    fill="toself" if not shape["is_path"] else 'none',
-                    marker=dict(
-                        color='black' if not shape["is_path"] else color,
-                        size=1)))
+                showlegend=True,
+                fillcolor=color,
+                opacity=0.2,
+                fill="toself" if not shape["is_path"] else 'none',
+                marker=dict(
+                    color='black' if not shape["is_path"] else color,
+                    size=1)))
 
     # Plot elements.
     if "elements" in j:
@@ -134,10 +143,14 @@ with open(args.path, 'r') as f:
             element_y = []
             element_path(element_x, element_y, element)
 
+            legend_name = (
+                    element["label"]
+                    if "label" in element.keys() and element["label"] != ""
+                    else f"Element {element_pos}")
             fig.add_trace(go.Scatter(
                 x=element_x,
                 y=element_y,
-                name=f"Element {element_pos}",
+                name=legend_name,
                 # legendgroup=filepath,
                 showlegend=True,
                 opacity=0.2,

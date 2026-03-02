@@ -4,55 +4,99 @@
 
 using namespace shape;
 
-Writer& Writer::add_point(const Point& point)
+Writer& Writer::add_point(
+        const Point& point,
+        const std::string& label)
 {
-    this->points_.push_back(point);
+    this->points_.push_back({point, label});
     return *this;
 }
 
-Writer& Writer::add_points(const std::vector<Point>& points)
+Writer& Writer::add_points(
+        const std::vector<Point>& points,
+        const std::string& label)
 {
-    for (const Point& point: points)
-        this->points_.push_back(point);
+    for (ElementPos point_pos = 0;
+            point_pos < (ElementPos)points.size();
+            ++point_pos) {
+        const Point& point = points[point_pos];
+        std::string l = "";
+        if (!label.empty())
+            l = label + " " + std::to_string(point_pos);
+        this->points_.push_back({point, l});
+    }
     return *this;
 }
 
-Writer& Writer::add_element(const ShapeElement& element)
+Writer& Writer::add_element(
+        const ShapeElement& element,
+        const std::string& label)
 {
-    this->elements_.push_back(element);
+    this->elements_.push_back({element, label});
     return *this;
 }
 
-Writer& Writer::add_elements(const std::vector<ShapeElement>& elements)
+Writer& Writer::add_elements(
+        const std::vector<ShapeElement>& elements,
+        const std::string& label)
 {
-    for (const ShapeElement& element: elements)
-        this->elements_.push_back(element);
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)elements.size();
+            ++element_pos) {
+        const ShapeElement& element = elements[element_pos];
+        std::string l = "";
+        if (!label.empty())
+            l = label + " " + std::to_string(element_pos);
+        this->elements_.push_back({element, l});
+    }
     return *this;
 }
 
-Writer& Writer::add_shape(const Shape& shape)
+Writer& Writer::add_shape(
+        const Shape& shape,
+        const std::string& label)
 {
-    this->shapes_.push_back(shape);
+    this->shapes_.push_back({shape, label});
     return *this;
 }
 
-Writer& Writer::add_shapes(const std::vector<Shape>& shapes)
+Writer& Writer::add_shapes(
+        const std::vector<Shape>& shapes,
+        const std::string& label)
 {
-    for (const Shape& shape: shapes)
-        this->shapes_.push_back(shape);
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        const Shape& shape = shapes[shape_pos];
+        std::string l = "";
+        if (!label.empty())
+            l = label + " " + std::to_string(shape_pos);
+        this->shapes_.push_back({shape, l});
+    }
     return *this;
 }
 
-Writer& Writer::add_shape_with_holes(const ShapeWithHoles& shape_with_holes)
+Writer& Writer::add_shape_with_holes(
+        const ShapeWithHoles& shape_with_holes,
+        const std::string& label)
 {
-    this->shapes_with_holes_.push_back(shape_with_holes);
+    this->shapes_with_holes_.push_back({shape_with_holes, label});
     return *this;
 }
 
-Writer& Writer::add_shapes_with_holes(const std::vector<ShapeWithHoles>& shapes_with_holes)
+Writer& Writer::add_shapes_with_holes(
+        const std::vector<ShapeWithHoles>& shapes_with_holes,
+        const std::string& label)
 {
-    for (const ShapeWithHoles& shape: shapes_with_holes)
-        this->shapes_with_holes_.push_back(shape);
+    for (ShapePos shape_with_holes_pos = 0;
+            shape_with_holes_pos < (ShapePos)shapes_with_holes.size();
+            ++shape_with_holes_pos) {
+        const ShapeWithHoles& shape_with_holes = shapes_with_holes[shape_with_holes_pos];
+        std::string l = "";
+        if (!label.empty())
+            l = label + " " + std::to_string(shape_with_holes_pos);
+        this->shapes_with_holes_.push_back({shape_with_holes, l});
+    }
     return *this;
 }
 
@@ -62,28 +106,28 @@ std::pair<Point, Point> Writer::compute_min_max() const
     LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
-    for (const Point& point: this->points_) {
-        x_min = (std::min)(x_min, point.x);
-        x_max = (std::max)(x_max, point.x);
-        y_min = (std::min)(y_min, point.y);
-        y_max = (std::max)(y_max, point.y);
+    for (const WriterPoint& point: this->points_) {
+        x_min = (std::min)(x_min, point.point.x);
+        x_max = (std::max)(x_max, point.point.x);
+        y_min = (std::min)(y_min, point.point.y);
+        y_max = (std::max)(y_max, point.point.y);
     }
-    for (const ShapeElement& element: this->elements_) {
-        auto points = element.min_max();
+    for (const WriterShapeElement& element: this->elements_) {
+        auto points = element.element.min_max();
         x_min = (std::min)(x_min, points.first.x);
         x_max = (std::max)(x_max, points.second.x);
         y_min = (std::min)(y_min, points.first.y);
         y_max = (std::max)(y_max, points.second.y);
     }
-    for (const Shape& shape: this->shapes_) {
-        auto points = shape.compute_min_max();
+    for (const WriterShape& shape: this->shapes_) {
+        auto points = shape.shape.compute_min_max();
         x_min = (std::min)(x_min, points.first.x);
         x_max = (std::max)(x_max, points.second.x);
         y_min = (std::min)(y_min, points.first.y);
         y_max = (std::max)(y_max, points.second.y);
     }
-    for (const ShapeWithHoles& shape: this->shapes_with_holes_) {
-        auto points = shape.compute_min_max();
+    for (const WriterShapeWithHoles& shape: this->shapes_with_holes_) {
+        auto points = shape.shape_with_holes.compute_min_max();
         x_min = (std::min)(x_min, points.first.x);
         x_max = (std::max)(x_max, points.second.x);
         y_min = (std::min)(y_min, points.first.y);
@@ -118,33 +162,33 @@ void Writer::write_svg(const std::string& file_path) const
     for (ElementPos point_pos = 0;
              point_pos < (ElementPos)this->points_.size();
              ++point_pos) {
-        const Point& point = points_[point_pos];
+        const WriterPoint& point = points_[point_pos];
         file << "<g>" << std::endl;
-        file << point.to_svg();
+        file << point.point.to_svg();
         file << "</g>" << std::endl;
     }
     for (ElementPos element_pos = 0;
              element_pos < (ElementPos)this->elements_.size();
              ++element_pos) {
-        const ShapeElement& element = elements_[element_pos];
+        const WriterShapeElement& element = elements_[element_pos];
         file << "<g>" << std::endl;
-        file << element.to_svg();
+        file << element.element.to_svg();
         file << "</g>" << std::endl;
     }
     for (ShapePos shape_pos = 0;
              shape_pos < (ShapePos)this->shapes_.size();
              ++shape_pos) {
-        const Shape& shape = shapes_[shape_pos];
+        const WriterShape& shape = shapes_[shape_pos];
         file << "<g>" << std::endl;
-        file << shape.to_svg();
+        file << shape.shape.to_svg();
         file << "</g>" << std::endl;
     }
     for (ShapePos shape_pos = 0;
              shape_pos < (ShapePos)this->shapes_with_holes_.size();
              ++shape_pos) {
-        const ShapeWithHoles& shape = shapes_with_holes_[shape_pos];
+        const WriterShapeWithHoles& shape = shapes_with_holes_[shape_pos];
         file << "<g>" << std::endl;
-        file << shape.to_svg("blue");
+        file << shape.shape_with_holes.to_svg("blue");
         file << "</g>" << std::endl;
     }
 
@@ -166,17 +210,20 @@ void Writer::write_json(const std::string& file_path) const
     for (ElementPos element_pos = 0;
             element_pos < (ShapePos)this->elements_.size();
             ++element_pos) {
-        json["elements"][element_pos] = this->elements_[element_pos].to_json();
+        json["elements"][element_pos] = this->elements_[element_pos].element.to_json();
+        json["elements"][element_pos]["label"] = this->elements_[element_pos].label;
     }
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)this->shapes_.size();
             ++shape_pos) {
-        json["shapes"][shape_pos] = this->shapes_[shape_pos].to_json();
+        json["shapes"][shape_pos] = this->shapes_[shape_pos].shape.to_json();
+        json["shapes"][shape_pos]["label"] = this->shapes_[shape_pos].label;
     }
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)this->shapes_with_holes_.size();
             ++shape_pos) {
-        json["shapes_with_holes"][shape_pos] = this->shapes_with_holes_[shape_pos].to_json();
+        json["shapes_with_holes"][shape_pos] = this->shapes_with_holes_[shape_pos].shape_with_holes.to_json();
+        json["shapes_with_holes"][shape_pos]["label"] = this->shapes_with_holes_[shape_pos].label;
     }
 
     file << std::setw(4) << json << std::endl;
