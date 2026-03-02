@@ -16,7 +16,7 @@ public:
 
     Writer& add_points(
             const std::vector<Point>& points,
-            const std::string& label);
+            const std::string& label = "");
 
     Writer& add_element(
             const ShapeElement& element,
@@ -24,7 +24,7 @@ public:
 
     Writer& add_elements(
             const std::vector<ShapeElement>& elements,
-            const std::string& label);
+            const std::string& label = "");
 
     Writer& add_shape(
             const Shape& shape,
@@ -32,7 +32,7 @@ public:
 
     Writer& add_shapes(
             const std::vector<Shape>& shapes,
-            const std::string& label);
+            const std::string& label = "");
 
     Writer& add_shape_with_holes(
             const ShapeWithHoles& shape_with_holes,
@@ -40,7 +40,7 @@ public:
 
     Writer& add_shapes_with_holes(
             const std::vector<ShapeWithHoles>& shapes_with_holes,
-            const std::string& label);
+            const std::string& label = "");
 
     void write_svg(const std::string& file_path) const;
 
