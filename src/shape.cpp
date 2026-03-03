@@ -500,21 +500,22 @@ bool shape::strictly_greater_angle(
 
 bool ShapeElement::in_circular_arc_cone(const Point& point) const
 {
+    LengthDbl radius = distance(center, start);
     if (this->orientation == ShapeElementOrientation::Full) {
         return true;
     } else if (this->orientation == ShapeElementOrientation::Anticlockwise) {
-        Angle a0 = angle_radian(
+        LengthDbl a0 = radius * angle_radian(
                 this->start - this->center,
                 this->end - this->center);
-        Angle a = angle_radian(
+        LengthDbl a = radius * angle_radian(
                 this->start - this->center,
                 point - this->center);
         return !strictly_greater(a, a0);
     } else {
-        Angle a0 = angle_radian(
+        LengthDbl a0 = radius * angle_radian(
                 this->end - this->center,
                 this->start - this->center);
-        Angle a = angle_radian(
+        LengthDbl a = radius * angle_radian(
                 this->end - this->center,
                 point - this->center);
         return !strictly_greater(a, a0);
