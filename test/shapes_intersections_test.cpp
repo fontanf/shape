@@ -520,7 +520,8 @@ struct IntersectShapeWithHolesShapeTestParams
         test_params.shape_with_holes = ShapeWithHoles::from_json(json_item["shape_with_holes"]);
         test_params.shape = Shape::from_json(json_item["shape"]);
         test_params.strict = json_item["strict"];
-        test_params.expected_output = json_item["expected_output"];
+        if (json_item.contains("expected_output"))
+            test_params.expected_output = json_item["expected_output"];
         return test_params;
     }
 
@@ -624,7 +625,10 @@ INSTANTIATE_TEST_SUITE_P(
                         {5.93700787, 17.68503937}}),
                 true,
                 false,
-            }}));
+            },
+            IntersectShapeWithHolesShapeTestParams::read_json(
+                    (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_with_holes_shape" / "0.json").string()),
+            }));
 
 
 struct IntersectShapeWithHolesShapeWithHolesTestParams

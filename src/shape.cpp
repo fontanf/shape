@@ -1179,6 +1179,7 @@ bool Shape::contains(
             ray.end.y = point.y;
 
             ShapeElementIntersectionsOutput intersections = compute_intersections(ray, element);
+            //std::cout << intersections.to_string(0) << std::endl;
             for (const Point& intersection: intersections.proper_intersections) {
                 if (intersection.x < point.x)
                     continue;
@@ -1210,11 +1211,11 @@ bool Shape::contains(
                     if (!end_upward)
                         intersection_count++;
                 }
-                if (!(intersection == element.start)
-                        && !(intersection == element.end)) {
-                    //std::cout << "intersection_count++" << std::endl;
-                    intersection_count++;
-                }
+                //if (!(intersection == element.start)
+                //        && !(intersection == element.end)) {
+                //    std::cout << "intersection_count++" << std::endl;
+                //    intersection_count++;
+                //}
             }
         }
     }
@@ -1222,6 +1223,19 @@ bool Shape::contains(
     // If the number of intersections is odd, the point is inside the shape
     //std::cout << "intersection_count " << intersection_count << std::endl;
     return (intersection_count % 2 == 1);
+}
+
+void Shape::contains_export_inputs(
+        const std::string& file_path,
+        const Point& point,
+        bool strict) const
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["shape"] = this->to_json();
+    json["point"] = point.to_json();
+    json["strict"] = strict;
+    file << std::setw(4) << json << std::endl;
 }
 
 Point Shape::find_point_strictly_inside() const

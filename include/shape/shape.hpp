@@ -448,6 +448,11 @@ struct Shape
             const Point& point,
             bool strict = false) const;
 
+    void contains_export_inputs(
+            const std::string& file_path,
+            const Point& point,
+            bool strict) const;
+
     /** Find a point strictly inside the shape. */
     Point find_point_strictly_inside() const;
 

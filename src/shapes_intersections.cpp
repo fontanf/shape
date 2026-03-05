@@ -866,6 +866,13 @@ bool shape::intersect(
                 ShapeElementIntersectionsOutput intersections_cur = compute_intersections(
                         element_1,
                         element_2);
+                //if (!intersections_cur.overlapping_parts.empty()
+                //        || !intersections_cur.improper_intersections.empty()
+                //        || !intersections_cur.proper_intersections.empty()) {
+                //    std::cout << "element_1 " << element_1.to_string() << std::endl;
+                //    std::cout << "element_2 " << element_2.to_string() << std::endl;
+                //    std::cout << "intersections " << intersections_cur.to_string(0) << std::endl;
+                //}
                 for (const ShapeElement& overlapping_part: intersections_cur.overlapping_parts) {
                     intersections.push_back({0, (ElementPos)overlapping_parts.size()});
                     overlapping_parts.push_back({element_1_pos, overlapping_part});
@@ -915,8 +922,14 @@ bool shape::intersect(
             ShapePoint point_start = {element_pos, overlapping_part.start};
             if (shape.is_strictly_closer_to_path_start(current_point, point_start)) {
                 ShapePoint point_between = shape.find_point_between(current_point, point_start);
-                if (shape_with_holes.contains(point_between.point, true))
+                if (shape_with_holes.contains(point_between.point, true)) {
+                    //shape_with_holes.shape.contains_export_inputs(
+                    //        "shape_contains_inputs.json",
+                    //        point_between.point,
+                    //        true);
+                    //std::cout << "contains " << point_between.point.to_string() << std::endl;
                     return true;
+                }
             }
             ShapePoint point_end = {element_pos, overlapping_part.end};
             if (shape.is_strictly_closer_to_path_start(current_point, point_end))
@@ -928,8 +941,14 @@ bool shape::intersect(
             if (shape.is_strictly_closer_to_path_start(current_point, point)) {
                 ShapePoint point_between = shape.find_point_between(current_point, point);
                 //std::cout << "point_between " << point_between.point.to_string() << std::endl;
-                if (shape_with_holes.contains(point_between.point, true))
+                if (shape_with_holes.contains(point_between.point, true)) {
+                    //shape_with_holes.shape.contains_export_inputs(
+                    //        "shape_contains_inputs.json",
+                    //        point_between.point,
+                    //        true);
+                    //std::cout << "contains " << point_between.point.to_string() << std::endl;
                     return true;
+                }
                 current_point = point;
             }
         }

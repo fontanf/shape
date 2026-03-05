@@ -4,8 +4,13 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
+
+#include <fstream>
+
 
 using namespace shape;
+namespace fs = boost::filesystem;
 
 
 struct StrictlyLesserAngleTestParams
@@ -418,6 +423,35 @@ struct ShapeContainsTestParams
     Point point;
     bool strict;
     bool expected_output;
+
+
+    template <class basic_json>
+    static ShapeContainsTestParams from_json(
+            basic_json& json_item)
+    {
+        ShapeContainsTestParams test_params;
+        test_params.shape = Shape::from_json(json_item["shape"]);
+        test_params.point = Point::from_json(json_item["point"]);
+        test_params.strict = json_item["strict"];
+        if (json_item.contains("expected_output"))
+            test_params.expected_output = json_item["expected_output"];
+        return test_params;
+    }
+
+    static ShapeContainsTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
 };
 
 class ShapeContainsTest: public testing::TestWithParam<ShapeContainsTestParams> { };
@@ -446,6 +480,8 @@ INSTANTIATE_TEST_SUITE_P(
                 true,
                 false,
             },
+            ShapeContainsTestParams::read_json(
+                    (fs::path("data") / "tests" / "shape" / "shape_contains" / "0.json").string()),
             }));
 
 
