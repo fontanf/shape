@@ -63,12 +63,14 @@ bool operator<(
         return element_1.element.end.x < element_2.element.end.x;
     if (element_1.element.end.y != element_2.element.end.y)
         return element_1.element.end.y < element_2.element.end.y;
-    if (element_1.element.center.x != element_2.element.center.x)
-        return element_1.element.center.x < element_2.element.center.x;
-    if (element_1.element.center.y != element_2.element.center.y)
-        return element_1.element.center.y < element_2.element.center.y;
-    if (element_1.element.orientation != element_2.element.orientation)
-        return element_1.element.orientation < element_2.element.orientation;
+    if (element_1.element.type == ShapeElementType::CircularArc) {
+        if (element_1.element.center.x != element_2.element.center.x)
+            return element_1.element.center.x < element_2.element.center.x;
+        if (element_1.element.center.y != element_2.element.center.y)
+            return element_1.element.center.y < element_2.element.center.y;
+        if (element_1.element.orientation != element_2.element.orientation)
+            return element_1.element.orientation < element_2.element.orientation;
+    }
     return false;
 }
 
@@ -445,6 +447,20 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         }
     }
 
+    // Re-compute centers to avoid numerical issues.
+    for (auto it = output.shape_component_ids.values_begin();
+            it != output.shape_component_ids.values_end();
+            ++it) {
+        ComponentId component_id = *it;
+        auto& splitted_elements = output.components_splitted_elements[component_id];
+        for (SplittedElement& splitted_element: splitted_elements) {
+            if (splitted_element.element.type == shape::ShapeElementType::CircularArc
+                    && !(splitted_element.element.start == splitted_element.element.end)) {
+                splitted_element.element.center = splitted_element.element.recompute_center();
+            }
+        }
+    }
+
     // Remove duplicates in splitted elements.
     for (auto it = output.shape_component_ids.values_begin();
             it != output.shape_component_ids.values_end();
@@ -575,14 +591,15 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     //for (const SplittedElement& splitted_element: splitted_elements)
     //    std::cout << splitted_element.element.to_string() << std::endl;
     //Writer().add_shapes_with_holes(shapes).write_json("compute_boolean_operation_component_input.json");
-    //Writer writer;
-    //for (const auto& splitted_element: splitted_elements)
-    //    writer.add_element(splitted_element.element);
-    //writer.write_json("overlay.json");
 
     std::vector<SplittedElement>& splitted_elements = cse_output.components_splitted_elements[component_id];
     std::vector<ShapeWithHoles> new_shapes;
     BooleanOperationGraph graph = compute_graph(splitted_elements);
+
+    //Writer writer;
+    //for (const auto& splitted_element: splitted_elements)
+    //    writer.add_element(splitted_element.element);
+    //writer.write_json("overlay.json");
 
     std::vector<ElementPos> arcs_next(graph.arcs.size(), -1);
     for (NodeId node_id = 0; node_id < (NodeId)graph.nodes.size(); ++node_id) {
@@ -603,9 +620,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 {
                     const SplittedElement& splitted_element_1 = splitted_elements[arc_1_id];
                     const SplittedElement& splitted_element_2 = splitted_elements[arc_2_id];
-                    return strictly_lesser_angle(
-                            splitted_element_1.element.point(l) - splitted_element_1.element.start,
-                            splitted_element_2.element.point(l) - splitted_element_2.element.start);
+                    const Point& p1 = splitted_element_1.element.point(l) - splitted_element_1.element.start;
+                    const Point& p2 = splitted_element_2.element.point(l) - splitted_element_2.element.start;
+                    return strictly_lesser_angle(p1, p2);
                 });
         // Update arcs_next.
         ElementPos arc_prev_id = node.successors.back();
@@ -817,8 +834,10 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //Writer writer;
             //for (const auto& splitted_element: splitted_elements)
             //    writer.add_element(splitted_element.element);
+            //Writer writer;
+            //for (const auto& splitted_element: splitted_elements)
+            //    writer.add_element(splitted_element.element);
             //writer.write_json("overlay.json");
-            //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
             //compute_union_export_inputs(
             //        "compute_union_inputs.json",
             //        shapes);
@@ -836,6 +855,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             //    writer.add_element(splitted_element.element);
             //writer.write_json("overlay.json");
             //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
+            //Writer().add_shape(face).add_shapes_with_holes(shapes).write_json("face.json");
             throw std::logic_error(
                     FUNC_SIGNATURE + ": "
                     "face area is not positive.");

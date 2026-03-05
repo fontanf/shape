@@ -4,9 +4,50 @@
 
 #include <gtest/gtest.h>
 
-#include "test_params.hpp"
 
 using namespace shape;
+
+
+struct StrictlyLesserAngleTestParams
+{
+    Point vector_1;
+    Point vector_2;
+    bool expected_output;
+};
+
+class StrictlyLesserAngleTest: public testing::TestWithParam<StrictlyLesserAngleTestParams> { };
+
+TEST_P(StrictlyLesserAngleTest, StrictlyLesserAngle)
+{
+    StrictlyLesserAngleTestParams test_params = GetParam();
+    std::cout << "vector_1 " << test_params.vector_1.to_string() << std::endl;
+    std::cout << "vector_2 " << test_params.vector_2.to_string() << std::endl;
+    std::cout << "expected_output " << test_params.expected_output << std::endl;
+    Writer()
+        .add_element(build_line_segment({0, 0}, test_params.vector_1))
+        .add_element(build_line_segment({0, 0}, test_params.vector_2))
+        .write_json("strictly_lesser_angle_inputs.json");
+    bool output = strictly_lesser_angle(test_params.vector_1, test_params.vector_2);
+    std::cout << "output " << output << std::endl;
+    EXPECT_EQ(output, test_params.expected_output);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        StrictlyLesserAngleTest,
+        testing::ValuesIn(std::vector<StrictlyLesserAngleTestParams>{
+            {
+                {-0.00058384162763758241, -0.00073391498813180078},
+                {-0.00058382111200927511, -0.00073393133686749934},
+                true,
+            },
+            {
+                {0.00058761354789993447, 0.000730898704205174},
+                {0.00058755222531203799, 0.00073094802962714311},
+                true,
+            },
+            }));
+
 
 struct ShapeElementLengthTestParams
 {

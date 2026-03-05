@@ -62,7 +62,7 @@ TEST_P(InflateShapeTest, InflateShape)
         test_params.shape,
         test_params.offset);
     std::cout << "output " << output.to_string(0) << std::endl;
-    //Writer().add_shape_with_holes(output).write_json("inflate_shape_output.json");
+    //writer.add_shape_with_holes(output).write_json("inflate_shape_output.json");
 
     EXPECT_TRUE(equal(output, test_params.expected_output));
 }
