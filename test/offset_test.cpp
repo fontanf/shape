@@ -142,6 +142,8 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "offset" / "inflate_shape" / "2.json").string()),
             InflateShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "offset" / "inflate_shape" / "3.json").string()),
+            InflateShapeTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate_shape" / "4.json").string()),
             }));
 
 

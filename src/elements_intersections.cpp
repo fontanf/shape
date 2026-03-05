@@ -352,11 +352,12 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
         point_2.y = ym + teta_2;
         points.push_back(point_2);
     }
-    //std::cout << "p1 " << ps[0].to_string() << std::endl;
-    //std::cout << "p2 " << ps[1].to_string() << std::endl;
+    //std::cout << "p1 " << points[0].to_string() << std::endl;
+    //std::cout << "p2 " << points[1].to_string() << std::endl;
 
     // Single intersection point.
-    if (arc.contains(0.5 * (points[0] + points[1]))) {
+    Point middle = 0.5 * (points[0] + points[1]);
+    if (equal(distance(middle, arc.center), radius)) {
         ShapeElementIntersectionsOutput output;
         if (line.contains(points[0]) && arc.contains(points[0]))
             output.improper_intersections.push_back(points[0]);
@@ -367,10 +368,10 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
     for (const Point& p: points) {
         // Check if any intersection coincides with an arc endpoint
         if (equal(p, line.start)) {
-            if (arc.in_circular_arc_cone(p))
+            if (arc.contains(p))
                 output.improper_intersections.push_back(line.start);
         } else if (equal(p, line.end)) {
-            if (arc.in_circular_arc_cone(p))
+            if (arc.contains(p))
                 output.improper_intersections.push_back(line.end);
         } else if (equal(p, arc.start)) {
             if (line.contains(p))
