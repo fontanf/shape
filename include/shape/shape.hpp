@@ -156,11 +156,12 @@ inline LengthDbl signed_distance_point_to_line(
         const Point& line_point_1,
         const Point& line_point_2)
 {
-    return ((line_point_2.y - line_point_1.y) * point.x
-            - (line_point_2.x - line_point_1.x) * point.y
-            + line_point_2.x * line_point_1.y
-            - line_point_2.y * line_point_1.x)
-        / distance(line_point_1, line_point_2);
+    const LengthDbl dx = line_point_2.x - line_point_1.x;
+    const LengthDbl dy = line_point_2.y - line_point_1.y;
+    const LengthDbl px = point.x - line_point_1.x;
+    const LengthDbl py = point.y - line_point_1.y;
+    const LengthDbl cross = std::fma(px, dy, -py * dx);
+    return cross / std::hypot(dx, dy);
 }
 
 LengthDbl dot_product(
