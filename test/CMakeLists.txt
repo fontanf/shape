@@ -18,7 +18,8 @@ target_sources(Shape_shape_test PRIVATE
     offset_test.cpp
     supports_test.cpp
     approximation_test.cpp
-    simplification_test.cpp)
+    simplification_test.cpp
+    convex_partition_test.cpp)
 target_include_directories(Shape_shape_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(Shape_shape_test

@@ -6,6 +6,7 @@ target_sources(Shape_shape PRIVATE
     shapes_intersections.cpp
     boolean_operations.cpp
     convex_hull.cpp
+    convex_partition.cpp
     clean.cpp
     extract_borders.cpp
     trapezoidation.cpp
