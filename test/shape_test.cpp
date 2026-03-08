@@ -317,6 +317,85 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
+struct ShapeIsConvexTestParams
+{
+    Shape shape;
+    bool expected_output;
+};
+
+class ShapeIsConvexTest: public testing::TestWithParam<ShapeIsConvexTestParams> { };
+
+TEST_P(ShapeIsConvexTest, ShapeIsConvex)
+{
+    ShapeIsConvexTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    std::cout << "expected_output " << test_params.expected_output << std::endl;
+    bool output = test_params.shape.is_convex();
+    std::cout << "output " << output << std::endl;
+    EXPECT_EQ(output, test_params.expected_output);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeIsConvexTest,
+        testing::ValuesIn(std::vector<ShapeIsConvexTestParams>{
+            // Convex shapes.
+            {
+                // Triangle.
+                build_shape({{0, 0}, {2, 0}, {1, 2}}),
+                true,
+            }, {
+                // Rectangle.
+                build_rectangle(3, 2),
+                true,
+            }, {
+                // Diamond (rhombus).
+                build_shape({{1, 0}, {2, 1}, {1, 2}, {0, 1}}),
+                true,
+            }, {
+                // Convex pentagon.
+                build_shape({{0, 0}, {4, 0}, {5, 2}, {3, 4}, {1, 4}}),
+                true,
+            }, {
+                // Full circle.
+                build_circle(1),
+                true,
+            }, {
+                // Half-disk: a line segment closed by an anticlockwise arc.
+                // Vertices: (-1, 0) and (1, 0); arc goes CCW through (0, 1).
+                build_shape({{-1, 0}, {1, 0}, {0, 0, 1}}),
+                true,
+            },
+            // Non-convex shapes.
+            {
+                // L-shape: reflex angle at (1, 1).
+                build_shape({{0, 0}, {3, 0}, {3, 1}, {1, 1}, {1, 2}, {0, 2}}),
+                false,
+            }, {
+                // Square with one vertex pushed inward: reflex angle at (2, 2).
+                build_shape({{0, 0}, {4, 0}, {4, 4}, {2, 2}, {0, 4}}),
+                false,
+            }, {
+                // Notched triangle: reflex angle at (2, 1).
+                build_shape({{0, 0}, {3, 0}, {3, 3}, {2, 1}, {0, 3}}),
+                false,
+            }, {
+                // Concave pentagon: reflex angle at (1, 1).
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {1, 1}, {0, 2}}),
+                false,
+            }, {
+                // Boomerang: reflex angle at (1, 0).
+                build_shape({{0, 0}, {3, -1}, {1, 0}, {3, 1}}),
+                false,
+            }, {
+                // Rectangle with the top edge replaced by a clockwise arc.
+                // Arc goes CW from (2, 1) to (0, 1) around center (1, 1).
+                build_shape({{0, 0}, {2, 0}, {2, 1}, {1, 1, -1}, {0, 1}}),
+                false,
+            },
+        }));
+
+
 struct ShapeComputeAreaTestParams
 {
     Shape shape;
