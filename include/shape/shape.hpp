@@ -278,6 +278,9 @@ struct ShapeElement
             const Point& point_1,
             const Point& point_2) const;
 
+    Point tangent(
+            const Point& point) const;
+
     /**
      * Get the normal at a given point of the element.
      *

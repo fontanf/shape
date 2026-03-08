@@ -1325,26 +1325,40 @@ ShapePoint Shape::find_point_between(
     }
 }
 
+Point ShapeElement::tangent(
+        const Point& point) const
+{
+    switch (type) {
+    case ShapeElementType::LineSegment: {
+        return normalize(this->end - this->start);
+    } case ShapeElementType::CircularArc: {
+        Point normal = point - this->center;
+        if (this->orientation != ShapeElementOrientation::Clockwise) {
+            return normalize(normal.rotate(90));
+        } else {
+            return normalize(normal.rotate(270));
+        }
+    }
+    }
+    return {};
+}
+
 Point ShapeElement::normal(
         const Point& point) const
 {
     switch (type) {
     case ShapeElementType::LineSegment: {
-        Point normal;
-        normal.x = this->end.y - this->start.y;
-        normal.y = this->start.x - this->end.x;
-        return normalize(normal);
+        Point tangent = this->end - this->start;
+        return normalize(tangent.rotate(270));
     } case ShapeElementType::CircularArc: {
-        Point normal = point - this->center;
         if (this->orientation != ShapeElementOrientation::Clockwise) {
-            return normalize(normal);
+            return normalize(point - this->center);
         } else {
-            return normalize(-1 * normal);
+            return normalize(this->center - point);
         }
     }
     }
     return {};
-
 }
 
 Shape& Shape::shift(
