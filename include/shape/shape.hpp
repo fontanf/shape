@@ -423,6 +423,9 @@ struct Shape
     /** Return true iff the shape is a polygon. */
     bool is_polygon() const;
 
+    /** Return true iff the shape is convex. */
+    bool is_convex() const;
+
     /** Compute the area of the shape. */
     AreaDbl compute_area() const;
 

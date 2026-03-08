@@ -1019,6 +1019,36 @@ bool Shape::is_polygon() const
     return true;
 }
 
+bool Shape::is_convex() const
+{
+    if (this->elements.size() == 1
+            && this->elements.front().type == ShapeElementType::CircularArc
+            && this->elements.front().orientation == ShapeElementOrientation::Full) {
+        return true;
+    }
+    ElementPos element_prev_pos = elements.size() - 1;
+    for (ElementPos element_curr_pos = 0;
+            element_curr_pos < (ElementPos)elements.size();
+            ++element_curr_pos) {
+        const ShapeElement& element_prev = elements[element_prev_pos];
+        const ShapeElement& element_curr = elements[element_curr_pos];
+
+        // A Clockwise circular arc always creates a concave section.
+        if (element_curr.type == ShapeElementType::CircularArc
+                && element_curr.orientation == ShapeElementOrientation::Clockwise)
+            return false;
+
+        // Check the turn at the junction between this element and the next.
+        Angle external_angle = angle_radian(
+                element_prev.reverse().tangent(element_prev.end),
+                element_curr.tangent(element_curr.start));
+        if (strictly_lesser(external_angle, M_PI))
+            return false;
+        element_prev_pos = element_curr_pos;
+    }
+    return true;
+}
+
 AreaDbl Shape::compute_area() const
 {
     AreaDbl area = 0.0;
