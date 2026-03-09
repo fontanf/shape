@@ -20,14 +20,14 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     shape shape (# elements 8)
-      CircularArc start (-25, 0) end (0, -25) center (0, 0) orientation Anticlockwise
-      LineSegment start (0, -25) end (100, -25)
-      CircularArc start (100, -25) end (125, 0) center (100, 0) orientation Anticlockwise
-      LineSegment start (125, 0) end (125, 100)
       CircularArc start (125, 100) end (100, 125) center (100, 100) orientation Anticlockwise
       LineSegment start (100, 125) end (0, 125)
       CircularArc start (0, 125) end (-25, 100) center (0, 100) orientation Anticlockwise
       LineSegment start (-25, 100) end (-25, 0)
+      CircularArc start (-25, 0) end (0, -25) center (0, 0) orientation Anticlockwise
+      LineSegment start (0, -25) end (100, -25)
+      CircularArc start (100, -25) end (125, 0) center (100, 0) orientation Anticlockwise
+      LineSegment start (125, 0) end (125, 100)
     
 
 
@@ -55,7 +55,7 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     overlapping parts:
-    - LineSegment start (50, 75) end (33.33333333333334, 50)
+    - LineSegment start (50, 75) end (33.333333333333343, 50)
     improper intersections:
     proper intersections:
 
@@ -135,8 +135,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```c++
 #include "shape/boolean_operations.hpp"
 
-shape::Shape rectangle = shape::build_rectangle(100, 50);
-shape::Shape circle = shape::build_circle(20).shift(50, 50);
+shape::Shape rectangle = shape::build_rectangle(200, 100);
+shape::Shape circle = shape::build_circle(40).shift(100, 100);
 std::vector<shape::ShapeWithHoles> result = shape::compute_union({{rectangle}, {circle}});
 for (const shape::ShapeWithHoles& shape: result)
     std::cout << shape.to_string(0) << std::endl;
@@ -145,12 +145,12 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     shape shape (# elements 6)
-    LineSegment start (0, 0) end (100, 0)
-    LineSegment start (100, 0) end (100, 50)
-    LineSegment start (100, 50) end (70, 50)
-    CircularArc start (70, 50) end (30, 50) center (50, 50) orientation Anticlockwise
-    LineSegment start (30, 50) end (0, 50)
-    LineSegment start (0, 50) end (0, 0)
+    LineSegment start (200, 100) end (140, 100)
+    CircularArc start (140, 100) end (60, 100) center (100, 100) orientation Anticlockwise
+    LineSegment start (60, 100) end (0, 100)
+    LineSegment start (0, 100) end (0, 0)
+    LineSegment start (0, 0) end (200, 0)
+    LineSegment start (200, 0) end (200, 100)
     
 
 
@@ -169,8 +169,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```c++
 #include "shape/boolean_operations.hpp"
 
-shape::Shape rectangle = shape::build_rectangle(100, 50);
-shape::Shape circle = shape::build_circle(20).shift(50, 50);
+shape::Shape rectangle = shape::build_rectangle(200, 100);
+shape::Shape circle = shape::build_circle(40).shift(100, 100);
 std::vector<shape::ShapeWithHoles> result = shape::compute_intersection({{rectangle}, {circle}});
 for (const shape::ShapeWithHoles& shape: result)
     std::cout << shape.to_string(0) << std::endl;
@@ -179,8 +179,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     shape shape (# elements 2)
-    CircularArc start (30, 50) end (70, 50) center (50, 50) orientation Anticlockwise
-    LineSegment start (70, 50) end (30, 50)
+    LineSegment start (140, 100) end (60, 100)
+    CircularArc start (60, 100) end (140, 100) center (100, 100) orientation Anticlockwise
     
 
 
@@ -199,8 +199,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```c++
 #include "shape/boolean_operations.hpp"
 
-shape::Shape rectangle = shape::build_rectangle(100, 50);
-shape::Shape circle = shape::build_circle(20).shift(50, 50);
+shape::Shape rectangle = shape::build_rectangle(200, 100);
+shape::Shape circle = shape::build_circle(40).shift(100, 100);
 std::vector<shape::ShapeWithHoles> result = shape::compute_difference({rectangle}, {{circle}});
 for (const shape::ShapeWithHoles& shape: result)
     std::cout << shape.to_string(0) << std::endl;
@@ -209,12 +209,12 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     shape shape (# elements 6)
-    LineSegment start (0, 0) end (100, 0)
-    LineSegment start (100, 0) end (100, 50)
-    LineSegment start (100, 50) end (70, 50)
-    CircularArc start (70, 50) end (30, 50) center (50, 50) orientation Clockwise
-    LineSegment start (30, 50) end (0, 50)
-    LineSegment start (0, 50) end (0, 0)
+    LineSegment start (200, 100) end (140, 100)
+    CircularArc start (140, 100) end (60, 100) center (100, 100) orientation Clockwise
+    LineSegment start (60, 100) end (0, 100)
+    LineSegment start (0, 100) end (0, 0)
+    LineSegment start (0, 0) end (200, 0)
+    LineSegment start (200, 0) end (200, 100)
     
 
 
@@ -233,8 +233,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```c++
 #include "shape/boolean_operations.hpp"
 
-shape::Shape rectangle = shape::build_rectangle(100, 50);
-shape::Shape circle = shape::build_circle(20).shift(50, 50);
+shape::Shape rectangle = shape::build_rectangle(200, 100);
+shape::Shape circle = shape::build_circle(40).shift(100, 100);
 std::vector<shape::ShapeWithHoles> result = shape::compute_symmetric_difference({rectangle}, {circle});
 for (const shape::ShapeWithHoles& shape: result)
     std::cout << shape.to_string(0) << std::endl;
@@ -243,16 +243,16 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     shape shape (# elements 6)
-    LineSegment start (0, 0) end (100, 0)
-    LineSegment start (100, 0) end (100, 50)
-    LineSegment start (100, 50) end (70, 50)
-    CircularArc start (70, 50) end (30, 50) center (50, 50) orientation Clockwise
-    LineSegment start (30, 50) end (0, 50)
-    LineSegment start (0, 50) end (0, 0)
+    LineSegment start (200, 100) end (140, 100)
+    CircularArc start (140, 100) end (60, 100) center (100, 100) orientation Clockwise
+    LineSegment start (60, 100) end (0, 100)
+    LineSegment start (0, 100) end (0, 0)
+    LineSegment start (0, 0) end (200, 0)
+    LineSegment start (200, 0) end (200, 100)
     
     shape shape (# elements 2)
-    LineSegment start (30, 50) end (70, 50)
-    CircularArc start (70, 50) end (30, 50) center (50, 50) orientation Anticlockwise
+    CircularArc start (140, 100) end (60, 100) center (100, 100) orientation Anticlockwise
+    LineSegment start (60, 100) end (140, 100)
     
 
 
@@ -265,7 +265,52 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 
 
 
+### Rasterization
+
 
 ```c++
+#include "shape/rasterization.hpp"
 
+shape::LengthDbl cell_width = 10;
+shape::LengthDbl cell_height = 10;
+shape::ShapeWithHoles input;
+input.shape = shape::build_rectangle(200, 100).rotate(30);
+std::vector<shape::IntersectedCell> rasterization_output = shape::rasterization(input, cell_width, cell_height);
+std::vector<shape::ShapeWithHoles> cells;
+for (const shape::IntersectedCell& cell: rasterization_output)
+    cells.push_back({shape::cell_to_shape(cell.cell, cell_width, cell_height)});
+shape::Writer().add_shape_with_holes(input).add_shapes_with_holes(cells).write_svg("tmp.svg");
+std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image image("tmp.png"); image
 ```
+
+
+
+
+    
+![png](README_files/README_22_0.png)
+    
+
+
+
+### Convex partition
+
+
+```c++
+#include "shape/convex_partition.hpp"
+
+shape::ShapeWithHoles input = shape::compute_union({
+        {shape::build_rectangle(200, 100).rotate(300)},
+        {shape::build_rectangle(200, 100).rotate(30)}}).front();
+std::vector<shape::Shape> convex_parts = shape::compute_convex_partition(input);
+shape::Writer().add_shape_with_holes(input).add_shapes(convex_parts).write_svg("tmp.svg");
+std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image image("tmp.png"); image
+```
+
+
+
+
+    
+![png](README_files/README_24_0.png)
+    
+
+
