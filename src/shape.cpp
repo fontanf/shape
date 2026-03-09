@@ -1097,6 +1097,54 @@ std::pair<Point, Point> Shape::compute_min_max(
     return {{x_min, y_min}, {x_max, y_max}};
 }
 
+std::pair<Point, Point> Shape::compute_min_max(
+        const ShapePoint& point_1,
+        const ShapePoint& point_2) const
+{
+    LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+    const ShapeElement& element_1 = this->elements[point_1.element_pos];
+    if (point_1.element_pos == point_2.element_pos
+            && element_1.length(point_1.point) <= element_1.length(point_2.point)) {
+        // Both on the same element with point_1 before point_2.
+        auto mm = element_1.split(point_1.point).second.split(point_2.point).first.min_max();
+        x_min = std::min(x_min, mm.first.x);
+        x_max = std::max(x_max, mm.second.x);
+        y_min = std::min(y_min, mm.first.y);
+        y_max = std::max(y_max, mm.second.y);
+    } else {
+        // First partial element: from point_1.point to end of its element.
+        {
+            auto mm = element_1.split(point_1.point).second.min_max();
+            x_min = std::min(x_min, mm.first.x);
+            x_max = std::max(x_max, mm.second.x);
+            y_min = std::min(y_min, mm.first.y);
+            y_max = std::max(y_max, mm.second.y);
+        }
+        // Full elements in between.
+        for (ElementPos pos = (point_1.element_pos + 1) % (ElementPos)this->elements.size();
+                pos != point_2.element_pos;
+                pos = (pos + 1) % (ElementPos)this->elements.size()) {
+            auto mm = this->elements[pos].min_max();
+            x_min = std::min(x_min, mm.first.x);
+            x_max = std::max(x_max, mm.second.x);
+            y_min = std::min(y_min, mm.first.y);
+            y_max = std::max(y_max, mm.second.y);
+        }
+        // Last partial element: from start of its element to point_2.point.
+        {
+            auto mm = this->elements[point_2.element_pos].split(point_2.point).first.min_max();
+            x_min = std::min(x_min, mm.first.x);
+            x_max = std::max(x_max, mm.second.x);
+            y_min = std::min(y_min, mm.first.y);
+            y_max = std::max(y_max, mm.second.y);
+        }
+    }
+    return {{x_min, y_min}, {x_max, y_max}};
+}
+
 std::pair<Shape::FurthestPoint, Shape::FurthestPoint> Shape::compute_furthest_points(
         Angle angle) const
 {
