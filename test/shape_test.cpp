@@ -164,6 +164,42 @@ INSTANTIATE_TEST_SUITE_P(
             }}));
 
 
+struct ShapeFindPointBetweenTestParams
+{
+    Shape shape;
+    ShapePoint point_1;
+    ShapePoint point_2;
+    ShapePoint expected_output;
+};
+
+class ShapeFindPointBetweenTest: public testing::TestWithParam<ShapeFindPointBetweenTestParams> { };
+
+TEST_P(ShapeFindPointBetweenTest, ShapeFindPointBetween)
+{
+    ShapeFindPointBetweenTestParams test_params = GetParam();
+    ShapePoint output = test_params.shape.find_point_between(
+            test_params.point_1,
+            test_params.point_2);
+    EXPECT_EQ(output.element_pos, test_params.expected_output.element_pos);
+    EXPECT_TRUE(equal(output.point, test_params.expected_output.point));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeFindPointBetweenTest,
+        testing::ValuesIn(std::vector<ShapeFindPointBetweenTestParams>{
+            {  // point_1 at the end of the last element: tests wrap-around to element 0.
+                // Square: elements 0=(0,0)→(1,0), 1=(1,0)→(1,1), 2=(1,1)→(0,1), 3=(0,1)→(0,0).
+                // point_1 is at the end of element 3 (i.e. (0,0)), point_2 is on element 1.
+                // Expected: midpoint of element 0.
+                build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+                {3, {0, 0}},
+                {1, {1, 0.5}},
+                {0, {0.5, 0}},
+            },
+        }));
+
+
 struct ShapeElementMiddleTestParams
 {
     ShapeElement circular_arc;
