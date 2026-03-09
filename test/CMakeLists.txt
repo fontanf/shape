@@ -19,7 +19,8 @@ target_sources(Shape_shape_test PRIVATE
     supports_test.cpp
     approximation_test.cpp
     simplification_test.cpp
-    convex_partition_test.cpp)
+    convex_partition_test.cpp
+    rasterization_test.cpp)
 target_include_directories(Shape_shape_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(Shape_shape_test
