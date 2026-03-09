@@ -1347,11 +1347,12 @@ ShapePoint Shape::find_point_between(
     } else if (!equal(point_1.point, element_1.end)) {
         return {point_1.element_pos, element_1.end};
     } else {
-        const ShapeElement& element_next = this->elements[point_1.element_pos + 1];
-        LengthDbl l_next = (point_2.element_pos == point_1.element_pos + 1)?
+        ElementPos element_next_pos = (point_1.element_pos + 1) % (ElementPos)this->elements.size();
+        const ShapeElement& element_next = this->elements[element_next_pos];
+        LengthDbl l_next = (point_2.element_pos == element_next_pos)?
             element_next.length(point_2.point):
             element_next.length();
-        return {point_1.element_pos + 1, element_next.point(l_next / 2)};
+        return {element_next_pos, element_next.point(l_next / 2)};
     }
 }
 
