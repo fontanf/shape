@@ -32,7 +32,7 @@ struct OpenTrapezoid
     ShapePos bottom_left_shape_pos = -1;
     ElementPos bottom_left_element_pos = -1;
     ShapePos bottom_right_shape_pos = -1;
-    ElementPos bottom_right_element_pos;
+    ElementPos bottom_right_element_pos  = -1;
     Point top_left;
     Point top_right;
 };
