@@ -434,6 +434,11 @@ struct Shape
             Angle angle = 0.0,
             bool mirror = false) const;
 
+    /** Compute the smallest and greatest x and y in a portion of a shape. */
+    std::pair<Point, Point> compute_min_max(
+            const ShapePoint& point_1,
+            const ShapePoint& point_2) const;
+
     /** Compute the width and length of the shape. */
     std::pair<LengthDbl, LengthDbl> compute_width_and_height(
             Angle angle = 0.0,

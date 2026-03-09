@@ -2,6 +2,7 @@
 
 #include "shape/boolean_operations.hpp"
 #include "shape/shapes_intersections.hpp"
+#include "shape/writer.hpp"
 
 #include <gtest/gtest.h>
 
@@ -31,10 +32,15 @@ TEST_P(RasterizationTest, Rasterization)
     std::cout << "cell_width " << test_params.cell_width
         << " cell_height " << test_params.cell_height << std::endl;
 
+    Writer writer;
+    writer.add_shape_with_holes(test_params.shape).write_json("rasterization_input.json");
     std::vector<IntersectedCell> cells = rasterization(
             test_params.shape,
             test_params.cell_width,
             test_params.cell_height);
+    for (const IntersectedCell& cell: cells)
+        writer.add_shape(cell_to_shape(cell.cell, test_params.cell_width, test_params.cell_height));
+    writer.write_json("rasterization_output.json");
 
     std::cout << "cells (" << cells.size() << ")" << std::endl;
     for (const IntersectedCell& ic: cells) {
@@ -76,32 +82,21 @@ TEST_P(RasterizationTest, Rasterization)
     }
 
     // Property 3: all returned cells intersect the original shape.
-    for (const IntersectedCell& ic: cells) {
-        std::vector<ShapeWithHoles> cell_shape =
-            cells_to_shapes({ic.cell}, test_params.cell_width, test_params.cell_height);
-        ASSERT_EQ(cell_shape.size(), 1);
-        EXPECT_TRUE(intersect(test_params.shape, cell_shape[0]))
-            << "cell col=" << ic.cell.column
-            << " row=" << ic.cell.row
+    for (const IntersectedCell& cell: cells) {
+        Shape cell_shape = cell_to_shape({cell.cell}, test_params.cell_width, test_params.cell_height);
+        EXPECT_TRUE(intersect(test_params.shape, cell_shape, true))
+            << "cell col=" << cell.cell.column
+            << " row=" << cell.cell.row
             << " does not intersect the shape";
     }
 
-    // Property 4: the full cells lie entirely inside the original shape.
-    std::vector<Cell> full_cells;
-    for (const IntersectedCell& ic: cells)
-        if (ic.full)
-            full_cells.push_back(ic.cell);
-    if (!full_cells.empty()) {
-        std::vector<ShapeWithHoles> full_cell_shapes =
-            cells_to_shapes(full_cells, test_params.cell_width, test_params.cell_height);
-        std::vector<ShapeWithHoles> full_cells_union = compute_union(full_cell_shapes);
-        for (const ShapeWithHoles& cs: full_cells_union) {
-            std::vector<ShapeWithHoles> diff =
-                compute_difference(cs, {test_params.shape});
-            EXPECT_TRUE(diff.empty())
-                << "some full cells lie outside the original shape";
-        }
-    }
+    std::vector<Cell> all_cells;
+    for (const IntersectedCell& cell: cells)
+        all_cells.push_back(cell.cell);
+    ShapeWithHoles cells_union = cells_to_shapes(all_cells, test_params.cell_width, test_params.cell_height).front();
+    std::vector<ShapeWithHoles> union_output = compute_union({cells_union, test_params.shape});
+    EXPECT_EQ(union_output.size(), 1);
+    EXPECT_TRUE(equal(union_output.front(), cells_union));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -166,5 +161,10 @@ INSTANTIATE_TEST_SUITE_P(
             {  // Rectangle with 2x3 cells.
                 {{build_shape({{0.5, 0.5}, {5.5, 0.5}, {5.5, 5.5}, {0.5, 5.5}})}, {}},
                 2.0, 3.0,
+            },
+            {  // Rectangle with 2x3 cells.
+                {shape::build_rectangle(100, 50).rotate(30)},
+                10,
+                10,
             },
         }));
