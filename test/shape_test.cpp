@@ -758,3 +758,97 @@ INSTANTIATE_TEST_SUITE_P(
                 },
                 build_path({{0, 0}, {0, 1}, {1, 5}, {0, 9}, {0, 10}, {1, 10}, {5, 11}, {9, 10}, {10, 10}}),
             }}));
+
+
+struct ShapeComputeMinMaxTestParams
+{
+    Shape shape;
+    ShapePoint point_1;
+    ShapePoint point_2;
+    LengthDbl expected_x_min;
+    LengthDbl expected_y_min;
+    LengthDbl expected_x_max;
+    LengthDbl expected_y_max;
+};
+
+class ShapeComputeMinMaxTest: public testing::TestWithParam<ShapeComputeMinMaxTestParams> { };
+
+TEST_P(ShapeComputeMinMaxTest, ShapeComputeMinMax)
+{
+    ShapeComputeMinMaxTestParams test_params = GetParam();
+    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    std::cout << "point_1 element_pos " << test_params.point_1.element_pos
+        << " point " << test_params.point_1.point.to_string() << std::endl;
+    std::cout << "point_2 element_pos " << test_params.point_2.element_pos
+        << " point " << test_params.point_2.point.to_string() << std::endl;
+    std::cout << "expected x_min " << test_params.expected_x_min
+        << " y_min " << test_params.expected_y_min
+        << " x_max " << test_params.expected_x_max
+        << " y_max " << test_params.expected_y_max << std::endl;
+    auto mm = test_params.shape.compute_min_max(test_params.point_1, test_params.point_2);
+    std::cout << "x_min " << mm.first.x
+        << " y_min " << mm.first.y
+        << " x_max " << mm.second.x
+        << " y_max " << mm.second.y << std::endl;
+    EXPECT_TRUE(equal(mm.first.x, test_params.expected_x_min));
+    EXPECT_TRUE(equal(mm.first.y, test_params.expected_y_min));
+    EXPECT_TRUE(equal(mm.second.x, test_params.expected_x_max));
+    EXPECT_TRUE(equal(mm.second.y, test_params.expected_y_max));
+}
+
+// Square: el 0 = (0,0)→(4,0), el 1 = (4,0)→(4,4), el 2 = (4,4)→(0,4), el 3 = (0,4)→(0,0).
+// Half-disk: el 0 = segment (-1,0)→(1,0), el 1 = arc (1,0)→(-1,0) CCW center (0,0).
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeComputeMinMaxTest,
+        testing::ValuesIn(std::vector<ShapeComputeMinMaxTestParams>{
+            {   // 1. Same element, interior sub-segment.
+                build_shape({{0, 0}, {4, 0}, {4, 4}, {0, 4}}),
+                {0, {1, 0}}, {0, {3, 0}},
+                1, 0, 3, 0,
+            }, {  // 2. Same element, full element span.
+                build_shape({{0, 0}, {4, 0}, {4, 4}, {0, 4}}),
+                {1, {4, 0}}, {1, {4, 4}},
+                4, 0, 4, 4,
+            }, {  // 3. Two adjacent elements.
+                build_shape({{0, 0}, {4, 0}, {4, 4}, {0, 4}}),
+                {0, {2, 0}}, {1, {4, 2}},
+                2, 0, 4, 2,
+            }, {  // 4. Three elements.
+                build_shape({{0, 0}, {4, 0}, {4, 4}, {0, 4}}),
+                {0, {2, 0}}, {2, {2, 4}},
+                2, 0, 4, 4,
+            }, {  // 5. All four elements.
+                build_shape({{0, 0}, {4, 0}, {4, 4}, {0, 4}}),
+                {0, {2, 0}}, {3, {0, 2}},
+                0, 0, 4, 4,
+            }, {  // 6. Same element, wrap-around (point_1 after point_2).
+                build_shape({{0, 0}, {4, 0}, {4, 4}, {0, 4}}),
+                {0, {3, 0}}, {0, {1, 0}},
+                0, 0, 4, 4,
+            }, {  // 7. Arc, first quarter (0°→90°), no extremum at 0° since it's the start point.
+                build_shape({{-1, 0}, {1, 0}, {0, 0, 1}}),
+                {1, {1, 0}}, {1, {0, 1}},
+                0, 0, 1, 1,
+            }, {  // 8. Arc, second quarter (90°→180°).
+                build_shape({{-1, 0}, {1, 0}, {0, 0, 1}}),
+                {1, {0, 1}}, {1, {-1, 0}},
+                -1, 0, 0, 1,
+            }, {  // 9. Arc, full semicircle (0°→180°).
+                build_shape({{-1, 0}, {1, 0}, {0, 0, 1}}),
+                {1, {1, 0}}, {1, {-1, 0}},
+                -1, 0, 1, 1,
+            }, {  // 10. Arc portion crossing top extremum (45°→135°).
+                build_shape({{-1, 0}, {1, 0}, {0, 0, 1}}),
+                {1, {sqrt(2) / 2, sqrt(2) / 2}}, {1, {-sqrt(2) / 2, sqrt(2) / 2}},
+                -sqrt(2) / 2, sqrt(2) / 2, sqrt(2) / 2, 1,
+            }, {  // 11. Cross-elements: line segment midpoint → arc top.
+                build_shape({{-1, 0}, {1, 0}, {0, 0, 1}}),
+                {0, {0, 0}}, {1, {0, 1}},
+                0, 0, 1, 1,
+            }, {  // 12. Cross-elements: arc top → line segment midpoint (via arc end and el 0 start).
+                build_shape({{-1, 0}, {1, 0}, {0, 0, 1}}),
+                {1, {0, 1}}, {0, {0, 0}},
+                -1, 0, 0, 1,
+            },
+        }));
