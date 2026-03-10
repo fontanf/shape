@@ -4,6 +4,7 @@ Geometry library used in [PackingSolver](https://github.com/fontanf/packingsolve
 
 The main particularity of this library is that shapes primitives might be line segments and/or circular arcs. The library is also designed to be robust and return 'expected outputs' over being fast.
 
+
 ## Examples
 
 ### Inflate generating circular arcs on vertices
@@ -12,22 +13,22 @@ The main particularity of this library is that shapes primitives might be line s
 ```c++
 #include "shape/offset.hpp"
 
-shape::Shape square = shape::build_square(100);
-shape::ShapeWithHoles inflated_square = shape::inflate(square, 25);
+shape::Shape square = shape::build_square(200);
+shape::ShapeWithHoles inflated_square = shape::inflate(square, 50);
 std::cout << inflated_square.to_string(2) << std::endl;
 shape::Writer().add_shape(square).add_shape_with_holes(inflated_square).write_svg("tmp.svg");
 std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image image("tmp.png"); image
 ```
 
     shape shape (# elements 8)
-      CircularArc start (125, 100) end (100, 125) center (100, 100) orientation Anticlockwise
-      LineSegment start (100, 125) end (0, 125)
-      CircularArc start (0, 125) end (-25, 100) center (0, 100) orientation Anticlockwise
-      LineSegment start (-25, 100) end (-25, 0)
-      CircularArc start (-25, 0) end (0, -25) center (0, 0) orientation Anticlockwise
-      LineSegment start (0, -25) end (100, -25)
-      CircularArc start (100, -25) end (125, 0) center (100, 0) orientation Anticlockwise
-      LineSegment start (125, 0) end (125, 100)
+      CircularArc start (250, 200) end (200, 250) center (200, 200) orientation Anticlockwise
+      LineSegment start (200, 250) end (0, 250)
+      CircularArc start (0, 250) end (-50, 200) center (0, 200) orientation Anticlockwise
+      LineSegment start (-50, 200) end (-50, 0)
+      CircularArc start (-50, 0) end (0, -50) center (0, 0) orientation Anticlockwise
+      LineSegment start (0, -50) end (200, -50)
+      CircularArc start (200, -50) end (250, 0) center (200, 0) orientation Anticlockwise
+      LineSegment start (250, 0) end (250, 200)
     
 
 
@@ -135,8 +136,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```c++
 #include "shape/boolean_operations.hpp"
 
-shape::Shape rectangle = shape::build_rectangle(200, 100);
-shape::Shape circle = shape::build_circle(40).shift(100, 100);
+shape::Shape rectangle = shape::build_rectangle(400, 200);
+shape::Shape circle = shape::build_circle(80).shift(200, 200);
 std::vector<shape::ShapeWithHoles> result = shape::compute_union({{rectangle}, {circle}});
 for (const shape::ShapeWithHoles& shape: result)
     std::cout << shape.to_string(0) << std::endl;
@@ -145,12 +146,12 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     shape shape (# elements 6)
-    LineSegment start (200, 100) end (140, 100)
-    CircularArc start (140, 100) end (60, 100) center (100, 100) orientation Anticlockwise
-    LineSegment start (60, 100) end (0, 100)
-    LineSegment start (0, 100) end (0, 0)
-    LineSegment start (0, 0) end (200, 0)
-    LineSegment start (200, 0) end (200, 100)
+    LineSegment start (400, 200) end (280, 200)
+    CircularArc start (280, 200) end (120, 200) center (200, 200) orientation Anticlockwise
+    LineSegment start (120, 200) end (0, 200)
+    LineSegment start (0, 200) end (0, 0)
+    LineSegment start (0, 0) end (400, 0)
+    LineSegment start (400, 0) end (400, 200)
     
 
 
@@ -169,8 +170,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```c++
 #include "shape/boolean_operations.hpp"
 
-shape::Shape rectangle = shape::build_rectangle(200, 100);
-shape::Shape circle = shape::build_circle(40).shift(100, 100);
+shape::Shape rectangle = shape::build_rectangle(400, 200);
+shape::Shape circle = shape::build_circle(80).shift(200, 200);
 std::vector<shape::ShapeWithHoles> result = shape::compute_intersection({{rectangle}, {circle}});
 for (const shape::ShapeWithHoles& shape: result)
     std::cout << shape.to_string(0) << std::endl;
@@ -179,8 +180,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     shape shape (# elements 2)
-    LineSegment start (140, 100) end (60, 100)
-    CircularArc start (60, 100) end (140, 100) center (100, 100) orientation Anticlockwise
+    LineSegment start (280, 200) end (120, 200)
+    CircularArc start (120, 200) end (280, 200) center (200, 200) orientation Anticlockwise
     
 
 
@@ -199,8 +200,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```c++
 #include "shape/boolean_operations.hpp"
 
-shape::Shape rectangle = shape::build_rectangle(200, 100);
-shape::Shape circle = shape::build_circle(40).shift(100, 100);
+shape::Shape rectangle = shape::build_rectangle(400, 200);
+shape::Shape circle = shape::build_circle(80).shift(200, 200);
 std::vector<shape::ShapeWithHoles> result = shape::compute_difference({rectangle}, {{circle}});
 for (const shape::ShapeWithHoles& shape: result)
     std::cout << shape.to_string(0) << std::endl;
@@ -209,12 +210,12 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     shape shape (# elements 6)
-    LineSegment start (200, 100) end (140, 100)
-    CircularArc start (140, 100) end (60, 100) center (100, 100) orientation Clockwise
-    LineSegment start (60, 100) end (0, 100)
-    LineSegment start (0, 100) end (0, 0)
-    LineSegment start (0, 0) end (200, 0)
-    LineSegment start (200, 0) end (200, 100)
+    LineSegment start (400, 200) end (280, 200)
+    CircularArc start (280, 200) end (120, 200) center (200, 200) orientation Clockwise
+    LineSegment start (120, 200) end (0, 200)
+    LineSegment start (0, 200) end (0, 0)
+    LineSegment start (0, 0) end (400, 0)
+    LineSegment start (400, 0) end (400, 200)
     
 
 
@@ -233,8 +234,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```c++
 #include "shape/boolean_operations.hpp"
 
-shape::Shape rectangle = shape::build_rectangle(200, 100);
-shape::Shape circle = shape::build_circle(40).shift(100, 100);
+shape::Shape rectangle = shape::build_rectangle(400, 200);
+shape::Shape circle = shape::build_circle(80).shift(200, 200);
 std::vector<shape::ShapeWithHoles> result = shape::compute_symmetric_difference({rectangle}, {circle});
 for (const shape::ShapeWithHoles& shape: result)
     std::cout << shape.to_string(0) << std::endl;
@@ -243,16 +244,16 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 ```
 
     shape shape (# elements 6)
-    LineSegment start (200, 100) end (140, 100)
-    CircularArc start (140, 100) end (60, 100) center (100, 100) orientation Clockwise
-    LineSegment start (60, 100) end (0, 100)
-    LineSegment start (0, 100) end (0, 0)
-    LineSegment start (0, 0) end (200, 0)
-    LineSegment start (200, 0) end (200, 100)
+    LineSegment start (400, 200) end (280, 200)
+    CircularArc start (280, 200) end (120, 200) center (200, 200) orientation Clockwise
+    LineSegment start (120, 200) end (0, 200)
+    LineSegment start (0, 200) end (0, 0)
+    LineSegment start (0, 0) end (400, 0)
+    LineSegment start (400, 0) end (400, 200)
     
     shape shape (# elements 2)
-    CircularArc start (140, 100) end (60, 100) center (100, 100) orientation Anticlockwise
-    LineSegment start (60, 100) end (140, 100)
+    CircularArc start (280, 200) end (120, 200) center (200, 200) orientation Anticlockwise
+    LineSegment start (120, 200) end (280, 200)
     
 
 
@@ -274,7 +275,8 @@ std::system(std::string("convert \"tmp.svg\" \"tmp.png\"").c_str()); im::image i
 shape::LengthDbl cell_width = 10;
 shape::LengthDbl cell_height = 10;
 shape::ShapeWithHoles input;
-input.shape = shape::build_rectangle(200, 100).rotate(30);
+input.shape = shape::build_rectangle(400, 200).rotate(30);
+input.holes.push_back(shape::build_rectangle(200, 100).shift(100, 50).rotate(30));
 std::vector<shape::IntersectedCell> rasterization_output = shape::rasterization(input, cell_width, cell_height);
 std::vector<shape::ShapeWithHoles> cells;
 for (const shape::IntersectedCell& cell: rasterization_output)
