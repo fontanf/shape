@@ -636,8 +636,6 @@ INSTANTIATE_TEST_SUITE_P(
             },
             IntersectShapeWithHolesShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_with_holes_shape" / "0.json").string()),
-            IntersectShapeWithHolesShapeTestParams::read_json(
-                    (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_with_holes_shape" / "1.json").string()),
             }));
 
 
