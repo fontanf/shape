@@ -104,6 +104,20 @@ struct Point
     std::string to_svg() const;
 };
 
+inline bool operator==(
+        const Point& point_1,
+        const Point& point_2)
+{
+    return (point_1.x == point_2.x) && (point_1.y == point_2.y);
+}
+
+inline bool equal(
+        const Point& point_1,
+        const Point& point_2)
+{
+    return equal(point_1.x, point_2.x) && equal(point_1.y, point_2.y);
+}
+
 Point operator+(
         const Point& point_1,
         const Point& point_2);
@@ -145,6 +159,34 @@ inline LengthDbl distance(
 LengthDbl squared_distance(
         const Point& point_1,
         const Point& point_2);
+
+inline Point project_point_on_line(
+        const Point& line_point_1,
+        const Point& line_point_2,
+        const Point& point)
+{
+    LengthDbl ax = line_point_1.x;
+    LengthDbl ay = line_point_1.y;
+    LengthDbl bx = line_point_2.x - ax;
+    LengthDbl by = line_point_2.y - ay;
+    LengthDbl px = point.x - ax;
+    LengthDbl py = point.y - ay;
+    LengthDbl denom = std::fma(bx, bx, by * by);
+    LengthDbl t = std::fma(px, bx, py * by) / denom;
+    Point q;
+    q.x = ax + t * bx;
+    q.y = ay + t * by;
+    return q;
+}
+
+inline bool line_contains(
+        const Point& line_point_1,
+        const Point& line_point_2,
+        const Point& point)
+{
+    Point proj = project_point_on_line(line_point_1, line_point_2, point);
+    return shape::equal(proj, point);
+}
 
 LengthDbl distance_point_to_line(
         const Point& point,
@@ -650,20 +692,6 @@ Shape build_path(
 
 Shape build_path(
         const std::vector<ShapeElement>& elements);
-
-inline bool operator==(
-        const Point& point_1,
-        const Point& point_2)
-{
-    return (point_1.x == point_2.x) && (point_1.y == point_2.y);
-}
-
-inline bool equal(
-        const Point& point_1,
-        const Point& point_2)
-{
-    return equal(point_1.x, point_2.x) && equal(point_1.y, point_2.y);
-}
 
 bool operator==(
         const ShapeElement& element_1,

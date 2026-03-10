@@ -294,6 +294,8 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "shapes_intersections" / "compute_intersections_path_shape" / "0.json").string()),
             ComputeIntersectionsPathShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "shapes_intersections" / "compute_intersections_path_shape" / "1.json").string()),
+            ComputeIntersectionsPathShapeTestParams::read_json(
+                    (fs::path("data") / "tests" / "shapes_intersections" / "compute_intersections_path_shape" / "2.json").string()),
             }));
 
 

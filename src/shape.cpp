@@ -527,7 +527,7 @@ bool ShapeElement::contains(const Point& point) const
 {
     switch (type) {
     case ShapeElementType::LineSegment: {
-        if (!equal(distance_point_to_line(point, this->start, this->end), 0.0))
+        if (!line_contains(this->start, this->end, point))
             return false;
         return !strictly_greater(
                 distance(this->start, point) + distance(point, this->end),
