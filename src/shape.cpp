@@ -565,6 +565,8 @@ LengthDbl ShapeElement::length() const
 
 LengthDbl ShapeElement::length(const Point& point) const
 {
+    if (equal(point, this->start))
+        return 0.0;
     switch (this->type) {
     case ShapeElementType::LineSegment:
         return distance(this->start, point);

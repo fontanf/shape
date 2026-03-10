@@ -85,6 +85,53 @@ INSTANTIATE_TEST_SUITE_P(
             }));
 
 
+struct ShapeElementLengthPointTestParams
+{
+    ShapeElement element;
+    Point point;
+    LengthDbl expected_length;
+};
+
+class ShapeElementLengthPointTest: public testing::TestWithParam<ShapeElementLengthPointTestParams> { };
+
+TEST_P(ShapeElementLengthPointTest, ShapeElementLengthPoint)
+{
+    ShapeElementLengthPointTestParams test_params = GetParam();
+    std::cout << "element " << test_params.element.to_string() << std::endl;
+    std::cout << "point " << test_params.point.to_string() << std::endl;
+    std::cout << "expected_length " << test_params.expected_length << std::endl;
+    if (!test_params.element.contains(test_params.point)) {
+        throw std::invalid_argument(FUNC_SIGNATURE);
+    }
+    //Writer().add_element(test_params.element).write_json("shape_element_length_inputs.json");
+    LengthDbl length = test_params.element.length(test_params.point);
+    EXPECT_TRUE(equal(length, test_params.expected_length));
+    std::cout << "length " << length << std::endl;
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeElementLengthPointTest,
+        testing::ValuesIn(std::vector<ShapeElementLengthPointTestParams>{
+            {build_line_segment({0, 0}, {0, 1}), {0, 0.2}, 0.2},
+            {
+                build_circular_arc({24.017319696054429, 562.69162734170129}, {24.033416251762397, 562.66318411783629}, {23.947853645941326, 562.63353891269458}, ShapeElementOrientation::Clockwise),
+                {24.017319578247072, 562.69162748260499},
+                0,
+            },
+
+//path_element 20 CircularArc start (24.001219675214291, 562.70669535207219) end (24.017319696054429, 562.69162734170129) center (23.947853645941475, 562.63353891269435) orientation Clockwise
+
+
+//path_element_pos 20 shape_element_pos 1 point (24.017319578247072, 562.69162748260499) l 0.0221059
+//path_element_pos 20 shape_element_pos 2 point (24.017319578247072, 562.69162748260499) l 0.0221059
+//path_element_pos 21 shape_element_pos 0 point (24.023228790389016, 562.6837224289352) l 0.00987429
+//path_element_pos 21 shape_element_pos 1 point (24.017319578247072, 562.69162748260499) l 0.568959
+//path_element_pos 21 shape_element_pos 2 point (24.017319578247072, 562.69162748260499) l 0.568959
+
+            }));
+
+
 struct ShapeElementPointTestParams
 {
     ShapeElement element;

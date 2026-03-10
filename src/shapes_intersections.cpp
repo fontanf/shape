@@ -542,6 +542,13 @@ std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
             ShapeElementIntersectionsOutput intersections_cur = compute_intersections(
                     path_element,
                     shape_element);
+            //if (!intersections_cur.overlapping_parts.empty()
+            //        || !intersections_cur.improper_intersections.empty()
+            //        || !intersections_cur.proper_intersections.empty()) {
+            //    std::cout << "element_1 " << path_element.to_string() << std::endl;
+            //    std::cout << "element_2 " << shape_element.to_string() << std::endl;
+            //    std::cout << "intersections " << intersections_cur.to_string(0) << std::endl;
+            //}
             for (const ShapeElement& overlapping_part: intersections_cur.overlapping_parts) {
                 output.push_back({path_element_pos, shape_element_pos, overlapping_part.start});
                 output.push_back({path_element_pos, shape_element_pos, overlapping_part.end});
@@ -554,6 +561,14 @@ std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
     }
     if (output.empty())
         return {};
+    //std::cout << "output.size() " << output.size() << std::endl;
+    //for (const auto& point: output) {
+    //    std::cout << "path_element_pos " << point.path_element_pos
+    //        << " shape_element_pos " << point.shape_element_pos
+    //        << " point " << point.point.to_string()
+    //        << " l " << path.elements[point.path_element_pos].length(point.point)
+    //        << std::endl;
+    //}
     if (only_min_max) {
         auto p = std::minmax_element(
             output.begin(),

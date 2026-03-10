@@ -292,6 +292,8 @@ INSTANTIATE_TEST_SUITE_P(
             },
             ComputeIntersectionsPathShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "shapes_intersections" / "compute_intersections_path_shape" / "0.json").string()),
+            ComputeIntersectionsPathShapeTestParams::read_json(
+                    (fs::path("data") / "tests" / "shapes_intersections" / "compute_intersections_path_shape" / "1.json").string()),
             }));
 
 
@@ -437,7 +439,10 @@ TEST_P(IntersectShapeShapeTest, IntersectShapeShape)
     std::cout << "shape_2 " << test_params.shape_2.to_string(0) << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_output " << test_params.expected_output << std::endl;
-    //write_json({{test_params.shape_1}, {test_params.shape_2}}, {}, "intersect_input.json");
+    //Writer()
+    //    .add_shape(test_params.shape_1, "Shape 1")
+    //    .add_shape(test_params.shape_2, "Shape 2")
+    //    .write_json("intersect_shape_shape_input.json");
 
     bool output = intersect(
             test_params.shape_1,
@@ -550,7 +555,10 @@ TEST_P(IntersectShapeWithHolesShapeTest, IntersectShapeWithHolesShape)
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_output " << test_params.expected_output << std::endl;
-    //write_json({test_params.shape_1, {test_params.shape_2}}, {}, "intersect_input.json");
+    //Writer()
+    //    .add_shape_with_holes(test_params.shape_with_holes, "Shape with holes")
+    //    .add_shape(test_params.shape, "Shape")
+    //    .write_json("intersect_shape_with_holes_shape_input.json");
 
     bool output = intersect(
             test_params.shape_with_holes,
@@ -628,6 +636,8 @@ INSTANTIATE_TEST_SUITE_P(
             },
             IntersectShapeWithHolesShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_with_holes_shape" / "0.json").string()),
+            IntersectShapeWithHolesShapeTestParams::read_json(
+                    (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_with_holes_shape" / "1.json").string()),
             }));
 
 
