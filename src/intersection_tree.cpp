@@ -56,14 +56,14 @@ IntersectionTree::IntersectionTree(
     }
 
     // Compute min/max of shapes and elements.
-    std::vector<std::pair<Point, Point>> shapes_min_max(shapes.size());
+    std::vector<AxisAlignedBoundingBox> shapes_min_max(shapes.size());
     for (ShapePos shape_id = 0;
             shape_id < (ShapePos)shapes.size();
             ++shape_id) {
         const ShapeWithHoles& shape = shapes[shape_id];
         shapes_min_max[shape_id] = shape.compute_min_max();
     }
-    std::vector<std::pair<Point, Point>> elements_min_max(elements.size());
+    std::vector<AxisAlignedBoundingBox> elements_min_max(elements.size());
     for (ElementPos element_id = 0;
             element_id < (ElementPos)elements.size();
             ++element_id) {
@@ -76,19 +76,19 @@ IntersectionTree::IntersectionTree(
     for (ShapePos shape_id = 0;
             shape_id < (ShapePos)shapes.size();
             ++shape_id) {
-        root.l = (std::min)(root.l, shapes_min_max[shape_id].first.x);
-        root.r = (std::max)(root.r, shapes_min_max[shape_id].first.x);
-        root.b = (std::min)(root.b, shapes_min_max[shape_id].first.y);
-        root.t = (std::max)(root.t, shapes_min_max[shape_id].first.y);
+        root.l = (std::min)(root.l, shapes_min_max[shape_id].x_min);
+        root.r = (std::max)(root.r, shapes_min_max[shape_id].x_max);
+        root.b = (std::min)(root.b, shapes_min_max[shape_id].y_min);
+        root.t = (std::max)(root.t, shapes_min_max[shape_id].y_max);
     }
     for (ElementPos element_id = 0;
             element_id < (ElementPos)elements.size();
             ++element_id) {
         const ShapeElement& element = elements[element_id];
-        root.l = (std::min)(root.l, elements_min_max[element_id].first.x);
-        root.r = (std::max)(root.r, elements_min_max[element_id].first.x);
-        root.b = (std::min)(root.b, elements_min_max[element_id].first.y);
-        root.t = (std::max)(root.t, elements_min_max[element_id].first.y);
+        root.l = (std::min)(root.l, elements_min_max[element_id].x_min);
+        root.r = (std::max)(root.r, elements_min_max[element_id].x_max);
+        root.b = (std::min)(root.b, elements_min_max[element_id].y_min);
+        root.t = (std::max)(root.t, elements_min_max[element_id].y_max);
     }
     for (ElementPos point_id = 0;
             point_id < (ElementPos)points.size();
@@ -133,17 +133,17 @@ IntersectionTree::IntersectionTree(
         std::vector<double> values_y_bottom;
         std::vector<double> values_y_top;
         for (ShapePos shape_id: stack_element.shape_ids) {
-            values_x_left.push_back(shapes_min_max[shape_id].first.x);
-            values_x_right.push_back(shapes_min_max[shape_id].second.x);
-            values_y_bottom.push_back(shapes_min_max[shape_id].first.y);
-            values_y_top.push_back(shapes_min_max[shape_id].second.y);
+            values_x_left.push_back(shapes_min_max[shape_id].x_min);
+            values_x_right.push_back(shapes_min_max[shape_id].x_max);
+            values_y_bottom.push_back(shapes_min_max[shape_id].y_min);
+            values_y_top.push_back(shapes_min_max[shape_id].y_max);
         }
         for (ElementPos element_id: stack_element.element_ids) {
-            auto mm = elements[element_id].min_max();
-            values_x_left.push_back(mm.first.x);
-            values_x_right.push_back(mm.second.x);
-            values_y_bottom.push_back(mm.first.y);
-            values_y_top.push_back(mm.second.y);
+            AxisAlignedBoundingBox aabb = elements[element_id].min_max();
+            values_x_left.push_back(aabb.x_min);
+            values_x_right.push_back(aabb.x_max);
+            values_y_bottom.push_back(aabb.y_min);
+            values_y_top.push_back(aabb.y_max);
         }
         for (ElementPos point_id: stack_element.point_ids) {
             const Point& point = points[point_id];
@@ -164,17 +164,17 @@ IntersectionTree::IntersectionTree(
         std::vector<std::vector<ShapePos>> bottom_shape_ids(ys.size());
         std::vector<std::vector<ShapePos>> top_shape_ids(ys.size());
         for (ShapePos shape_id: stack_element.shape_ids) {
-            auto mm = shapes_min_max[shape_id];
+            AxisAlignedBoundingBox aabb = shapes_min_max[shape_id];
             for (int i = 0; i < (int)xs.size(); ++i) {
-                if (!strictly_greater(mm.first.x, xs[i]))
+                if (!strictly_greater(aabb.x_min, xs[i]))
                     left_shape_ids[i].push_back(shape_id);
-                if (!strictly_lesser(mm.second.x, xs[i]))
+                if (!strictly_lesser(aabb.x_max, xs[i]))
                     right_shape_ids[i].push_back(shape_id);
             }
             for (int i = 0; i < (int)ys.size(); ++i) {
-                if (!strictly_greater(mm.first.y, ys[i]))
+                if (!strictly_greater(aabb.y_min, ys[i]))
                     bottom_shape_ids[i].push_back(shape_id);
-                if (!strictly_lesser(mm.second.y, ys[i]))
+                if (!strictly_lesser(aabb.y_max, ys[i]))
                     top_shape_ids[i].push_back(shape_id);
             }
         }
@@ -183,17 +183,17 @@ IntersectionTree::IntersectionTree(
         std::vector<std::vector<ShapePos>> bottom_element_ids(ys.size());
         std::vector<std::vector<ShapePos>> top_element_ids(ys.size());
         for (ElementPos element_id: stack_element.element_ids) {
-            auto mm = elements_min_max[element_id];
+            AxisAlignedBoundingBox aabb = elements_min_max[element_id];
             for (int i = 0; i < (int)xs.size(); ++i) {
-                if (!strictly_greater(mm.first.x, xs[i]))
+                if (!strictly_greater(aabb.x_min, xs[i]))
                     left_element_ids[i].push_back(element_id);
-                if (!strictly_lesser(mm.second.x, xs[i]))
+                if (!strictly_lesser(aabb.x_max, xs[i]))
                     right_element_ids[i].push_back(element_id);
             }
             for (int i = 0; i < (int)ys.size(); ++i) {
-                if (!strictly_greater(mm.first.y, ys[i]))
+                if (!strictly_greater(aabb.y_min, ys[i]))
                     bottom_element_ids[i].push_back(element_id);
-                if (!strictly_lesser(mm.second.y, ys[i]))
+                if (!strictly_lesser(aabb.y_max, ys[i]))
                     top_element_ids[i].push_back(element_id);
             }
         }
@@ -337,7 +337,7 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
         potentially_intersecting_points_.fill();
 
     } else {
-        auto mm = shape.compute_min_max();
+        AxisAlignedBoundingBox aabb = shape.compute_min_max();
 
         potentially_intersecting_shapes_.clear();
         potentially_intersecting_elements_.clear();
@@ -358,14 +358,14 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
                 for (ElementPos point_id: node.point_ids)
                     potentially_intersecting_points_.add(point_id);
             } else if (node.direction == 'v') {
-                if (!strictly_greater(mm.first.x, node.position))
+                if (!strictly_greater(aabb.x_min, node.position))
                     stack.push_back(node.lesser_child_id);
-                if (!strictly_lesser(mm.second.x, node.position))
+                if (!strictly_lesser(aabb.x_max, node.position))
                     stack.push_back(node.greater_child_id);
             } else {  // node.direction == 'h'
-                if (!strictly_greater(mm.first.y, node.position))
+                if (!strictly_greater(aabb.y_min, node.position))
                     stack.push_back(node.lesser_child_id);
-                if (!strictly_lesser(mm.second.y, node.position))
+                if (!strictly_lesser(aabb.y_max, node.position))
                     stack.push_back(node.greater_child_id);
             }
         }
@@ -396,7 +396,7 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
         potentially_intersecting_points_.fill();
 
     } else {
-        auto mm = shape.compute_min_max();
+        AxisAlignedBoundingBox aabb = shape.compute_min_max();
 
         potentially_intersecting_shapes_.clear();
         potentially_intersecting_elements_.clear();
@@ -417,14 +417,14 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
                 for (ElementPos point_id: node.point_ids)
                     potentially_intersecting_points_.add(point_id);
             } else if (node.direction == 'v') {
-                if (!strictly_greater(mm.first.x, node.position))
+                if (!strictly_greater(aabb.x_min, node.position))
                     stack.push_back(node.lesser_child_id);
-                if (!strictly_lesser(mm.second.x, node.position))
+                if (!strictly_lesser(aabb.x_max, node.position))
                     stack.push_back(node.greater_child_id);
             } else {  // node.direction == 'h'
-                if (!strictly_greater(mm.first.y, node.position))
+                if (!strictly_greater(aabb.y_min, node.position))
                     stack.push_back(node.lesser_child_id);
-                if (!strictly_lesser(mm.second.y, node.position))
+                if (!strictly_lesser(aabb.y_max, node.position))
                     stack.push_back(node.greater_child_id);
             }
         }
@@ -454,7 +454,7 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
         potentially_intersecting_points_.fill();
 
     } else {
-        auto mm = element.min_max();
+        AxisAlignedBoundingBox aabb = element.min_max();
 
         potentially_intersecting_shapes_.clear();
         potentially_intersecting_elements_.clear();
@@ -475,14 +475,14 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
                 for (ElementPos point_id: node.point_ids)
                     potentially_intersecting_points_.add(point_id);
             } else if (node.direction == 'v') {
-                if (!strictly_greater(mm.first.x, node.position))
+                if (!strictly_greater(aabb.x_min, node.position))
                     stack.push_back(node.lesser_child_id);
-                if (!strictly_lesser(mm.second.x, node.position))
+                if (!strictly_lesser(aabb.x_max, node.position))
                     stack.push_back(node.greater_child_id);
             } else {  // node.direction == 'h'
-                if (!strictly_greater(mm.first.y, node.position))
+                if (!strictly_greater(aabb.y_min, node.position))
                     stack.push_back(node.lesser_child_id);
-                if (!strictly_lesser(mm.second.y, node.position))
+                if (!strictly_lesser(aabb.y_max, node.position))
                     stack.push_back(node.greater_child_id);
             }
         }

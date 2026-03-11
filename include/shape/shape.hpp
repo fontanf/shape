@@ -250,6 +250,26 @@ bool strictly_greater_angle(
         const Point& vector_1,
         const Point& vector_2);
 
+struct AxisAlignedBoundingBox
+{
+    LengthDbl x_min = +std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl y_min = +std::numeric_limits<LengthDbl>::infinity();
+    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+};
+
+inline AxisAlignedBoundingBox merge(
+        const AxisAlignedBoundingBox& aabb_1,
+        const AxisAlignedBoundingBox& aabb_2)
+{
+    AxisAlignedBoundingBox output;
+    output.x_min = std::min(aabb_1.x_min, aabb_2.x_min);
+    output.x_max = std::max(aabb_1.x_max, aabb_2.x_max);
+    output.y_min = std::min(aabb_1.y_min, aabb_2.y_min);
+    output.y_max = std::max(aabb_1.y_max, aabb_2.y_max);
+    return output;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// ShapeElement /////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -357,7 +377,7 @@ struct ShapeElement
             const Point& point_2) const;
 
     /** Compute the smallest and greatest x and y of the shape. */
-    std::pair<Point, Point> min_max() const;
+    AxisAlignedBoundingBox min_max() const;
 
     /**
      * Compute furthest points according to a given direction.
@@ -472,12 +492,12 @@ struct Shape
     AreaDbl compute_area() const;
 
     /** Compute the smallest and greatest x and y of the shape. */
-    std::pair<Point, Point> compute_min_max(
+    AxisAlignedBoundingBox compute_min_max(
             Angle angle = 0.0,
             bool mirror = false) const;
 
     /** Compute the smallest and greatest x and y in a portion of a shape. */
-    std::pair<Point, Point> compute_min_max(
+    AxisAlignedBoundingBox compute_min_max(
             const ShapePoint& point_1,
             const ShapePoint& point_2) const;
 
@@ -611,7 +631,7 @@ struct ShapeWithHoles
     AreaDbl compute_area() const;
 
     /** Compute the smallest and greatest x and y of the shape. */
-    std::pair<Point, Point> compute_min_max(
+    AxisAlignedBoundingBox compute_min_max(
             Angle angle = 0.0,
             bool mirror = false) const { return this->shape.compute_min_max(angle, mirror); }
 

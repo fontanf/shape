@@ -100,40 +100,22 @@ Writer& Writer::add_shapes_with_holes(
     return *this;
 }
 
-std::pair<Point, Point> Writer::compute_min_max() const
+AxisAlignedBoundingBox Writer::compute_min_max() const
 {
-    LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+    AxisAlignedBoundingBox output;
     for (const WriterPoint& point: this->points_) {
-        x_min = (std::min)(x_min, point.point.x);
-        x_max = (std::max)(x_max, point.point.x);
-        y_min = (std::min)(y_min, point.point.y);
-        y_max = (std::max)(y_max, point.point.y);
+        output.x_min = (std::min)(output.x_min, point.point.x);
+        output.x_max = (std::max)(output.x_max, point.point.x);
+        output.y_min = (std::min)(output.y_min, point.point.y);
+        output.y_max = (std::max)(output.y_max, point.point.y);
     }
-    for (const WriterShapeElement& element: this->elements_) {
-        auto points = element.element.min_max();
-        x_min = (std::min)(x_min, points.first.x);
-        x_max = (std::max)(x_max, points.second.x);
-        y_min = (std::min)(y_min, points.first.y);
-        y_max = (std::max)(y_max, points.second.y);
-    }
-    for (const WriterShape& shape: this->shapes_) {
-        auto points = shape.shape.compute_min_max();
-        x_min = (std::min)(x_min, points.first.x);
-        x_max = (std::max)(x_max, points.second.x);
-        y_min = (std::min)(y_min, points.first.y);
-        y_max = (std::max)(y_max, points.second.y);
-    }
-    for (const WriterShapeWithHoles& shape: this->shapes_with_holes_) {
-        auto points = shape.shape_with_holes.compute_min_max();
-        x_min = (std::min)(x_min, points.first.x);
-        x_max = (std::max)(x_max, points.second.x);
-        y_min = (std::min)(y_min, points.first.y);
-        y_max = (std::max)(y_max, points.second.y);
-    }
-    return {{x_min, y_min}, {x_max, y_max}};
+    for (const WriterShapeElement& element: this->elements_)
+        output = merge(output, element.element.min_max());
+    for (const WriterShape& shape: this->shapes_)
+        output = merge(output, shape.shape.compute_min_max());
+    for (const WriterShapeWithHoles& shape: this->shapes_with_holes_)
+        output = merge(output, shape.shape_with_holes.compute_min_max());
+    return output;
 }
 
 void Writer::write_svg(const std::string& file_path) const
@@ -147,13 +129,13 @@ void Writer::write_svg(const std::string& file_path) const
                 "unable to open file \"" + file_path + "\".");
     }
 
-    auto mm = compute_min_max();
-    LengthDbl width = (mm.second.x - mm.first.x);
-    LengthDbl height = (mm.second.y - mm.first.y);
+    AxisAlignedBoundingBox aabb = compute_min_max();
+    LengthDbl width = (aabb.x_max - aabb.x_min);
+    LengthDbl height = (aabb.y_max - aabb.y_min);
 
     std::string s = "<svg viewBox=\""
-        + std::to_string(mm.first.x)
-        + " " + std::to_string(-mm.first.y - height)
+        + std::to_string(aabb.x_min)
+        + " " + std::to_string(-aabb.y_min - height)
         + " " + std::to_string(width)
         + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";

@@ -1239,7 +1239,7 @@ std::vector<ShapeElement> shape::find_holes_bridges(
     HoleGraph hole_graph = compute_hole_graph(shape);
 
     std::vector<ShapeElement> bridges;
-    auto mm = shape.compute_min_max();
+    AxisAlignedBoundingBox aabb = shape.compute_min_max();
     for (ShapePos component_id = 0;
             component_id < (ShapePos)hole_graph.components.size();
             ++component_id) {
@@ -1250,7 +1250,7 @@ std::vector<ShapeElement> shape::find_holes_bridges(
         const std::vector<ShapePos>& component = hole_graph.components[component_id];
 
         // Find the left-most point of the component.
-        Point end = {mm.second.x + 1, 0};
+        Point end = {aabb.x_max + 1, 0};
         for (ShapePos hole_pos: component) {
             //std::cout << "hole_pos " << hole_pos << std::endl;
             const Shape& hole = shape.holes[hole_pos];
@@ -1261,7 +1261,7 @@ std::vector<ShapeElement> shape::find_holes_bridges(
 
         ShapeElement ray;
         ray.type = ShapeElementType::LineSegment;
-        ray.start.x = mm.first.x;
+        ray.start.x = aabb.x_min;
         ray.start.y = end.y;
         ray.end.x = end.x;
         ray.end.y = end.y;
@@ -1279,7 +1279,7 @@ std::vector<ShapeElement> shape::find_holes_bridges(
                 const ShapeElement& element = current_shape.elements[element_pos];
                 ShapeElementIntersectionsOutput intersections = compute_intersections(ray, element);
                 for (const ShapeElement& overlapping_part: intersections.overlapping_parts) {
-                    auto x = overlapping_part.min_max().second.x;
+                    auto x = overlapping_part.min_max().x_max;
                     if (strictly_greater(x, end.x))
                         continue;
                     if (strictly_lesser(x_max, x))

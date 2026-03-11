@@ -438,9 +438,9 @@ std::vector<ShapeWithHoles> shape::simplify(
             ApproximatedShape approximated_shape;
             approximated_shape.shape_with_holes_pos = shape_with_holes_pos;
             approximated_shape.hole_pos = hole_pos;
-            auto mm = shape.compute_min_max();
-            approximated_shape.min = mm.first;
-            approximated_shape.max = mm.second;
+            AxisAlignedBoundingBox aabb = shape.compute_min_max();
+            approximated_shape.min = {aabb.x_min, aabb.y_min};
+            approximated_shape.max = {aabb.x_max, aabb.y_max};
             approximated_shape.copies = input_shape.copies;
             approximated_shape.outer = (hole_pos == -1);
 

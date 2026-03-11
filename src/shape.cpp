@@ -285,12 +285,13 @@ Point ShapeElement::middle(
     return {0, 0};
 }
 
-std::pair<Point, Point> ShapeElement::min_max() const
+AxisAlignedBoundingBox ShapeElement::min_max() const
 {
-    LengthDbl x_min = (std::min)(this->start.x, this->end.x);
-    LengthDbl x_max = (std::max)(this->start.x, this->end.x);
-    LengthDbl y_min = (std::min)(this->start.y, this->end.y);
-    LengthDbl y_max = (std::max)(this->start.y, this->end.y);
+    AxisAlignedBoundingBox output;
+    output.x_min = (std::min)(this->start.x, this->end.x);
+    output.x_max = (std::max)(this->start.x, this->end.x);
+    output.y_min = (std::min)(this->start.y, this->end.y);
+    output.y_max = (std::max)(this->start.y, this->end.y);
 
     if (this->type == ShapeElementType::CircularArc) {
         LengthDbl radius = distance(this->center, this->start);
@@ -300,43 +301,43 @@ std::pair<Point, Point> ShapeElement::min_max() const
             std::swap(starting_angle, ending_angle);
         //std::cout << "starting_angle " << starting_angle << " ending_angle " << ending_angle << std::endl;
         if (starting_angle == ending_angle) {
-            x_min = this->center.x - radius;
-            x_max = this->center.x + radius;
-            y_min = this->center.y - radius;
-            y_max = this->center.y + radius;
+            output.x_min = this->center.x - radius;
+            output.x_max = this->center.x + radius;
+            output.y_min = this->center.y - radius;
+            output.y_max = this->center.y + radius;
         } else if (starting_angle < ending_angle) {
             if (starting_angle <= M_PI
                     && ending_angle >= M_PI) {
-                x_min = std::min(x_min, this->center.x - radius);
+                output.x_min = std::min(output.x_min, this->center.x - radius);
             }
             if (starting_angle == 0)
-                x_max = std::max(x_max, this->center.x + radius);
+                output.x_max = std::max(output.x_max, this->center.x + radius);
             if (starting_angle <= 3 * M_PI / 2
                     && ending_angle >= 3 * M_PI / 2 ) {
-                y_min = std::min(y_min, this->center.y - radius);
+                output.y_min = std::min(output.y_min, this->center.y - radius);
             }
             if (starting_angle <= M_PI / 2
                     && ending_angle >= M_PI / 2) {
-                y_max = std::max(y_max, this->center.y + radius);
+                output.y_max = std::max(output.y_max, this->center.y + radius);
             }
         } else {  // starting_angle > ending_angle
             if (starting_angle <= M_PI
                     || ending_angle >= M_PI) {
-                x_min = std::min(x_min, this->center.x - radius);
+                output.x_min = std::min(output.x_min, this->center.x - radius);
             }
-            x_max = std::max(x_max, this->center.x + radius);
+            output.x_max = std::max(output.x_max, this->center.x + radius);
             if (starting_angle <= 3 * M_PI / 2
                     || ending_angle >= 3 * M_PI / 2) {
-                y_min = std::min(y_min, this->center.y - radius);
+                output.y_min = std::min(output.y_min, this->center.y - radius);
             }
             if (starting_angle <= M_PI / 2
                     || ending_angle >= M_PI / 2) {
-                y_max = std::max(y_max, this->center.y + radius);
+                output.y_max = std::max(output.y_max, this->center.y + radius);
             }
         }
     }
 
-    return {{x_min, y_min}, {x_max, y_max}};
+    return output;
 }
 
 std::pair<Point, Point> ShapeElement::furthest_points(Angle angle) const
@@ -710,14 +711,14 @@ void ShapeElement::write_svg(
                 FUNC_SIGNATURE + ": "
                 "unable to open file \"" + file_path + "\".");
     }
-    auto mm = this->min_max();
+    AxisAlignedBoundingBox aabb = this->min_max();
 
-    LengthDbl width = (mm.second.x - mm.first.x);
-    LengthDbl height = (mm.second.y - mm.first.y);
+    LengthDbl width = (aabb.x_max - aabb.x_min);
+    LengthDbl height = (aabb.y_max - aabb.y_min);
 
     std::string s = "<svg viewBox=\""
-        + std::to_string(mm.first.x)
-        + " " + std::to_string(-mm.first.y - height)
+        + std::to_string(aabb.x_min)
+        + " " + std::to_string(-aabb.y_min - height)
         + " " + std::to_string(width)
         + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
@@ -1078,73 +1079,43 @@ AreaDbl Shape::compute_area() const
     return area / 2;
 }
 
-std::pair<Point, Point> Shape::compute_min_max(
+AxisAlignedBoundingBox Shape::compute_min_max(
         Angle angle,
         bool mirror) const
 {
-    LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+    AxisAlignedBoundingBox output;
     for (const ShapeElement& element_orig: elements) {
         ShapeElement element = (!mirror)?
             element_orig.rotate(angle):
             element_orig.axial_symmetry_y_axis().rotate(angle);
-        auto mm = element.min_max();
-        x_min = std::min(x_min, mm.first.x);
-        x_max = std::max(x_max, mm.second.x);
-        y_min = std::min(y_min, mm.first.y);
-        y_max = std::max(y_max, mm.second.y);
+        output = merge(output, element.min_max());
     }
-    return {{x_min, y_min}, {x_max, y_max}};
+    return output;
 }
 
-std::pair<Point, Point> Shape::compute_min_max(
+AxisAlignedBoundingBox Shape::compute_min_max(
         const ShapePoint& point_1,
         const ShapePoint& point_2) const
 {
-    LengthDbl x_min = std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl y_min = std::numeric_limits<LengthDbl>::infinity();
-    LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+    AxisAlignedBoundingBox output;
     const ShapeElement& element_1 = this->elements[point_1.element_pos];
     if (point_1.element_pos == point_2.element_pos
             && element_1.length(point_1.point) <= element_1.length(point_2.point)) {
         // Both on the same element with point_1 before point_2.
-        auto mm = element_1.split(point_1.point).second.split(point_2.point).first.min_max();
-        x_min = std::min(x_min, mm.first.x);
-        x_max = std::max(x_max, mm.second.x);
-        y_min = std::min(y_min, mm.first.y);
-        y_max = std::max(y_max, mm.second.y);
+        output = element_1.split(point_1.point).second.split(point_2.point).first.min_max();
     } else {
         // First partial element: from point_1.point to end of its element.
-        {
-            auto mm = element_1.split(point_1.point).second.min_max();
-            x_min = std::min(x_min, mm.first.x);
-            x_max = std::max(x_max, mm.second.x);
-            y_min = std::min(y_min, mm.first.y);
-            y_max = std::max(y_max, mm.second.y);
-        }
+        output = merge(output, element_1.split(point_1.point).second.min_max());
         // Full elements in between.
         for (ElementPos pos = (point_1.element_pos + 1) % (ElementPos)this->elements.size();
                 pos != point_2.element_pos;
                 pos = (pos + 1) % (ElementPos)this->elements.size()) {
-            auto mm = this->elements[pos].min_max();
-            x_min = std::min(x_min, mm.first.x);
-            x_max = std::max(x_max, mm.second.x);
-            y_min = std::min(y_min, mm.first.y);
-            y_max = std::max(y_max, mm.second.y);
+            output = merge(output, this->elements[pos].min_max());
         }
         // Last partial element: from start of its element to point_2.point.
-        {
-            auto mm = this->elements[point_2.element_pos].split(point_2.point).first.min_max();
-            x_min = std::min(x_min, mm.first.x);
-            x_max = std::max(x_max, mm.second.x);
-            y_min = std::min(y_min, mm.first.y);
-            y_max = std::max(y_max, mm.second.y);
-        }
+        output = merge(output, this->elements[point_2.element_pos].split(point_2.point).first.min_max());
     }
-    return {{x_min, y_min}, {x_max, y_max}};
+    return output;
 }
 
 std::pair<Shape::FurthestPoint, Shape::FurthestPoint> Shape::compute_furthest_points(
@@ -1320,10 +1291,10 @@ void Shape::contains_export_inputs(
 
 Point Shape::find_point_strictly_inside() const
 {
-    auto mm = this->compute_min_max();
+    AxisAlignedBoundingBox aabb = this->compute_min_max();
     for (Counter k = 2; k < 8; ++k) {
         for (Counter k2 = 1; k2 < k; ++k2) {
-            LengthDbl y = mm.first.y + (mm.second.y - mm.first.y) * k2 / k;
+            LengthDbl y = aabb.y_min + (aabb.y_max - aabb.y_min) * k2 / k;
             Point point_min_1 = {
                 std::numeric_limits<LengthDbl>::infinity(),
                 std::numeric_limits<LengthDbl>::infinity()};
@@ -1332,9 +1303,9 @@ Point Shape::find_point_strictly_inside() const
                 std::numeric_limits<LengthDbl>::infinity()};
             ShapeElement ray;
             ray.type = ShapeElementType::LineSegment;
-            ray.start.x = mm.first.x - 1;
+            ray.start.x = aabb.x_min - 1;
             ray.start.y = y;
-            ray.end.x = mm.second.x + 1;
+            ray.end.x = aabb.x_max + 1;
             ray.end.y = y;
             for (ElementPos element_pos = 0;
                     element_pos < this->elements.size();
@@ -1782,9 +1753,9 @@ std::pair<LengthDbl, LengthDbl> Shape::compute_width_and_height(
         Angle angle,
         bool mirror) const
 {
-    auto points = compute_min_max(angle, mirror);
-    LengthDbl width = points.second.x - points.first.x;
-    LengthDbl height = points.second.y - points.first.y;
+    AxisAlignedBoundingBox aabb = compute_min_max(angle, mirror);
+    LengthDbl width = aabb.x_max - aabb.x_min;
+    LengthDbl height = aabb.y_max - aabb.y_min;
     return {width, height};
 }
 
@@ -1964,14 +1935,14 @@ void Shape::write_svg(
                 FUNC_SIGNATURE + ": "
                 "unable to open file \"" + file_path + "\".");
     }
-    auto mm = compute_min_max(0.0);
+    AxisAlignedBoundingBox aabb = compute_min_max(0.0);
 
-    LengthDbl width = (mm.second.x - mm.first.x);
-    LengthDbl height = (mm.second.y - mm.first.y);
+    LengthDbl width = (aabb.x_max - aabb.x_min);
+    LengthDbl height = (aabb.y_max - aabb.y_min);
 
     std::string s = "<svg viewBox=\""
-        + std::to_string(mm.first.x)
-        + " " + std::to_string(-mm.first.y - height)
+        + std::to_string(aabb.x_min)
+        + " " + std::to_string(-aabb.y_min - height)
         + " " + std::to_string(width)
         + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
@@ -2135,10 +2106,10 @@ bool ShapeWithHoles::contains(
 
 Point ShapeWithHoles::find_point_strictly_inside() const
 {
-    auto mm = this->compute_min_max();
+    AxisAlignedBoundingBox aabb = this->compute_min_max();
     for (Counter k = 2; k < 8; ++k) {
         for (Counter k2 = 1; k2 < k; ++k2) {
-            LengthDbl y = mm.first.y + (mm.second.y - mm.first.y) * k2 / k;
+            LengthDbl y = aabb.y_min + (aabb.y_max - aabb.y_min) * k2 / k;
             Point point_min_1 = {
                 std::numeric_limits<LengthDbl>::infinity(),
                 std::numeric_limits<LengthDbl>::infinity()};
@@ -2147,9 +2118,9 @@ Point ShapeWithHoles::find_point_strictly_inside() const
                 std::numeric_limits<LengthDbl>::infinity()};
             ShapeElement ray;
             ray.type = ShapeElementType::LineSegment;
-            ray.start.x = mm.first.x - 1;
+            ray.start.x = aabb.x_min - 1;
             ray.start.y = y;
-            ray.end.x = mm.second.x + 1;
+            ray.end.x = aabb.x_max + 1;
             ray.end.y = y;
             for (ShapePos shape_pos = -1;
                     shape_pos < (ShapePos)this->holes.size();
@@ -2288,13 +2259,13 @@ void ShapeWithHoles::write_svg(
                 "unable to open file \"" + file_path + "\".");
     }
 
-    auto mm = shape.compute_min_max(0.0);
-    LengthDbl width = (mm.second.x - mm.first.x);
-    LengthDbl height = (mm.second.y - mm.first.y);
+    AxisAlignedBoundingBox aabb = shape.compute_min_max(0.0);
+    LengthDbl width = (aabb.x_max - aabb.x_min);
+    LengthDbl height = (aabb.y_max - aabb.y_min);
 
     std::string s = "<svg viewBox=\""
-        + std::to_string(mm.first.x)
-        + " " + std::to_string(-mm.first.y - height)
+        + std::to_string(aabb.x_min)
+        + " " + std::to_string(-aabb.y_min - height)
         + " " + std::to_string(width)
         + " " + std::to_string(height)
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";

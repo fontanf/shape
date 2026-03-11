@@ -315,15 +315,15 @@ TEST_P(ShapeElementMinMaxTest, ShapeElementMinMax)
         << " y_min " << test_params.expected_y_min
         << " x_max " << test_params.expected_x_max
         << " y_max " << test_params.expected_y_max << std::endl;
-    auto mm = test_params.element.min_max();
-    std::cout << "x_min " << mm.first.x
-        << " y_min " << mm.first.y
-        << " x_max " << mm.second.x
-        << " y_max " << mm.second.y << std::endl;
-    EXPECT_TRUE(equal(mm.first.x, test_params.expected_x_min));
-    EXPECT_TRUE(equal(mm.second.x, test_params.expected_x_max));
-    EXPECT_TRUE(equal(mm.first.y, test_params.expected_y_min));
-    EXPECT_TRUE(equal(mm.second.y, test_params.expected_y_max));
+    AxisAlignedBoundingBox aabb = test_params.element.min_max();
+    std::cout << "x_min " << aabb.x_min
+        << " y_min " << aabb.y_min
+        << " x_max " << aabb.x_max
+        << " y_max " << aabb.y_max << std::endl;
+    EXPECT_TRUE(equal(aabb.x_min, test_params.expected_x_min));
+    EXPECT_TRUE(equal(aabb.x_max, test_params.expected_x_max));
+    EXPECT_TRUE(equal(aabb.y_min, test_params.expected_y_min));
+    EXPECT_TRUE(equal(aabb.y_max, test_params.expected_y_max));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -832,15 +832,15 @@ TEST_P(ShapeComputeMinMaxTest, ShapeComputeMinMax)
         << " y_min " << test_params.expected_y_min
         << " x_max " << test_params.expected_x_max
         << " y_max " << test_params.expected_y_max << std::endl;
-    auto mm = test_params.shape.compute_min_max(test_params.point_1, test_params.point_2);
-    std::cout << "x_min " << mm.first.x
-        << " y_min " << mm.first.y
-        << " x_max " << mm.second.x
-        << " y_max " << mm.second.y << std::endl;
-    EXPECT_TRUE(equal(mm.first.x, test_params.expected_x_min));
-    EXPECT_TRUE(equal(mm.first.y, test_params.expected_y_min));
-    EXPECT_TRUE(equal(mm.second.x, test_params.expected_x_max));
-    EXPECT_TRUE(equal(mm.second.y, test_params.expected_y_max));
+    AxisAlignedBoundingBox aabb = test_params.shape.compute_min_max(test_params.point_1, test_params.point_2);
+    std::cout << "x_min " << aabb.x_min
+        << " y_min " << aabb.y_min
+        << " x_max " << aabb.x_max
+        << " y_max " << aabb.y_max << std::endl;
+    EXPECT_TRUE(equal(aabb.x_min, test_params.expected_x_min));
+    EXPECT_TRUE(equal(aabb.y_min, test_params.expected_y_min));
+    EXPECT_TRUE(equal(aabb.x_max, test_params.expected_x_max));
+    EXPECT_TRUE(equal(aabb.y_max, test_params.expected_y_max));
 }
 
 // Square: el 0 = (0,0)→(4,0), el 1 = (4,0)→(4,4), el 2 = (4,4)→(0,4), el 3 = (0,4)→(0,0).

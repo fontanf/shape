@@ -74,14 +74,14 @@ void fill_columns_intersections(
             element_pos < (ElementPos)shape.elements.size();
             ++element_pos) {
         const ShapeElement& element = shape.elements[element_pos];
-        auto mm = element.min_max();
+        AxisAlignedBoundingBox aabb = element.min_max();
         // Retrieve all intersections between the element and the grid.
-        ColumnId column_low = find_cell(cell_width, cell_height, mm.first).column;
-        ColumnId column_high = find_cell(cell_width, cell_height, mm.second).column;
+        ColumnId column_low = find_cell(cell_width, cell_height, {aabb.x_min, aabb.y_min}).column;
+        ColumnId column_high = find_cell(cell_width, cell_height, {aabb.x_max, aabb.y_max}).column;
         for (ColumnId column = column_low; column <= column_high + 1; ++column) {
             ShapeElement line_segment = build_line_segment(
-                    {column * cell_width, mm.first.y - 1},
-                    {column * cell_width, mm.second.y + 1});
+                    {column * cell_width, aabb.y_min - 1},
+                    {column * cell_width, aabb.y_max + 1});
             ShapeElementIntersectionsOutput intersections = compute_intersections(element, line_segment);
             for (const ShapeElement& overlapping_part: intersections.overlapping_parts) {
                 intersection_points.push_back({element_pos, overlapping_part.start});
@@ -119,10 +119,10 @@ void fill_columns_intersections(
         Cell cell = find_cell(cell_width, cell_height, point_between.point);
         if (!equal(point_between.point.x, cell.column * cell_width)
                 && !equal(point_between.point.x, (cell.column + 1) * cell_width)) {
-            auto mm = shape.compute_min_max(point_prev, point);
+            AxisAlignedBoundingBox aabb = shape.compute_min_max(point_prev, point);
             ColumnIntersection column_intersection;
-            column_intersection.y_min = mm.first.y;
-            column_intersection.y_max = mm.second.y;
+            column_intersection.y_min = aabb.y_min;
+            column_intersection.y_max = aabb.y_max;
             bool in_left = (equal(point_prev.point.x, cell.column * cell_width));
             bool out_left = (equal(point.point.x, cell.column * cell_width));
             if (in_left) {
@@ -165,11 +165,11 @@ std::vector<IntersectedCell> shape::rasterization(
 {
     std::vector<IntersectedCell> cells;
 
-    std::pair<Point, Point> mm = shape.compute_min_max();
-    ColumnId column_min = find_cell(cell_width, cell_height, mm.first).column;
-    ColumnId column_max = find_cell(cell_width, cell_height, mm.second).column;
-    RowId row_min = find_cell(cell_width, cell_height, mm.first).row;
-    RowId row_max = find_cell(cell_width, cell_height, mm.second).row;
+    AxisAlignedBoundingBox aabb = shape.compute_min_max();
+    ColumnId column_min = find_cell(cell_width, cell_height, {aabb.x_min, aabb.y_min}).column;
+    ColumnId column_max = find_cell(cell_width, cell_height, {aabb.x_max, aabb.y_max}).column;
+    RowId row_min = find_cell(cell_width, cell_height, {aabb.x_min, aabb.y_min}).row;
+    RowId row_max = find_cell(cell_width, cell_height, {aabb.x_max, aabb.y_max}).row;
     //std::cout << "column min " << column_min << " max " << column_max << std::endl;
     //std::cout << "row min " << row_min << " max " << row_max << std::endl;
 

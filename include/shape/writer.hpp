@@ -48,7 +48,7 @@ public:
 
 private:
 
-    std::pair<Point, Point> compute_min_max() const;
+    AxisAlignedBoundingBox compute_min_max() const;
 
     struct WriterPoint
     {
