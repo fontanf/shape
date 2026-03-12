@@ -1,3 +1,5 @@
+//#define OFFSET_TEST_DEBUG
+
 #include "shape/offset.hpp"
 
 #include "shape/writer.hpp"
@@ -52,17 +54,21 @@ TEST_P(InflateShapeTest, InflateShape)
     std::cout << "offset " << test_params.offset << std::endl;
     std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
 
-    //Writer writer;
-    //writer.add_shape(test_params.shape);
-    //if (!test_params.expected_output.shape.elements.empty())
-    //    writer.add_shape_with_holes(test_params.expected_output);
-    //writer.write_json("inflate_shape_input.json");;
+#ifdef OFFSET_TEST_DEBUG
+    Writer writer;
+    writer.add_shape(test_params.shape);
+    if (!test_params.expected_output.shape.elements.empty())
+        writer.add_shape_with_holes(test_params.expected_output);
+    writer.write_json("inflate_shape_input.json");;
+#endif
 
     auto output = inflate(
         test_params.shape,
         test_params.offset);
     std::cout << "output " << output.to_string(0) << std::endl;
-    //writer.add_shape_with_holes(output).write_json("inflate_shape_output.json");
+#ifdef OFFSET_TEST_DEBUG
+    writer.add_shape_with_holes(output).write_json("inflate_shape_output.json");
+#endif
 
     EXPECT_TRUE(equal(output, test_params.expected_output));
 }
@@ -144,6 +150,8 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "offset" / "inflate_shape" / "3.json").string()),
             InflateShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "offset" / "inflate_shape" / "4.json").string()),
+            InflateShapeTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate_shape" / "5.json").string()),
             }));
 
 
@@ -175,7 +183,9 @@ TEST_P(InflateShapeWithHolesTest, InflateShapeWithHoles)
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "offset " << test_params.offset << std::endl;
     std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
-    //Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(test_params.expected_output).write_json("inflate_input.json");
+#ifdef OFFSET_TEST_DEBUG
+    Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(test_params.expected_output).write_json("inflate_input.json");
+#endif
 
     if (!test_params.shape.shape.check()) {
         throw std::invalid_argument(FUNC_SIGNATURE);
@@ -184,7 +194,9 @@ TEST_P(InflateShapeWithHolesTest, InflateShapeWithHoles)
         test_params.shape,
         test_params.offset);
     std::cout << "output " << output.to_string(0) << std::endl;
-    //Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(output).write_json("inflate_output.json");
+#ifdef OFFSET_TEST_DEBUG
+    Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(output).write_json("inflate_output.json");
+#endif
 
     if (test_params.write_json || test_params.write_svg) {
         std::string base_filename = "inflate_" + fs::path(test_params.name).filename().replace_extension("").string();

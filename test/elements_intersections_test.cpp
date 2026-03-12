@@ -1,5 +1,10 @@
+//#define ELEMENTS_INTERSECTIONS_TEST_ENABLE_DEBUG
+
 #include "shape/elements_intersections.hpp"
-//#include "shape/writer.hpp"
+
+#ifdef ELEMENTS_INTERSECTIONS_TEST_ENABLE_DEBUG
+#include "shape/writer.hpp"
+#endif
 
 #include <gtest/gtest.h>
 
@@ -55,7 +60,10 @@ TEST_P(ComputeIntersectionsTest, ComputeIntersections)
     std::cout << "element_2 " << test_params.element_2.to_string() << std::endl;
     std::cout << "expected_output" << std::endl;
     std::cout << "  " << test_params.expected_output.to_string(2) << std::endl;
-    //Writer().add_element(test_params.element_1).add_element(test_params.element_2).write_json("elements_intersections_input.json");
+
+#ifdef ELEMENTS_INTERSECTIONS_TEST_ENABLE_DEBUG
+    Writer().add_element(test_params.element_1).add_element(test_params.element_2).write_json("elements_intersections_input.json");
+#endif
 
     ShapeElementIntersectionsOutput intersections = compute_intersections(
             test_params.element_1,
@@ -353,7 +361,7 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 build_line_segment({50.799363786652592, 829.79309718318791}, {53, 829.79309718318791}),
                 build_circular_arc({50.944819780551953, 829.79309813929058}, {51.128050296112626, 829.61741540234266}, {50.946057976713746, 829.61099688004469}, ShapeElementOrientation::Clockwise),
-                {{}, {{50.944819780551953, 829.79309813929058}}, {{50.947296172875539, 829.79309813929058}}},
+                {{}, {{50.944819780551953, 829.79309813929058}}, {{50.947429597587131, 829.79309718318791}}},
             }, {
                 build_line_segment({51.132929559991737, 829.61804422187424}, {51.12596376618437, 829.65009586390147}),
                 build_circular_arc({51.130975182528729, 829.6176194763832}, {51.134905264313737, 829.56991617580513}, {50.953023770521156, 829.57894523801747}, ShapeElementOrientation::Clockwise),
@@ -366,4 +374,12 @@ INSTANTIATE_TEST_SUITE_P(
                 build_line_segment({601.37341963972028, 787.90014458433279}, {599.81295754503253, 789.68144089516204}),
                 build_line_segment({599.87775316406248, 789.73674077636724}, {599.81361560058599, 789.68068792578129}),
                 {{}, {{599.81361560058599, 789.68068792578129}}, {}},
+            }, {
+                build_circular_arc({598.31106876693968, 796.30166458232361}, {599.834037688732, 798.70345557555606}, {598.77545403436409, 797.69094984292099}, ShapeElementOrientation::Clockwise),
+                build_circular_arc({599.834037688732, 798.70345557555606}, {597.69562574913357, 797.19790611829649}, {598.38475192549402, 798.49052838522869}, ShapeElementOrientation::Clockwise),
+                {{}, {{599.834037688732, 798.70345557555606}}, {}},
+            }, {
+                build_line_segment({50.150017389838389, 829.71801196221224}, {50.124395747699587, 829.64459518446085}),
+                build_circular_arc({50.140546024564948, 829.6941459830532}, {50.150026216439528, 829.71803843587156}, {49.974576976810582, 829.77382721554341}, ShapeElementOrientation::Anticlockwise),
+                {{}, {}, {{50.146645768647772, 829.70835084958333}}},
             }}));
