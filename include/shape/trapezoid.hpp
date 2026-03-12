@@ -96,7 +96,7 @@ public:
         a_left_ = 0;
     }
 
-    void set_top_covered(bool top_covered) { top_covered_ = top_covered_; }
+    void set_top_covered(bool top_covered) { top_covered_ = top_covered; }
 
     void set_bottom_covered(bool bottom_covered) { bottom_covered_ = bottom_covered; }
 
