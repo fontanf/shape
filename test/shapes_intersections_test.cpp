@@ -1,6 +1,10 @@
+//#define SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
+
 #include "shape/shapes_intersections.hpp"
 
-//#include "shape/writer.hpp"
+#ifdef SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
+#include "shape/writer.hpp"
+#endif
 
 #include <gtest/gtest.h>
 
@@ -12,7 +16,6 @@
 
 using namespace shape;
 namespace fs = boost::filesystem;
-
 
 struct IntersectShapeTestParams
 {
@@ -110,7 +113,7 @@ INSTANTIATE_TEST_SUITE_P(
                         {1, 1},
                         {0, 1}}),
                 true,
-                }}));
+            }}));
 
 
 struct IntersectShapeShapeElementTestParams
@@ -157,7 +160,10 @@ TEST_P(IntersectShapeShapeElementTest, IntersectShapeShapeElement)
     std::cout << "element " << test_params.element.to_string() << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_output " << test_params.expected_output << std::endl;
-    //Writer().add_shape(test_params.shape).add_element(test_params.element).write_json("intersect_input.json");
+
+#ifdef SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
+    Writer().add_shape(test_params.shape).add_element(test_params.element).write_json("intersect_input.json");
+#endif
 
     bool output = intersect(
             test_params.shape,
@@ -261,10 +267,12 @@ TEST_P(ComputeIntersectionsPathShapeTest, ComputeIntersectionsPathShape)
             << " point " << intersection.point.to_string() << std::endl;
     }
 
-    //Writer()
-    //    .add_shape(test_params.path)
-    //    .add_shape(test_params.shape)
-    //    .write_json("compute_intersections_path_shape.json");
+#ifdef SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
+    Writer()
+        .add_shape(test_params.path)
+        .add_shape(test_params.shape)
+        .write_json("compute_intersections_path_shape.json");
+#endif
 
     ASSERT_EQ(output.size(), test_params.expected_output.size());
     for (ElementPos pos = 0; pos < (ElementPos)output.size(); ++pos) {
@@ -367,10 +375,12 @@ TEST_P(ComputeStrictIntersectionsPathShapeTest, ComputeStrictIntersectionsPathSh
             << " point " << intersection.point.to_string() << std::endl;
     }
 
-    //Writer()
-    //    .add_shape(test_params.path)
-    //    .add_shape(test_params.shape)
-    //    .write_json("compute_intersections_path_shape.json");
+#ifdef SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
+    Writer()
+        .add_shape(test_params.path)
+        .add_shape(test_params.shape)
+        .write_json("compute_intersections_path_shape.json");
+#endif
 
     ASSERT_EQ(output.size(), test_params.expected_output.size());
     for (ElementPos pos = 0; pos < (ElementPos)output.size(); ++pos) {
@@ -441,10 +451,13 @@ TEST_P(IntersectShapeShapeTest, IntersectShapeShape)
     std::cout << "shape_2 " << test_params.shape_2.to_string(0) << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_output " << test_params.expected_output << std::endl;
-    //Writer()
-    //    .add_shape(test_params.shape_1, "Shape 1")
-    //    .add_shape(test_params.shape_2, "Shape 2")
-    //    .write_json("intersect_shape_shape_input.json");
+
+#ifdef SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
+    Writer()
+        .add_shape(test_params.shape_1, "Shape 1")
+        .add_shape(test_params.shape_2, "Shape 2")
+        .write_json("intersect_shape_shape_input.json");
+#endif
 
     bool output = intersect(
             test_params.shape_1,
@@ -557,10 +570,13 @@ TEST_P(IntersectShapeWithHolesShapeTest, IntersectShapeWithHolesShape)
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
     std::cout << "strict " << test_params.strict << std::endl;
     std::cout << "expected_output " << test_params.expected_output << std::endl;
-    //Writer()
-    //    .add_shape_with_holes(test_params.shape_with_holes, "Shape with holes")
-    //    .add_shape(test_params.shape, "Shape")
-    //    .write_json("intersect_shape_with_holes_shape_input.json");
+
+#ifdef SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
+    Writer()
+        .add_shape_with_holes(test_params.shape_with_holes, "Shape with holes")
+        .add_shape(test_params.shape, "Shape")
+        .write_json("intersect_shape_with_holes_shape_input.json");
+#endif
 
     bool output = intersect(
             test_params.shape_with_holes,

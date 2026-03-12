@@ -1,13 +1,19 @@
+//#define BOOLEAN_OPERATIONS_ENABLE_DEBUG
+
 #include "shape/boolean_operations.hpp"
 
 #include "shape/equalize.hpp"
 #include "shape/intersection_tree.hpp"
 #include "shape/clean.hpp"
-//#include "shape/writer.hpp"
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+#include "shape/writer.hpp"
+#endif
 
 #include "optimizationtools/containers/doubly_indexed_map.hpp"
 
-//#include <iostream>
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+#include <iostream>
+#endif
 #include <fstream>
 
 using namespace shape;
@@ -93,8 +99,10 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         const std::vector<ShapeWithHoles>& shapes,
         BooleanOperation boolean_operation)
 {
-    //std::cout << "compute_splitted_elements"
-    //    " shapes.size() " << shapes.size() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    std::cout << "compute_splitted_elements"
+        " shapes.size() " << shapes.size() << std::endl;
+#endif
     //for (const ShapeWithHoles& shape: shapes) {
     //    std::cout << shape.to_string(2)
     //        << shape.shape.compute_area()
@@ -149,10 +157,12 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             }
         }
     }
-    //std::cout << "elements" << std::endl;
-    //for (const ShapeElement& element: elements)
-    //    std::cout << element.to_string() << std::endl;
-    //std::cout << "elements end" << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    std::cout << "elements" << std::endl;
+    for (const ShapeElement& element: elements)
+        std::cout << element.to_string() << std::endl;
+    std::cout << "elements end" << std::endl;
+#endif
 
     IntersectionTree intersection_tree({}, elements, {});
     std::vector<ElementElementIntersection> intersections
@@ -233,13 +243,15 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         if (output.shape_component_ids.number_of_elements(component_id) == 0)
             continue;
 
-        //std::cout << "component_id " << component_id << std::endl;
-        //for (auto it_shape = output.shape_component_ids.begin(component_id);
-        //        it_shape != output.shape_component_ids.end(component_id);
-        //        ++it_shape) {
-        //    std::cout << " " << *it_shape;
-        //}
-        //std::cout << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+        std::cout << "component_id " << component_id << std::endl;
+        for (auto it_shape = output.shape_component_ids.begin(component_id);
+                it_shape != output.shape_component_ids.end(component_id);
+                ++it_shape) {
+            std::cout << " " << *it_shape;
+        }
+        std::cout << std::endl;
+#endif
 
         // Check if it is inside another component.
         IntersectionTree::IntersectOutput it_output = intersection_tree_2.intersect(
@@ -250,9 +262,11 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             if (!output.shape_component_ids.contains(shape_id))
                 continue;
             ComponentId component_2_id = output.shape_component_ids[shape_id];
-            //std::cout << "shape_id " << shape_id
-            //    << " component_2_id " << component_2_id
-            //    << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+            std::cout << "shape_id " << shape_id
+                << " component_2_id " << component_2_id
+                << std::endl;
+#endif
             if (component_2_id != component_id)
                 intersecting_compooents.add(component_2_id);
         }
@@ -330,11 +344,13 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         if (!output.shape_component_ids.contains(shape_pos))
             continue;
         ComponentId component_id = output.shape_component_ids[shape_pos];
-        //std::cout << "element_pos " << element_pos
-        //    << " " << element.to_string()
-        //    << " shape_pos " << shape_pos
-        //    << " component_id " << component_id
-        //    << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+        std::cout << "element_pos " << element_pos
+            << " " << element.to_string()
+            << " shape_pos " << shape_pos
+            << " component_id " << component_id
+            << std::endl;
+#endif
         // Sort intersection points of this element.
         std::sort(
                 elements_intersections[element_pos].begin(),
@@ -386,9 +402,11 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 new_element.original_direction = true;
                 output.components_splitted_elements[component_id].push_back(new_element);
 
-                //std::cout << "  - " << point_cur.to_string() << std::endl;
-                //std::cout << "    " << new_element.element.to_string() << std::endl;
-                //std::cout << "    length " << new_element.element.length() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+                std::cout << "  - " << point_cur.to_string() << std::endl;
+                std::cout << "    " << new_element.element.to_string() << std::endl;
+                std::cout << "    length " << new_element.element.length() << std::endl;
+#endif
             } else {
 
                 auto p = element.split(point_cur);
@@ -400,7 +418,9 @@ ComputeSplittedElementsOutput compute_splitted_elements(
 
                 if (p.first.type == shape::ShapeElementType::CircularArc
                         && p.first.contains((p.first.start + p.first.end) / 2)) {
-                    //std::cout << "change to line segment" << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+                    std::cout << "change to line segment" << std::endl;
+#endif
                     p.first.type = shape::ShapeElementType::LineSegment;
                 }
 
@@ -410,9 +430,11 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 new_element.original_direction = true;
                 output.components_splitted_elements[component_id].push_back(new_element);
 
-                //std::cout << "  - " << point_cur.to_string() << std::endl;
-                //std::cout << "    " << new_element.element.to_string() << std::endl;
-                //std::cout << "    length " << new_element.element.length() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+                std::cout << "  - " << point_cur.to_string() << std::endl;
+                std::cout << "    " << new_element.element.to_string() << std::endl;
+                std::cout << "    length " << new_element.element.length() << std::endl;
+#endif
             }
         }
 
@@ -424,8 +446,10 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             new_element.original_direction = true;
             output.components_splitted_elements[component_id].push_back(new_element);
 
-            //std::cout << "  - " << new_element.element.to_string() << std::endl;
-            //std::cout << "    length " << new_element.element.length() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+            std::cout << "  - " << new_element.element.to_string() << std::endl;
+            std::cout << "    length " << new_element.element.length() << std::endl;
+#endif
         }
     }
 
@@ -471,8 +495,10 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         splitted_elements.erase(unique(splitted_elements.begin(), splitted_elements.end()), splitted_elements.end());
     }
 
-    //std::cout << "output.shape_component_ids.number_of_values() " << output.shape_component_ids.number_of_values() << std::endl;
-    //std::cout << "compute_splitted_elements end" << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    std::cout << "output.shape_component_ids.number_of_values() " << output.shape_component_ids.number_of_values() << std::endl;
+    std::cout << "compute_splitted_elements end" << std::endl;
+#endif
     return output;
 }
 
@@ -596,10 +622,12 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     std::vector<ShapeWithHoles> new_shapes;
     BooleanOperationGraph graph = compute_graph(splitted_elements);
 
-    //Writer writer;
-    //for (const auto& splitted_element: splitted_elements)
-    //    writer.add_element(splitted_element.element);
-    //writer.write_json("overlay.json");
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    Writer writer;
+    for (const auto& splitted_element: splitted_elements)
+        writer.add_element(splitted_element.element);
+    writer.write_json("overlay.json");
+#endif
 
     std::vector<ElementPos> arcs_next(graph.arcs.size(), -1);
     for (NodeId node_id = 0; node_id < (NodeId)graph.nodes.size(); ++node_id) {
@@ -626,17 +654,24 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 });
         // Update arcs_next.
         ElementPos arc_prev_id = node.successors.back();
-        //std::cout << "node_id " << node_id << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+        std::cout << "node_id " << node_id << std::endl;
+#endif
         for (ElementPos arc_id: node.successors) {
             const BooleanOperationArc& arc = graph.arcs[arc_id];
             arcs_next[arc.reverse_arc_id] = arc_prev_id;
-            //std::cout << arc_id
-            //    << " " << splitted_elements[arc_id].element.to_string() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+            const ShapeElement& element = splitted_elements[arc_id].element;
+            std::cout << arc_id
+                << " " << splitted_elements[arc_id].orig_shape_id
+                << " " << element.to_string() << std::endl;
             //std::cout << arc.reverse_arc_id << " -> " << arc_prev_id << std::endl;
-            //std::cout << arc.reverse_arc_id
+            //std::cout << "  " << arc.reverse_arc_id
             //    << " " << splitted_elements[arc.reverse_arc_id].element.to_string() << std::endl;
             //std::cout << arc_prev_id
             //    << " " << splitted_elements[arc_prev_id].element.to_string() << std::endl;
+            std::cout << shape::to_string(angle_radian(element.tangent(element.start))) << std::endl;
+#endif
             arc_prev_id = arc_id;
         }
     }
@@ -674,7 +709,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             p_max = p.second;
         }
     }
-    //std::cout << "p_max " << p_max.to_string() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    std::cout << "p_max " << p_max.to_string() << std::endl;
+#endif
 
     std::vector<ElementPos> rightest_elements_pos;
     for (ElementPos element_pos = 0;
@@ -684,7 +721,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         if (element.element.contains(p_max))
             rightest_elements_pos.push_back(element_pos);
     }
-    //std::cout << "rightest_elements_pos.size() " << rightest_elements_pos.size() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    std::cout << "rightest_elements_pos.size() " << rightest_elements_pos.size() << std::endl;
+#endif
 
     LengthDbl l = std::numeric_limits<LengthDbl>::infinity();
     for (ElementPos element_pos: rightest_elements_pos) {
@@ -692,12 +731,16 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         if (equal(p_max, splitted_element.element.end)
                 && !equal(p_max, splitted_element.element.start))
             continue;
-        //std::cout << splitted_element.element.to_string() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+        std::cout << splitted_element.element.to_string() << std::endl;
+#endif
         LengthDbl l0 = splitted_element.element.length(p_max);
         l = (std::min)(l, splitted_element.element.length() - l0);
     }
     l /= 2;
-    //std::cout << "l " << l << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    std::cout << "l " << l << std::endl;
+#endif
 
     ElementPos element_start_pos = -1;
     Point largest_angle_point = p_max + Point{1, 0};
@@ -715,22 +758,28 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             largest_angle_point = point;
         }
     }
-    //std::cout << "element_start_pos " << element_start_pos << std::endl
-    //    << "    " << splitted_elements[element_start_pos].element.to_string() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    std::cout << "element_start_pos " << element_start_pos << std::endl
+        << "    " << splitted_elements[element_start_pos].element.to_string() << std::endl;
+#endif
     if (element_start_pos == -1) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": element_start_pos is '-1'.");
     }
 
     // Find outer loop.
-    //std::cout << "find outer loop..." << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    std::cout << "find outer loop..." << std::endl;
+#endif
     std::vector<uint8_t> element_is_processed(splitted_elements.size(), 0);
     ElementPos element_cur_pos = element_start_pos;
     Shape outline;
     while (!element_is_processed[element_cur_pos]) {
         const ShapeElement& element_cur = splitted_elements[element_cur_pos].element;
-        //std::cout << "element_cur " << element_cur_pos
-        //    << " " << element_cur.to_string() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+        std::cout << "element_cur " << element_cur_pos
+            << " " << element_cur.to_string() << std::endl;
+#endif
         element_is_processed[element_cur_pos] = 1;
         outline.elements.push_back(element_cur);
         if (element_cur.orientation == ShapeElementOrientation::Full)
@@ -792,10 +841,12 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                 ++element_pos) {
             const BooleanOperationArc& arc = graph.arcs[element_pos];
             const ShapeElement& element = splitted_elements[element_pos].element;
-            //std::cout << "element " << element_pos
-            //    << " " << element.to_string()
-            //    << " proc " << element_is_processed[element_pos]
-            //    << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+            std::cout << "element " << element_pos
+                << " " << element.to_string()
+                << " proc " << element_is_processed[element_pos]
+                << std::endl;
+#endif
             if (!element_is_processed[element_pos]) {
                 element_start_pos = element_pos;
                 break;
@@ -805,15 +856,19 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         if (element_start_pos == -1)
             break;
 
-        //std::cout << "find faces..." << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+        std::cout << "find faces..." << std::endl;
+#endif
         Shape face;
         std::vector<uint8_t> is_inside(component_shapes.size(), 0);
         ElementPos element_cur_pos = element_start_pos;
         while (!element_is_processed[element_cur_pos]) {
             const SplittedElement& splitted_element_cur = splitted_elements[element_cur_pos];
             const ShapeElement& element_cur = splitted_element_cur.element;
-            //std::cout << "element_cur " << element_cur_pos
-            //    << " " << element_cur.to_string() << std::endl;
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+            std::cout << "element_cur " << element_cur_pos
+                << " " << element_cur.to_string() << std::endl;
+#endif
             face.elements.push_back(element_cur);
             element_is_processed[element_cur_pos] = 1;
             if (splitted_element_cur.original_direction) {
@@ -830,17 +885,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
         // Check if the face is valid.
         if (!equal(face.elements.back().end, face.elements.front().start)) {
-            //std::cout << face.to_string(0) << std::endl;
-            //Writer writer;
-            //for (const auto& splitted_element: splitted_elements)
-            //    writer.add_element(splitted_element.element);
-            //Writer writer;
-            //for (const auto& splitted_element: splitted_elements)
-            //    writer.add_element(splitted_element.element);
-            //writer.write_json("overlay.json");
-            //compute_union_export_inputs(
-            //        "compute_union_inputs.json",
-            //        shapes);
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+            std::cout << face.to_string(0) << std::endl;
+#endif
             throw std::logic_error(
                     FUNC_SIGNATURE + ": "
                     "face is not closed.");
@@ -848,14 +895,13 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
         // Check if the face is valid.
         if (strictly_lesser(face.compute_area(), 0.0)) {
-            //std::cout << face.to_string(0) << std::endl;
-            //std::vector<ShapeElement> elements;
-            //Writer writer;
-            //for (const auto& splitted_element: splitted_elements)
-            //    writer.add_element(splitted_element.element);
-            //writer.write_json("overlay.json");
-            //Writer().add_shapes_with_holes(shapes).write_json("shape.json");
-            //Writer().add_shape(face).add_shapes_with_holes(shapes).write_json("face.json");
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+            std::cout << face.to_string(0) << std::endl;
+            Writer()
+                .add_shape(face, "Face")
+                .add_shapes_with_holes(shapes, "Shape")
+                .write_json("face.json");
+#endif
             throw std::logic_error(
                     FUNC_SIGNATURE + ": "
                     "face area is not positive.");

@@ -1,3 +1,5 @@
+//#define BOOLEAN_OPERATIONS_TEST_ENABLE_DEBUG
+
 #include "shape/boolean_operations.hpp"
 
 #include "shape/writer.hpp"
@@ -158,8 +160,11 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
     std::cout << "expected_output" << std::endl;
     for (const ShapeWithHoles& shape: test_params.expected_output)
         std::cout << "- " << shape.to_string(2) << std::endl;
-    //Writer().add_shapes_with_holes(test_params.shapes).write_json("compute_union_input.json");
-    //Writer().add_shapes_with_holes(test_params.expected_output).write_json("compute_union_expected_output.json");
+
+#ifdef BOOLEAN_OPERATIONS_TEST_ENABLE_DEBUG
+    Writer().add_shapes_with_holes(test_params.shapes).write_json("compute_union_input.json");
+    Writer().add_shapes_with_holes(test_params.expected_output).write_json("compute_union_expected_output.json");
+#endif
 
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)test_params.shapes.size();
@@ -174,7 +179,10 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
     std::cout << "output" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
-    //Writer().add_shapes_with_holes(output).write_json("compute_union_output.json");
+
+#ifdef BOOLEAN_OPERATIONS_TEST_ENABLE_DEBUG
+    Writer().add_shapes_with_holes(output).write_json("compute_union_output.json");
+#endif
 
     if (test_params.write_json || test_params.write_svg) {
         std::string base_filename = "union_" + fs::path(test_params.name).filename().replace_extension("").string();

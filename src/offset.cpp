@@ -1,10 +1,16 @@
+//#define OFFSET_DEBUG
+
 #include "shape/offset.hpp"
 
 #include "shape/boolean_operations.hpp"
 #include "shape/clean.hpp"
-//#include "shape/writer.hpp"
+#ifdef OFFSET_DEBUG
+#include "shape/writer.hpp"
+#endif
 
-//#include <iostream>
+#ifdef OFFSET_DEBUG
+#include <iostream>
+#endif
 #include <fstream>
 
 using namespace shape;
@@ -333,8 +339,10 @@ ShapeWithHoles shape::inflate(
         }
     }
 
-    //compute_union_export_inputs("compute_union_input.json", union_input);
-    //Writer().add_shapes_with_holes(union_input).write_json("shapes.json");
+#ifdef OFFSET_DEBUG
+    compute_union_export_inputs("compute_union_input.json", union_input);
+    Writer().add_shapes_with_holes(union_input).write_json("shapes.json");
+#endif
     return compute_union(union_input).front();
 }
 
@@ -521,8 +529,10 @@ ShapeWithHoles shape::inflate(
         union_input.push_back(sector);
     }
 
-    //compute_union_export_inputs("union_input.json", union_input);
-    //Writer().add_shape(shape_orig).add_shapes_with_holes(union_input).write_json("shapes.json");
+#ifdef OFFSET_DEBUG
+    compute_union_export_inputs("union_input.json", union_input);
+    Writer().add_shape(shape_orig).add_shapes_with_holes(union_input).write_json("shapes.json");
+#endif
     return compute_union(union_input).front();
 }
 

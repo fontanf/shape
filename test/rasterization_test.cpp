@@ -1,8 +1,12 @@
+//#define RASTERIZATION_TEST_DEBUG
+
 #include "shape/rasterization.hpp"
 
 #include "shape/boolean_operations.hpp"
 #include "shape/shapes_intersections.hpp"
+#ifdef RASTERIZATION_TEST_DEBUG
 #include "shape/writer.hpp"
+#endif
 
 #include <gtest/gtest.h>
 
@@ -32,15 +36,19 @@ TEST_P(RasterizationTest, Rasterization)
     std::cout << "cell_width " << test_params.cell_width
         << " cell_height " << test_params.cell_height << std::endl;
 
+#ifdef RASTERIZATION_TEST_DEBUG
     Writer writer;
     writer.add_shape_with_holes(test_params.shape).write_json("rasterization_input.json");
+#endif
     std::vector<IntersectedCell> cells = rasterization(
             test_params.shape,
             test_params.cell_width,
             test_params.cell_height);
+#ifdef RASTERIZATION_TEST_DEBUG
     for (const IntersectedCell& cell: cells)
         writer.add_shape(cell_to_shape(cell.cell, test_params.cell_width, test_params.cell_height));
     writer.write_json("rasterization_output.json");
+#endif
 
     std::cout << "cells (" << cells.size() << ")" << std::endl;
     for (const IntersectedCell& ic: cells) {

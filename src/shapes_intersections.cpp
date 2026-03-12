@@ -1,11 +1,17 @@
+//#define SHAPES_INTERSECTIONS_DEBUG
+
 #include "shape/shapes_intersections.hpp"
 
 #include "shape/elements_intersections.hpp"
 #include "shape/boolean_operations.hpp"
 #include "shape/intersection_tree.hpp"
-//#include "shape/writer.hpp"
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+#include "shape/writer.hpp"
+#endif
 
-//#include <iostream>
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+#include <iostream>
+#endif
 #include <fstream>
 
 using namespace shape;
@@ -34,6 +40,9 @@ bool shape::intersect(
         = intersection_tree.compute_intersecting_elements(false);
     if (shape.is_path) {
         for (const ElementElementIntersection& intersection: intersecting_elements) {
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+            std::cout << intersection.intersections.to_string(0) << std::endl;
+#endif
             if (!intersection.intersections.proper_intersections.empty())
                 return true;
             if (!intersection.intersections.overlapping_parts.empty())
@@ -216,7 +225,9 @@ bool shape::intersect(
             });
     Point current_point = element.start;
     for (ElementPos pos = 0; pos < (ElementPos)intersections.size(); ++pos) {
-        //std::cout << "pos " << pos << " current_point " << current_point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+        std::cout << "pos " << pos << " current_point " << current_point.to_string() << std::endl;
+#endif
         if (intersections[pos].first == 0) {
             // Overlapping part.
             const ShapeElement& overlapping_part = overlapping_parts[intersections[pos].second];
@@ -230,10 +241,14 @@ bool shape::intersect(
         } else {
             // Intersection point.
             const Point& point = intersection_points[intersections[pos].second];
-            //std::cout << "point " << point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+            std::cout << "point " << point.to_string() << std::endl;
+#endif
             if (strictly_lesser(element.length(current_point), element.length(point))) {
                 Point point_between = element.find_point_between(current_point, point);
-                //std::cout << "point_between " << point_between.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+                std::cout << "point_between " << point_between.to_string() << std::endl;
+#endif
                 if (shape.contains(point_between, true))
                     return true;
                 current_point = point;
@@ -542,13 +557,15 @@ std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
             ShapeElementIntersectionsOutput intersections_cur = compute_intersections(
                     path_element,
                     shape_element);
-            //if (!intersections_cur.overlapping_parts.empty()
-            //        || !intersections_cur.improper_intersections.empty()
-            //        || !intersections_cur.proper_intersections.empty()) {
-            //    std::cout << "element_1 " << path_element.to_string() << std::endl;
-            //    std::cout << "element_2 " << shape_element.to_string() << std::endl;
-            //    std::cout << "intersections " << intersections_cur.to_string(0) << std::endl;
-            //}
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+            if (!intersections_cur.overlapping_parts.empty()
+                    || !intersections_cur.improper_intersections.empty()
+                    || !intersections_cur.proper_intersections.empty()) {
+                std::cout << "element_1 " << path_element.to_string() << std::endl;
+                std::cout << "element_2 " << shape_element.to_string() << std::endl;
+                std::cout << "intersections " << intersections_cur.to_string(0) << std::endl;
+            }
+#endif
             for (const ShapeElement& overlapping_part: intersections_cur.overlapping_parts) {
                 output.push_back({path_element_pos, shape_element_pos, overlapping_part.start});
                 output.push_back({path_element_pos, shape_element_pos, overlapping_part.end});
@@ -561,14 +578,16 @@ std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
     }
     if (output.empty())
         return {};
-    //std::cout << "output.size() " << output.size() << std::endl;
-    //for (const auto& point: output) {
-    //    std::cout << "path_element_pos " << point.path_element_pos
-    //        << " shape_element_pos " << point.shape_element_pos
-    //        << " point " << point.point.to_string()
-    //        << " l " << path.elements[point.path_element_pos].length(point.point)
-    //        << std::endl;
-    //}
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+    std::cout << "output.size() " << output.size() << std::endl;
+    for (const auto& point: output) {
+        std::cout << "path_element_pos " << point.path_element_pos
+            << " shape_element_pos " << point.shape_element_pos
+            << " point " << point.point.to_string()
+            << " l " << path.elements[point.path_element_pos].length(point.point)
+            << std::endl;
+    }
+#endif
     if (only_min_max) {
         auto p = std::minmax_element(
             output.begin(),
@@ -670,19 +689,23 @@ std::vector<PathShapeIntersectionPoint> shape::compute_strict_intersections(
     PathShapeIntersectionPoint current_point = {0, -1, path.elements.front().start};
     int status = -1;
     for (ElementPos pos = 0; pos < (ElementPos)intersections.size(); ++pos) {
-        //std::cout << "pos " << pos
-        //    << " current_point " << current_point.path_element_pos
-        //    << " " << current_point.shape_element_pos
-        //    << " " << current_point.point.to_string()
-        //    << " status " << status
-        //    << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+        std::cout << "pos " << pos
+            << " current_point " << current_point.path_element_pos
+            << " " << current_point.shape_element_pos
+            << " " << current_point.point.to_string()
+            << " status " << status
+            << std::endl;
+#endif
         ShapePoint current_path_point = {current_point.path_element_pos, current_point.point};
         if (intersections[pos].first == 0) {
             // Overlapping part.
             ElementPos shape_element_pos = overlapping_parts[intersections[pos].second].shape_element_pos;
             ElementPos path_element_pos = overlapping_parts[intersections[pos].second].path_element_pos;
             const ShapeElement& overlapping_part = overlapping_parts[intersections[pos].second].overlapping_part;
-            //std::cout << "overlapping_part " << overlapping_part.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+            std::cout << "overlapping_part " << overlapping_part.to_string() << std::endl;
+#endif
             ShapePoint point_start = {path_element_pos, overlapping_part.start};
             if (path.is_strictly_closer_to_path_start(current_path_point, point_start)) {
                 ShapePoint point_between = path.find_point_between(current_path_point, point_start);
@@ -708,12 +731,16 @@ std::vector<PathShapeIntersectionPoint> shape::compute_strict_intersections(
         } else {
             // Intersection point.
             const PathShapeIntersectionPoint& point = intersection_points[intersections[pos].second];
-            //std::cout << "point " << point.path_element_pos
-            //    << " " << point.point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+            std::cout << "point " << point.path_element_pos
+                << " " << point.point.to_string() << std::endl;
+#endif
             ShapePoint path_point = {point.path_element_pos, point.point};
             if (path.is_strictly_closer_to_path_start(current_path_point, path_point)) {
                 ShapePoint point_between = path.find_point_between(current_path_point, path_point);
-                //std::cout << "point_between " << point_between.point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+                std::cout << "point_between " << point_between.point.to_string() << std::endl;
+#endif
                 if (shape.contains(point_between.point, true)) {
                     if (status == 0) {
                         output.push_back(current_point);
@@ -813,7 +840,9 @@ bool shape::intersect(
             });
     Point current_point = element.start;
     for (ElementPos pos = 0; pos < (ElementPos)intersections.size(); ++pos) {
-        //std::cout << "pos " << pos << " current_point " << current_point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+        std::cout << "pos " << pos << " current_point " << current_point.to_string() << std::endl;
+#endif
         if (intersections[pos].first == 0) {
             // Overlapping part.
             const ShapeElement& overlapping_part = overlapping_parts[intersections[pos].second];
@@ -827,10 +856,14 @@ bool shape::intersect(
         } else {
             // Intersection point.
             const Point& point = intersection_points[intersections[pos].second];
-            //std::cout << "point " << point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+            std::cout << "point " << point.to_string() << std::endl;
+#endif
             if (strictly_lesser(element.length(current_point), element.length(point))) {
                 Point point_between = element.find_point_between(current_point, point);
-                //std::cout << "point_between " << point_between.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+                std::cout << "point_between " << point_between.to_string() << std::endl;
+#endif
                 if (shape_with_holes.contains(point_between, true))
                     return true;
                 current_point = point;
@@ -881,13 +914,15 @@ bool shape::intersect(
                 ShapeElementIntersectionsOutput intersections_cur = compute_intersections(
                         element_1,
                         element_2);
-                //if (!intersections_cur.overlapping_parts.empty()
-                //        || !intersections_cur.improper_intersections.empty()
-                //        || !intersections_cur.proper_intersections.empty()) {
-                //    std::cout << "element_1 " << element_1.to_string() << std::endl;
-                //    std::cout << "element_2 " << element_2.to_string() << std::endl;
-                //    std::cout << "intersections " << intersections_cur.to_string(0) << std::endl;
-                //}
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+                if (!intersections_cur.overlapping_parts.empty()
+                        || !intersections_cur.improper_intersections.empty()
+                        || !intersections_cur.proper_intersections.empty()) {
+                    std::cout << "element_1 " << element_1.to_string() << std::endl;
+                    std::cout << "element_2 " << element_2.to_string() << std::endl;
+                    std::cout << "intersections " << intersections_cur.to_string(0) << std::endl;
+                }
+#endif
                 for (const ShapeElement& overlapping_part: intersections_cur.overlapping_parts) {
                     intersections.push_back({0, (ElementPos)overlapping_parts.size()});
                     overlapping_parts.push_back({element_1_pos, overlapping_part});
@@ -929,7 +964,9 @@ bool shape::intersect(
             });
     ShapePoint current_point = {0, shape.elements.front().start};
     for (ElementPos pos = 0; pos < (ElementPos)intersections.size(); ++pos) {
-        //std::cout << "pos " << pos << " current_point " << current_point.point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+        std::cout << "pos " << pos << " current_point " << current_point.point.to_string() << std::endl;
+#endif
         if (intersections[pos].first == 0) {
             // Overlapping part.
             ElementPos element_pos = overlapping_parts[intersections[pos].second].first;
@@ -938,11 +975,13 @@ bool shape::intersect(
             if (shape.is_strictly_closer_to_path_start(current_point, point_start)) {
                 ShapePoint point_between = shape.find_point_between(current_point, point_start);
                 if (shape_with_holes.contains(point_between.point, true)) {
-                    //shape_with_holes.shape.contains_export_inputs(
-                    //        "shape_contains_inputs.json",
-                    //        point_between.point,
-                    //        true);
-                    //std::cout << "contains " << point_between.point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+                    shape_with_holes.shape.contains_export_inputs(
+                            "shape_contains_inputs.json",
+                            point_between.point,
+                            true);
+                    std::cout << "contains " << point_between.point.to_string() << std::endl;
+#endif
                     return true;
                 }
             }
@@ -952,16 +991,22 @@ bool shape::intersect(
         } else {
             // Intersection point.
             const ShapePoint& point = intersection_points[intersections[pos].second];
-            //std::cout << "point " << point.point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+            std::cout << "point " << point.point.to_string() << std::endl;
+#endif
             if (shape.is_strictly_closer_to_path_start(current_point, point)) {
                 ShapePoint point_between = shape.find_point_between(current_point, point);
-                //std::cout << "point_between " << point_between.point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+                std::cout << "point_between " << point_between.point.to_string() << std::endl;
+#endif
                 if (shape_with_holes.contains(point_between.point, true)) {
-                    //shape_with_holes.shape.contains_export_inputs(
-                    //        "shape_contains_inputs.json",
-                    //        point_between.point,
-                    //        true);
-                    //std::cout << "contains " << point_between.point.to_string() << std::endl;
+#ifdef SHAPES_INTERSECTIONS_DEBUG
+                    shape_with_holes.shape.contains_export_inputs(
+                            "shape_contains_inputs.json",
+                            point_between.point,
+                            true);
+                    std::cout << "contains " << point_between.point.to_string() << std::endl;
+#endif
                     return true;
                 }
                 current_point = point;

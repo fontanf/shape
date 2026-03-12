@@ -1,6 +1,10 @@
+//#define SHAPE_TEST_DEBUG
+
 #include "shape/shape.hpp"
 
+#ifdef SHAPE_TEST_DEBUG
 #include "shape/writer.hpp"
+#endif
 
 #include <gtest/gtest.h>
 
@@ -28,10 +32,12 @@ TEST_P(StrictlyLesserAngleTest, StrictlyLesserAngle)
     std::cout << "vector_1 " << test_params.vector_1.to_string() << std::endl;
     std::cout << "vector_2 " << test_params.vector_2.to_string() << std::endl;
     std::cout << "expected_output " << test_params.expected_output << std::endl;
+#ifdef SHAPE_TEST_DEBUG
     Writer()
         .add_element(build_line_segment({0, 0}, test_params.vector_1))
         .add_element(build_line_segment({0, 0}, test_params.vector_2))
         .write_json("strictly_lesser_angle_inputs.json");
+#endif
     bool output = strictly_lesser_angle(test_params.vector_1, test_params.vector_2);
     std::cout << "output " << output << std::endl;
     EXPECT_EQ(output, test_params.expected_output);
@@ -103,7 +109,9 @@ TEST_P(ShapeElementLengthPointTest, ShapeElementLengthPoint)
     if (!test_params.element.contains(test_params.point)) {
         throw std::invalid_argument(FUNC_SIGNATURE);
     }
-    //Writer().add_element(test_params.element).write_json("shape_element_length_inputs.json");
+#ifdef SHAPE_TEST_DEBUG
+    Writer().add_element(test_params.element).write_json("shape_element_length_inputs.json");
+#endif
     LengthDbl length = test_params.element.length(test_params.point);
     EXPECT_TRUE(equal(length, test_params.expected_length));
     std::cout << "length " << length << std::endl;
