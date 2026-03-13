@@ -1074,6 +1074,14 @@ AreaDbl Shape::compute_area() const
     return area / 2;
 }
 
+LengthDbl Shape::compute_length() const
+{
+    LengthDbl length = 0.0;
+    for (const ShapeElement& element: elements)
+        length += element.length();
+    return length;
+}
+
 AxisAlignedBoundingBox Shape::compute_min_max(
         Angle angle,
         bool mirror) const

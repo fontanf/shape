@@ -491,6 +491,9 @@ struct Shape
     /** Compute the area of the shape. */
     AreaDbl compute_area() const;
 
+    /** Compute the length of the shape. */
+    LengthDbl compute_length() const;
+
     /** Compute the smallest and greatest x and y of the shape. */
     AxisAlignedBoundingBox compute_min_max(
             Angle angle = 0.0,
