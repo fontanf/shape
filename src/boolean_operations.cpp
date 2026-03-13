@@ -409,23 +409,23 @@ ComputeSplittedElementsOutput compute_splitted_elements(
 #endif
             } else {
 
-                auto p = element.split(point_cur);
-                element = p.second;
-                if (p.first.start == p.first.end
-                        && p.first.orientation != shape::ShapeElementOrientation::Full) {
+                ShapeElement extracted = element.extract(element.start, point_cur);
+                element = element.extract(point_cur, element.end);
+                if (extracted.start == extracted.end
+                        && extracted.orientation != shape::ShapeElementOrientation::Full) {
                     continue;
                 }
 
-                if (p.first.type == shape::ShapeElementType::CircularArc
-                        && p.first.contains((p.first.start + p.first.end) / 2)) {
+                if (extracted.type == shape::ShapeElementType::CircularArc
+                        && extracted.contains((extracted.start + extracted.end) / 2)) {
 #ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
                     std::cout << "change to line segment" << std::endl;
 #endif
-                    p.first.type = shape::ShapeElementType::LineSegment;
+                    extracted.type = shape::ShapeElementType::LineSegment;
                 }
 
                 SplittedElement new_element;
-                new_element.element = p.first;
+                new_element.element = extracted;
                 new_element.orig_shape_id = shape_pos;
                 new_element.original_direction = true;
                 output.components_splitted_elements[component_id].push_back(new_element);

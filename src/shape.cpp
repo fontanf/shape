@@ -409,38 +409,31 @@ std::pair<Point, Point> ShapeElement::furthest_points(Angle angle) const
     return {mm.first.rotate(angle), mm.second.rotate(angle)};
 }
 
-std::pair<ShapeElement, ShapeElement> ShapeElement::split(const Point& point) const
+ShapeElement ShapeElement::extract(const Point& start_point, const Point& end_point) const
 {
     switch (this->type) {
     case ShapeElementType::LineSegment: {
-        ShapeElement element_1 = *this;
-        ShapeElement element_2 = *this;
-        element_1.end = point;
-        element_2.start = point;
-        return {element_1, element_2};
+        ShapeElement element = *this;
+        element.start = start_point;
+        element.end = end_point;
+        return element;
     } case ShapeElementType::CircularArc: {
         if (orientation != ShapeElementOrientation::Full) {
-            ShapeElement element_1 = *this;
-            ShapeElement element_2 = *this;
-            element_1.end = point;
-            element_2.start = point;
-            return {element_1, element_2};
+            ShapeElement element = *this;
+            element.start = start_point;
+            element.end = end_point;
+            return element;
         } else if (!equal(this->start, this->end)) {
-            ShapeElement element_1 = *this;
-            element_1.orientation = ShapeElementOrientation::Anticlockwise;
-            element_1.start = point;
-            element_1.end = point;
-            ShapeElement element_2 = *this;
-            element_2.orientation = ShapeElementOrientation::Anticlockwise;
-            element_2.start = point;
-            element_2.end = point;
-            return {element_1, element_2};
+            ShapeElement element = *this;
+            element.orientation = ShapeElementOrientation::Anticlockwise;
+            element.start = start_point;
+            element.end = end_point;
+            return element;
         } else {
-            ShapeElement element_1 = *this;
-            ShapeElement element_2 = *this;
-            element_1.end = point;
-            element_2.start = point;
-            return {element_1, element_2};
+            ShapeElement element = *this;
+            element.start = start_point;
+            element.end = end_point;
+            return element;
         }
     }
     }
@@ -1102,10 +1095,10 @@ AxisAlignedBoundingBox Shape::compute_min_max(
     if (point_1.element_pos == point_2.element_pos
             && element_1.length(point_1.point) <= element_1.length(point_2.point)) {
         // Both on the same element with point_1 before point_2.
-        output = element_1.split(point_1.point).second.split(point_2.point).first.min_max();
+        output = element_1.extract(point_1.point, point_2.point).min_max();
     } else {
         // First partial element: from point_1.point to end of its element.
-        output = merge(output, element_1.split(point_1.point).second.min_max());
+        output = merge(output, element_1.extract(point_1.point, element_1.end).min_max());
         // Full elements in between.
         for (ElementPos pos = (point_1.element_pos + 1) % (ElementPos)this->elements.size();
                 pos != point_2.element_pos;
@@ -1113,7 +1106,7 @@ AxisAlignedBoundingBox Shape::compute_min_max(
             output = merge(output, this->elements[pos].min_max());
         }
         // Last partial element: from start of its element to point_2.point.
-        output = merge(output, this->elements[point_2.element_pos].split(point_2.point).first.min_max());
+        output = merge(output, this->elements[point_2.element_pos].extract(this->elements[point_2.element_pos].start, point_2.point).min_max());
     }
     return output;
 }
@@ -1508,7 +1501,7 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
             } else if (equal(point_first.point, this->elements[point_first.element_pos].end)) {
                 path_1.elements.push_back(this->elements[point_first.element_pos]);
             } else {
-                path_1.elements.push_back(this->elements[point_first.element_pos].split(point_first.point).first);
+                path_1.elements.push_back(this->elements[point_first.element_pos].extract(this->elements[point_first.element_pos].start, point_first.point));
             }
             output.push_back(path_1);
         }
@@ -1520,7 +1513,7 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
                 path_2.elements.push_back(this->elements[point_last.element_pos]);
             } else if (equal(point_last.point, this->elements[point_last.element_pos].end)) {
             } else {
-                path_2.elements.push_back(this->elements[point_last.element_pos].split(point_last.point).second);
+                path_2.elements.push_back(this->elements[point_last.element_pos].extract(point_last.point, this->elements[point_last.element_pos].end));
             }
             for (ElementPos element_pos = point_last.element_pos + 1;
                     element_pos < (ElementPos)this->elements.size();
@@ -1539,7 +1532,7 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
             path.elements.push_back(this->elements[point_last.element_pos]);
         } else if (equal(point_last.point, this->elements[point_last.element_pos].end)) {
         } else {
-            path.elements.push_back(this->elements[point_last.element_pos].split(point_last.point).second);
+            path.elements.push_back(this->elements[point_last.element_pos].extract(point_last.point, this->elements[point_last.element_pos].end));
         }
         for (ElementPos element_pos = point_last.element_pos + 1;
                 element_pos < (ElementPos)this->elements.size();
@@ -1557,7 +1550,7 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
         } else if (equal(point_first.point, this->elements[point_first.element_pos].end)) {
             path.elements.push_back(this->elements[point_first.element_pos]);
         } else {
-            path.elements.push_back(this->elements[point_first.element_pos].split(point_first.point).first);
+            path.elements.push_back(this->elements[point_first.element_pos].extract(this->elements[point_first.element_pos].start, point_first.point));
         }
         output.push_back(path);
     }
@@ -1582,14 +1575,13 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
                 if (equal(point_end.point, element.end)) {
                     path.elements.push_back(element);
                 } else {
-                    path.elements.push_back(element.split(point_end.point).first);
+                    path.elements.push_back(element.extract(element.start, point_end.point));
                 }
             } else {
-                ShapeElement element_tmp = this->elements[point_start.element_pos].split(point_start.point).second;
                 if (equal(point_end.point, element.end)) {
-                    path.elements.push_back(element_tmp);
+                    path.elements.push_back(element.extract(point_start.point, element.end));
                 } else {
-                    path.elements.push_back(element_tmp.split(point_end.point).first);
+                    path.elements.push_back(element.extract(point_start.point, point_end.point));
                 }
             }
         } else {
@@ -1597,7 +1589,7 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
                 path.elements.push_back(this->elements[point_start.element_pos]);
             } else if (equal(point_start.point, this->elements[point_start.element_pos].end)) {
             } else {
-                path.elements.push_back(this->elements[point_start.element_pos].split(point_start.point).second);
+                path.elements.push_back(this->elements[point_start.element_pos].extract(point_start.point, this->elements[point_start.element_pos].end));
             }
             for (ElementPos element_pos = point_start.element_pos + 1;
                     element_pos < point_end.element_pos;
@@ -1609,7 +1601,7 @@ std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
             } else if (equal(point_end.point, this->elements[point_end.element_pos].end)) {
                 path.elements.push_back(this->elements[point_end.element_pos]);
             } else {
-                path.elements.push_back(this->elements[point_end.element_pos].split(point_end.point).first);
+                path.elements.push_back(this->elements[point_end.element_pos].extract(this->elements[point_end.element_pos].start, point_end.point));
             }
         }
         output.push_back(path);
@@ -1668,8 +1660,7 @@ Shape Shape::replace(const std::vector<PathReplacement>& paths) const
     } else if (equal(first_path.start.point, element_in.end)) {
         shape.elements.push_back(element_in);
     } else {
-        auto splitted_elements = element_in.split(first_path.start.point);
-        shape.elements.push_back(splitted_elements.first);
+        shape.elements.push_back(element_in.extract(element_in.start, first_path.start.point));
     }
     element_pos++;
     for (const ShapeElement& element: first_path.path)
@@ -1688,16 +1679,12 @@ Shape Shape::replace(const std::vector<PathReplacement>& paths) const
                 if (equal(path_curr.start.point, element.end)) {
                     shape.elements.push_back(element);
                 } else {
-                    auto splitted_elements = element.split(path_curr.start.point);
-                    shape.elements.push_back(splitted_elements.second);
+                    shape.elements.push_back(element.extract(path_curr.start.point, element.end));
                 }
             } else if (equal(path_curr.start.point, element.end)) {
-                auto splitted_elements = element.split(path_prev.end.point);
-                shape.elements.push_back(splitted_elements.first);
+                shape.elements.push_back(element.extract(element.start, path_prev.end.point));
             } else {
-                auto splitted_elements = element.split(path_prev.end.point);
-                auto splitted_elements_2 = splitted_elements.second.split(path_curr.start.point);
-                shape.elements.push_back(splitted_elements_2.first);
+                shape.elements.push_back(element.extract(path_prev.end.point, path_curr.start.point));
             }
         } else {
             const ShapeElement& element_out = this->elements[element_pos];
@@ -1705,8 +1692,7 @@ Shape Shape::replace(const std::vector<PathReplacement>& paths) const
                 shape.elements.push_back(element_out);
             } else if (equal(path_prev.end.point, element_out.end)) {
             } else {
-                auto splitted_elements = element_out.split(path_prev.end.point);
-                shape.elements.push_back(splitted_elements.second);
+                shape.elements.push_back(element_out.extract(path_prev.end.point, element_out.end));
             }
             element_pos++;
 
@@ -1720,8 +1706,7 @@ Shape Shape::replace(const std::vector<PathReplacement>& paths) const
             } else if (equal(path_curr.start.point, element_in.end)) {
                 shape.elements.push_back(element_in);
             } else {
-                auto splitted_elements = element_in.split(path_curr.start.point);
-                shape.elements.push_back(splitted_elements.first);
+                shape.elements.push_back(element_in.extract(element_in.start, path_curr.start.point));
             }
         }
 
@@ -1736,8 +1721,7 @@ Shape Shape::replace(const std::vector<PathReplacement>& paths) const
         shape.elements.push_back(element_out);
     } else if (equal(last_path.end.point, element_out.end)) {
     } else {
-        auto splitted_elements = element_out.split(last_path.end.point);
-        shape.elements.push_back(splitted_elements.second);
+        shape.elements.push_back(element_out.extract(last_path.end.point, element_out.end));
     }
     element_pos++;
 

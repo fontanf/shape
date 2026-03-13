@@ -388,8 +388,8 @@ struct ShapeElement
      */
     std::pair<Point, Point> furthest_points(Angle angle) const;
 
-    /** Split an element at a given point. */
-    std::pair<ShapeElement, ShapeElement> split(const Point& point) const;
+    /** Extract the sub-element between two points. */
+    ShapeElement extract(const Point& start_point, const Point& end_point) const;
 
     /** Re-compute the center of a circular arc. */
     Point recompute_center() const;
