@@ -270,6 +270,14 @@ inline AxisAlignedBoundingBox merge(
     return output;
 }
 
+inline bool intersect(
+        const AxisAlignedBoundingBox& aabb_1,
+        const AxisAlignedBoundingBox& aabb_2)
+{
+    return aabb_1.x_max > aabb_2.x_min && aabb_2.x_max > aabb_1.x_min
+        && aabb_1.y_max > aabb_2.y_min && aabb_2.y_max > aabb_1.y_min;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// ShapeElement /////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
