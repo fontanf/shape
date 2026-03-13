@@ -409,7 +409,9 @@ std::pair<Point, Point> ShapeElement::furthest_points(Angle angle) const
     return {mm.first.rotate(angle), mm.second.rotate(angle)};
 }
 
-ShapeElement ShapeElement::extract(const Point& start_point, const Point& end_point) const
+ShapeElement ShapeElement::extract(
+        const Point& start_point,
+        const Point& end_point) const
 {
     switch (this->type) {
     case ShapeElementType::LineSegment: {
@@ -1468,146 +1470,47 @@ Shape Shape::reverse() const
     return shape;
 }
 
-std::vector<Shape> Shape::split(const std::vector<ShapePoint>& points) const
+Shape Shape::extract_path(
+        const ShapePoint& point_start,
+        const ShapePoint& point_end) const
 {
-    std::vector<Shape> output;
+    if (equal(point_start.point, point_end.point)) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "input points must be distinct.");
+    }
 
-    std::vector<ShapePoint> sorted_points = points;
-    std::sort(
-            sorted_points.begin(),
-            sorted_points.end(),
-            [this](
-                const ShapePoint& point_1,
-                const ShapePoint& point_2)
-            {
-                return is_strictly_closer_to_path_start(point_1, point_2);
-            });
+    Shape path;
+    path.is_path = true;
 
-    const ShapePoint& point_first = sorted_points.front();
-    const ShapePoint& point_last = sorted_points.back();
-    if (this->is_path) {
-        // For a path, create two paths from start to first point and from last
-        // point to end.
-        {
-            Shape path_1;
-            path_1.is_path = true;
-            for (ElementPos element_pos = 0;
-                    element_pos < point_first.element_pos;
-                    ++element_pos) {
-                const ShapeElement& element = this->elements[element_pos];
-                path_1.elements.push_back(element);
-            }
-            if (equal(point_first.point, this->elements[point_first.element_pos].start)) {
-            } else if (equal(point_first.point, this->elements[point_first.element_pos].end)) {
-                path_1.elements.push_back(this->elements[point_first.element_pos]);
-            } else {
-                path_1.elements.push_back(this->elements[point_first.element_pos].extract(this->elements[point_first.element_pos].start, point_first.point));
-            }
-            output.push_back(path_1);
-        }
-
-        {
-            Shape path_2;
-            path_2.is_path = true;
-            if (equal(point_last.point, this->elements[point_last.element_pos].start)) {
-                path_2.elements.push_back(this->elements[point_last.element_pos]);
-            } else if (equal(point_last.point, this->elements[point_last.element_pos].end)) {
-            } else {
-                path_2.elements.push_back(this->elements[point_last.element_pos].extract(point_last.point, this->elements[point_last.element_pos].end));
-            }
-            for (ElementPos element_pos = point_last.element_pos + 1;
-                    element_pos < (ElementPos)this->elements.size();
-                    ++element_pos) {
-                const ShapeElement& element = this->elements[element_pos];
-                path_2.elements.push_back(element);
-            }
-            output.push_back(path_2);
-        }
-
+    const ShapeElement& element_start = this->elements[point_start.element_pos];
+    if (point_start.element_pos == point_end.element_pos
+            && element_start.length(point_start.point) < element_start.length(point_end.point)) {
+        // Both on the same element with point_start before point_end.
+        path.elements.push_back(element_start.extract(point_start.point, point_end.point));
     } else {
-        // For a shape, create a path from last point to first point.
-        Shape path;
-        path.is_path = true;
-        if (equal(point_last.point, this->elements[point_last.element_pos].start)) {
-            path.elements.push_back(this->elements[point_last.element_pos]);
-        } else if (equal(point_last.point, this->elements[point_last.element_pos].end)) {
-        } else {
-            path.elements.push_back(this->elements[point_last.element_pos].extract(point_last.point, this->elements[point_last.element_pos].end));
+        // First partial element: from point_start.point to end of its element.
+        if (equal(point_start.point, element_start.start)) {
+            path.elements.push_back(element_start);
+        } else if (!equal(point_start.point, element_start.end)) {
+            path.elements.push_back(element_start.extract(point_start.point, element_start.end));
         }
-        for (ElementPos element_pos = point_last.element_pos + 1;
-                element_pos < (ElementPos)this->elements.size();
-                ++element_pos) {
-            const ShapeElement& element = this->elements[element_pos];
-            path.elements.push_back(element);
+        // Full elements in between.
+        for (ElementPos pos = (point_start.element_pos + 1) % (ElementPos)this->elements.size();
+                pos != point_end.element_pos;
+                pos = (pos + 1) % (ElementPos)this->elements.size()) {
+            path.elements.push_back(this->elements[pos]);
         }
-        for (ElementPos element_pos = 0;
-                element_pos < point_first.element_pos;
-                ++element_pos) {
-            const ShapeElement& element = this->elements[element_pos];
-            path.elements.push_back(element);
+        // Last partial element: from start of its element to point_end.point.
+        const ShapeElement& element_end = this->elements[point_end.element_pos];
+        if (equal(point_end.point, element_end.end)) {
+            path.elements.push_back(element_end);
+        } else if (!equal(point_end.point, element_end.start)) {
+            path.elements.push_back(element_end.extract(element_end.start, point_end.point));
         }
-        if (equal(point_first.point, this->elements[point_first.element_pos].start)) {
-        } else if (equal(point_first.point, this->elements[point_first.element_pos].end)) {
-            path.elements.push_back(this->elements[point_first.element_pos]);
-        } else {
-            path.elements.push_back(this->elements[point_first.element_pos].extract(this->elements[point_first.element_pos].start, point_first.point));
-        }
-        output.push_back(path);
     }
 
-    // Create intermediate paths.
-    for (ElementPos point_pos = 0;
-            point_pos < (ElementPos)sorted_points.size() - 1;
-            ++point_pos) {
-        const ShapePoint& point_start = sorted_points[point_pos];
-        const ShapePoint& point_end = sorted_points[point_pos + 1];
-
-        Shape path;
-        path.is_path = true;
-        if (point_start.element_pos == point_end.element_pos) {
-            if (equal(point_start.point, point_end.point)) {
-                throw std::invalid_argument(
-                        FUNC_SIGNATURE + ": "
-                        "splitting points must be distinct.");
-            }
-            const ShapeElement& element = this->elements[point_start.element_pos];
-            if (equal(point_start.point, element.start)) {
-                if (equal(point_end.point, element.end)) {
-                    path.elements.push_back(element);
-                } else {
-                    path.elements.push_back(element.extract(element.start, point_end.point));
-                }
-            } else {
-                if (equal(point_end.point, element.end)) {
-                    path.elements.push_back(element.extract(point_start.point, element.end));
-                } else {
-                    path.elements.push_back(element.extract(point_start.point, point_end.point));
-                }
-            }
-        } else {
-            if (equal(point_start.point, this->elements[point_start.element_pos].start)) {
-                path.elements.push_back(this->elements[point_start.element_pos]);
-            } else if (equal(point_start.point, this->elements[point_start.element_pos].end)) {
-            } else {
-                path.elements.push_back(this->elements[point_start.element_pos].extract(point_start.point, this->elements[point_start.element_pos].end));
-            }
-            for (ElementPos element_pos = point_start.element_pos + 1;
-                    element_pos < point_end.element_pos;
-                    ++element_pos) {
-                const ShapeElement& element = this->elements[element_pos];
-                path.elements.push_back(element);
-            }
-            if (equal(point_end.point, this->elements[point_end.element_pos].start)) {
-            } else if (equal(point_end.point, this->elements[point_end.element_pos].end)) {
-                path.elements.push_back(this->elements[point_end.element_pos]);
-            } else {
-                path.elements.push_back(this->elements[point_end.element_pos].extract(this->elements[point_end.element_pos].start, point_end.point));
-            }
-        }
-        output.push_back(path);
-    }
-
-    return output;
+    return path;
 }
 
 Shape Shape::replace(const std::vector<PathReplacement>& paths) const

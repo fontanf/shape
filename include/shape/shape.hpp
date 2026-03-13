@@ -556,8 +556,8 @@ struct Shape
 
     Shape reverse() const;
 
-    /** Split a shape/path at given points. */
-    std::vector<Shape> split(const std::vector<ShapePoint>& points) const;
+    /** Extract the sub-path going forward from point_start to point_end. */
+    Shape extract_path(const ShapePoint& point_start, const ShapePoint& point_end) const;
 
     struct PathReplacement
     {

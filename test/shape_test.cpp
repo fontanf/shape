@@ -686,82 +686,62 @@ INSTANTIATE_TEST_SUITE_P(
             }}));
 
 
-struct ShapeSplitTestParams
+struct ShapeExtractPathTestParams
 {
     Shape shape;
-    std::vector<ShapePoint> points;
-    std::vector<Shape> expected_paths;
+    ShapePoint point_start;
+    ShapePoint point_end;
+    Shape expected_path;
 };
 
-class ShapeSplitTest: public testing::TestWithParam<ShapeSplitTestParams> { };
+class ShapeExtractPathTest: public testing::TestWithParam<ShapeExtractPathTestParams> { };
 
-TEST_P(ShapeSplitTest, ShapeSplit)
+TEST_P(ShapeExtractPathTest, ShapeExtractPath)
 {
-    ShapeSplitTestParams test_params = GetParam();
+    ShapeExtractPathTestParams test_params = GetParam();
     std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "points" << std::endl;
-    for (ElementPos point_pos = 0;
-            point_pos < (ElementPos)test_params.points.size();
-            ++point_pos) {
-        const ShapePoint& point = test_params.points[point_pos];
-        std::cout << "- " << point_pos << " element_pos " << point.element_pos << " point " << point.point.to_string() << std::endl;
-    }
-    std::cout << "expceted paths" << std::endl;
-    for (ShapePos path_pos = 0;
-            path_pos < (ShapePos)test_params.expected_paths.size();
-            ++path_pos) {
-        const Shape& path = test_params.expected_paths[path_pos];
-        std::cout << "- " << path_pos << " path " << path.to_string(1) << std::endl;
-    }
-    auto paths = test_params.shape.split(test_params.points);
-    std::cout << "paths" << std::endl;
-    for (ShapePos path_pos = 0;
-            path_pos < (ShapePos)paths.size();
-            ++path_pos) {
-        const Shape& path = paths[path_pos];
-        std::cout << "- " << path_pos << " path " << path.to_string(1) << std::endl;
-    }
-    ASSERT_EQ(paths.size(), test_params.expected_paths.size());
-    for (ShapePos path_pos = 0;
-            path_pos < (ShapePos)paths.size();
-            ++path_pos) {
-        const Shape& path = paths[path_pos];
-        const Shape& expected_path = test_params.expected_paths[path_pos];
-        EXPECT_TRUE(equal(path, expected_path));
-    }
+    std::cout << "point_start element_pos " << test_params.point_start.element_pos << " point " << test_params.point_start.point.to_string() << std::endl;
+    std::cout << "point_end element_pos " << test_params.point_end.element_pos << " point " << test_params.point_end.point.to_string() << std::endl;
+    std::cout << "expected path " << test_params.expected_path.to_string(1) << std::endl;
+    Shape path = test_params.shape.extract_path(test_params.point_start, test_params.point_end);
+    std::cout << "path " << path.to_string(1) << std::endl;
+    EXPECT_TRUE(equal(path, test_params.expected_path));
 }
 
 INSTANTIATE_TEST_SUITE_P(
         Shape,
-        ShapeSplitTest,
-        testing::ValuesIn(std::vector<ShapeSplitTestParams>{
+        ShapeExtractPathTest,
+        testing::ValuesIn(std::vector<ShapeExtractPathTestParams>{
             {
                 build_path({{0, 0}, {0, 2}}),
-                {{0, {0, 1}}},
-                {
-                    build_path({{0, 0}, {0, 1}}),
-                    build_path({{0, 1}, {0, 2}}),
-                },
+                {0, {0, 0}},
+                {0, {0, 1}},
+                build_path({{0, 0}, {0, 1}}),
+            }, {
+                build_path({{0, 0}, {0, 2}}),
+                {0, {0, 1}},
+                {0, {0, 2}},
+                build_path({{0, 1}, {0, 2}}),
             }, {
                 build_shape({{0, 0}, {0, 4}, {2, 4}, {2, 0}}),
-                {{0, {0, 1}}},
-                {
-                    build_path({{0, 1}, {0, 4}, {2, 4}, {2, 0}, {0, 0}, {0, 1}}),
-                },
+                {0, {0, 1}},
+                {2, {2, 3}},
+                build_path({{0, 1}, {0, 4}, {2, 4}, {2, 3}}),
             }, {
                 build_shape({{0, 0}, {0, 4}, {2, 4}, {2, 0}}),
-                {{0, {0, 1}}, {2, {2, 3}}},
-                {
-                    build_path({{2, 3}, {2, 0}, {0, 0}, {0, 1}}),
-                    build_path({{0, 1}, {0, 4}, {2, 4}, {2, 3}}),
-                },
+                {2, {2, 3}},
+                {0, {0, 1}},
+                build_path({{2, 3}, {2, 0}, {0, 0}, {0, 1}}),
             }, {
                 build_shape({{0, 0}, {4, 0}, {4, 4}, {0, 4}}),
-                {{1, {4, 1}}, {1, {4, 3}}},
-                {
-                    build_path({{4, 3}, {4, 4}, {0, 4}, {0, 0}, {4, 0}, {4, 1}}),
-                    build_path({{4, 1}, {4, 3}}),
-                },
+                {1, {4, 1}},
+                {1, {4, 3}},
+                build_path({{4, 1}, {4, 3}}),
+            }, {
+                build_shape({{0, 0}, {4, 0}, {4, 4}, {0, 4}}),
+                {1, {4, 3}},
+                {1, {4, 1}},
+                build_path({{4, 3}, {4, 4}, {0, 4}, {0, 0}, {4, 0}, {4, 1}}),
             },
             }));
 
