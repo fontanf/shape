@@ -256,6 +256,14 @@ struct AxisAlignedBoundingBox
     LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_min = +std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
+
+    void shift(const Point& vector)
+    {
+        x_min += vector.x;
+        x_max += vector.x;
+        y_min += vector.y;
+        y_max += vector.y;
+    }
 };
 
 inline AxisAlignedBoundingBox merge(
