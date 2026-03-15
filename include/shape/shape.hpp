@@ -623,12 +623,18 @@ Shape build_square(
         LengthDbl size_length);
 
 Shape build_rectangle(
-        const Point& p1,
-        const Point& p2);
+        LengthDbl x_min,
+        LengthDbl x_max,
+        LengthDbl y_min,
+        LengthDbl y_max);
 
-inline Shape build_rectangle(const Point& p) { return build_rectangle({0, 0}, p); }
+inline Shape build_rectangle(const Point& bottom_left, const Point& top_right) { return build_rectangle(bottom_left.x, top_right.x, bottom_left.y, top_right.y); }
 
-inline Shape build_rectangle(LengthDbl x, LengthDbl y) { return build_rectangle({0, 0}, {x, y}); }
+inline Shape build_rectangle(const Point& p) { return build_rectangle(0, p.x, 0, p.y); }
+
+inline Shape build_rectangle(LengthDbl x, LengthDbl y) { return build_rectangle(0, x, 0, y); }
+
+inline Shape build_rectangle(const AxisAlignedBoundingBox& aabb) { return build_rectangle(aabb.x_min, aabb.x_max, aabb.y_min, aabb.y_max); }
 
 Shape build_circle(LengthDbl radius);
 

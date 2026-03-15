@@ -1879,15 +1879,17 @@ Shape shape::build_square(
 }
 
 Shape shape::build_rectangle(
-        const Point& p1,
-        const Point& p2)
+        LengthDbl x_min,
+        LengthDbl x_max,
+        LengthDbl y_min,
+        LengthDbl y_max)
 {
     Shape shape;
     shape.elements = std::vector<ShapeElement>(4);
-    shape.elements[0] = build_line_segment(p1, {p2.x, p1.y});
-    shape.elements[1] = build_line_segment({p2.x, p1.y}, p2);
-    shape.elements[2] = build_line_segment(p2, {p1.x, p2.y});
-    shape.elements[3] = build_line_segment({p1.x, p2.y}, p1);
+    shape.elements[0] = build_line_segment({x_min, y_min}, {x_max, y_min});
+    shape.elements[1] = build_line_segment({x_max, y_min}, {x_max, y_max});
+    shape.elements[2] = build_line_segment({x_max, y_max}, {x_min, y_max});
+    shape.elements[3] = build_line_segment({x_min, y_max}, {x_min, y_min});
     return shape;
 }
 
