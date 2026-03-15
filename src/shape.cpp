@@ -1100,6 +1100,23 @@ AxisAlignedBoundingBox Shape::compute_min_max(
         const ShapePoint& point_1,
         const ShapePoint& point_2) const
 {
+    if (point_1.element_pos < 0
+            || point_1.element_pos >= (ElementPos)this->elements.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "point_1.element_pos out of range; "
+                "point_1.element_pos: " + std::to_string(point_1.element_pos) + "; "
+                "elements.size(): " + std::to_string(this->elements.size()) + ".");
+    }
+    if (point_2.element_pos < 0
+            || point_2.element_pos >= (ElementPos)this->elements.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "point_2.element_pos out of range; "
+                "point_2.element_pos: " + std::to_string(point_2.element_pos) + "; "
+                "elements.size(): " + std::to_string(this->elements.size()) + ".");
+    }
+
     AxisAlignedBoundingBox output;
     const ShapeElement& element_1 = this->elements[point_1.element_pos];
     if (point_1.element_pos == point_2.element_pos
@@ -1365,6 +1382,23 @@ ShapePoint Shape::find_point_between(
         const ShapePoint& point_1,
         const ShapePoint& point_2) const
 {
+    if (point_1.element_pos < 0
+            || point_1.element_pos >= (ElementPos)this->elements.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "point_1.element_pos out of range; "
+                "point_1.element_pos: " + std::to_string(point_1.element_pos) + "; "
+                "elements.size(): " + std::to_string(this->elements.size()) + ".");
+    }
+    if (point_2.element_pos < 0
+            || point_2.element_pos >= (ElementPos)this->elements.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "point_2.element_pos out of range; "
+                "point_2.element_pos: " + std::to_string(point_2.element_pos) + "; "
+                "elements.size(): " + std::to_string(this->elements.size()) + ".");
+    }
+
     const ShapeElement& element_1 = this->elements[point_1.element_pos];
     if (point_1.element_pos == point_2.element_pos) {
         return {point_1.element_pos, element_1.find_point_between(point_1.point, point_2.point)};
@@ -1482,6 +1516,22 @@ Shape Shape::extract_path(
         const ShapePoint& point_start,
         const ShapePoint& point_end) const
 {
+    if (point_start.element_pos < 0
+            || point_start.element_pos >= (ElementPos)this->elements.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "point_start.element_pos out of range; "
+                "point_start.element_pos: " + std::to_string(point_start.element_pos) + "; "
+                "elements.size(): " + std::to_string(this->elements.size()) + ".");
+    }
+    if (point_end.element_pos < 0
+            || point_end.element_pos >= (ElementPos)this->elements.size()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "point_end.element_pos out of range; "
+                "point_end.element_pos: " + std::to_string(point_end.element_pos) + "; "
+                "elements.size(): " + std::to_string(this->elements.size()) + ".");
+    }
     if (equal(point_start.point, point_end.point)) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
