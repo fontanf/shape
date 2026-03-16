@@ -1,6 +1,7 @@
 #include "shape/convex_partition.hpp"
 
 #include "shape/trapezoidation.hpp"
+#include "shape/clean.hpp"
 
 #include <queue>
 
@@ -160,8 +161,11 @@ std::vector<Shape> shape::compute_convex_partition(
     for (ElementPos part_pos = 0;
             part_pos < (ElementPos)parts.size();
             ++part_pos) {
-        if (active[part_pos])
-            output.push_back(parts[part_pos]);
+        if (active[part_pos]) {
+            Shape part = remove_redundant_vertices(parts[part_pos]).second;
+            part = remove_aligned_vertices(part).second;
+            output.push_back(part);
+        }
     }
     return output;
 }
