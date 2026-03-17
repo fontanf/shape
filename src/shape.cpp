@@ -2031,6 +2031,52 @@ Shape shape::build_path(
     return shape;
 }
 
+ShapeWithHoles& ShapeWithHoles::shift(
+        LengthDbl x,
+        LengthDbl y)
+{
+    this->shape.shift(x, y);
+    for (Shape& hole: this->holes)
+        hole.shift(x, y);
+    return *this;
+}
+
+ShapeWithHoles ShapeWithHoles::rotate(Angle angle) const
+{
+    ShapeWithHoles shape_with_holes;
+    shape_with_holes.shape = this->shape.rotate(angle);
+    for (const Shape& hole: this->holes)
+        shape_with_holes.holes.push_back(hole.rotate(angle));
+    return shape_with_holes;
+}
+
+ShapeWithHoles ShapeWithHoles::axial_symmetry_identity_line() const
+{
+    ShapeWithHoles shape_with_holes;
+    shape_with_holes.shape = this->shape.axial_symmetry_identity_line();
+    for (const Shape& hole: this->holes)
+        shape_with_holes.holes.push_back(hole.axial_symmetry_identity_line());
+    return shape_with_holes;
+}
+
+ShapeWithHoles ShapeWithHoles::axial_symmetry_y_axis() const
+{
+    ShapeWithHoles shape_with_holes;
+    shape_with_holes.shape = this->shape.axial_symmetry_y_axis();
+    for (const Shape& hole: this->holes)
+        shape_with_holes.holes.push_back(hole.axial_symmetry_y_axis());
+    return shape_with_holes;
+}
+
+ShapeWithHoles ShapeWithHoles::axial_symmetry_x_axis() const
+{
+    ShapeWithHoles shape_with_holes;
+    shape_with_holes.shape = this->shape.axial_symmetry_x_axis();
+    for (const Shape& hole: this->holes)
+        shape_with_holes.holes.push_back(hole.axial_symmetry_x_axis());
+    return shape_with_holes;
+}
+
 AreaDbl ShapeWithHoles::compute_area() const
 {
     AreaDbl area = this->shape.compute_area();

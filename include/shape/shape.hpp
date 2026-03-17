@@ -652,6 +652,18 @@ struct ShapeWithHoles
     std::vector<Shape> holes;
 
 
+    ShapeWithHoles& shift(
+            LengthDbl x,
+            LengthDbl y);
+
+    ShapeWithHoles rotate(Angle angle) const;
+
+    ShapeWithHoles axial_symmetry_identity_line() const;
+
+    ShapeWithHoles axial_symmetry_y_axis() const;
+
+    ShapeWithHoles axial_symmetry_x_axis() const;
+
     /** Compute the area of the shape. */
     AreaDbl compute_area() const;
 
