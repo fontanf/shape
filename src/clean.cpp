@@ -38,7 +38,7 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
                 && equal(element.start.y, element.end.y)) {
             useless = true;
         }
-        if (!useless || shape.elements.size() - number_of_elements_removed <= 3) {
+        if (!useless || (!shape.is_path && shape.elements.size() - number_of_elements_removed <= 3)) {
             if (!shape_new.elements.empty())
                 shape_new.elements.back().end = element.start;
             shape_new.elements.push_back(element);

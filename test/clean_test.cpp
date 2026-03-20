@@ -35,6 +35,9 @@ INSTANTIATE_TEST_SUITE_P(
             {
                 build_shape({{0, 0}, {0, 0}, {100, 0}, {100, 100}}),
                 build_shape({{0, 0}, {100, 0}, {100, 100}})
+            }, {
+                build_path({{0, 0}, {0, 0}, {100, 0}}),
+                build_path({{0, 0}, {100, 0}})
             }}));
 
 
