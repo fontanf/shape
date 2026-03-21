@@ -1,9 +1,13 @@
+//#define CLEAN_ENABLE_DEBUG
+
 #include "shape/clean.hpp"
 
 #include "shape/elements_intersections.hpp"
 #include "shape/equalize.hpp"
 #include "shape/boolean_operations.hpp"
-//#include "shape/writer.hpp"
+#ifdef CLEAN_ENABLE_DEBUG
+#include "shape/writer.hpp"
+#endif
 
 //#include <iostream>
 
@@ -772,6 +776,11 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
 std::vector<Shape> shape::clean_extreme_slopes_inner(
         const Shape& shape_orig)
 {
+    if (!shape_orig.check()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": invalid input shape.");
+    }
+
     Shape shape = shape_orig;
 
     shape = equalize_shape(shape);
@@ -791,6 +800,9 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
     shape = remove_aligned_vertices(shape).second;
 
     if (!shape.check()) {
+#ifdef CLEAN_ENABLE_DEBUG
+        Writer().add_shape(shape_orig).add_shape(shape).write_json("tmp.json");
+#endif
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "invalid shape after extreme slopes cleaning.");

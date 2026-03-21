@@ -3,6 +3,7 @@
 #include "shape/clean.hpp"
 #include "shape/boolean_operations.hpp"
 #include "shape/shapes_intersections.hpp"
+//#include "shape/writer.hpp"
 
 #include "optimizationtools/containers/indexed_binary_heap.hpp"
 
@@ -411,6 +412,18 @@ std::vector<ShapeWithHoles> shape::simplify(
                     "invalid input shape; "
                     "shape_pos: " + std::to_string(shape_pos) + ".");
         }
+        for (ShapePos hole_pos = 0;
+                hole_pos < (ShapePos)shape.shape.holes.size();
+                ++hole_pos) {
+            const Shape& hole = shape.shape.holes[hole_pos];
+            if (!hole.check()) {
+                throw std::invalid_argument(
+                        FUNC_SIGNATURE + ": "
+                        "invalid input shape; "
+                        "shape_pos: " + std::to_string(shape_pos) + "; "
+                        "hole_pos: " + std::to_string(hole_pos) + ".");
+            }
+        }
     }
 
     // Build element_keys, approximated_bin_types, approximated_item_types.
@@ -616,11 +629,49 @@ std::vector<ShapeWithHoles> shape::simplify(
             shapes_new[approximated_shape.shape_with_holes_pos].holes.push_back(approximated_shape.shape());
         }
     }
+
+    // Fix self-intersecting shapes and negative area holes.
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
             ++shape_pos) {
-        if (intersect(shapes_new[shape_pos]))
+        const Shape& shape = shapes_new[shape_pos].shape;
+        bool fix = false;
+        for (ShapePos hole_pos = 0;
+                hole_pos < (ShapePos)shapes_new[shape_pos].holes.size();
+                ++hole_pos) {
+            const Shape& hole = shapes_new[shape_pos].holes[hole_pos];
+            if (!strictly_greater(hole.compute_area(), 0)) {
+                fix = true;
+                break;
+            }
+        }
+        if (fix || intersect(shapes_new[shape_pos]))
             shapes_new[shape_pos] = compute_union(union_inputs[shape_pos]).front();
+    }
+
+    // Check output.
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        const Shape& shape = shapes_new[shape_pos].shape;
+        if (!shape.check()) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "invalid output shape; "
+                    "shape_pos: " + std::to_string(shape_pos) + ".");
+        }
+        for (ShapePos hole_pos = 0;
+                hole_pos < (ShapePos)shapes_new[shape_pos].holes.size();
+                ++hole_pos) {
+            const Shape& hole = shapes_new[shape_pos].holes[hole_pos];
+            if (!hole.check()) {
+                throw std::invalid_argument(
+                        FUNC_SIGNATURE + ": "
+                        "invalid output shape; "
+                        "shape_pos: " + std::to_string(shape_pos) + "; "
+                        "hole_pos: " + std::to_string(hole_pos) + ".");
+            }
+        }
     }
 
     //std::cout << "shape_simplification end" << std::endl;
