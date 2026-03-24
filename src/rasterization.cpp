@@ -1,11 +1,19 @@
+//#define RASTERIZATION_ENABLE_DEBUG
+
 #include "shape/rasterization.hpp"
 
 #include "shape/boolean_operations.hpp"
 #include "shape/elements_intersections.hpp"
+#ifdef RASTERIZATION_ENABLE_DEBUG
+#include "shape/writer.hpp"
+#endif
 
 #include <algorithm>
 #include <cmath>
-//#include <iostream>
+#include <fstream>
+#ifdef RASTERIZATION_ENABLE_DEBUG
+#include <iostream>
+#endif
 
 using namespace shape;
 
@@ -93,9 +101,11 @@ void fill_columns_intersections(
                 intersection_points.push_back({element_pos, point});
         }
     }
-    //std::cout << "intersection_points" << std::endl;
-    //for (const ShapePoint& point: intersection_points)
-    //    std::cout << point.element_pos << " " << point.point.to_string() << std::endl;
+#ifdef RASTERIZATION_ENABLE_DEBUG
+    std::cout << "intersection_points" << std::endl;
+    for (const ShapePoint& point: intersection_points)
+        std::cout << point.element_pos << " " << point.point.to_string() << std::endl;
+#endif
     if (intersection_points.empty())
         return;
     // Sort intersection points by their length on the element.
@@ -149,10 +159,12 @@ void fill_columns_intersections(
             if (is_hole)
                 column_intersection.is_above_inside = !column_intersection.is_above_inside;
             column_intersections[cell.column - column_intersections_offset].push_back(column_intersection);
-            //std::cout << "column " << cell.column
-            //    << " y_min " << column_intersection.y_min
-            //    << " y_max " << column_intersection.y_max
-            //    << std::endl;
+#ifdef RASTERIZATION_ENABLE_DEBUG
+            std::cout << "column " << cell.column
+                << " y_min " << column_intersection.y_min
+                << " y_max " << column_intersection.y_max
+                << std::endl;
+#endif
         }
         point_prev = point;
     }
@@ -170,8 +182,10 @@ std::vector<IntersectedCell> shape::rasterization(
     ColumnId column_max = find_cell(cell_width, cell_height, {aabb.x_max, aabb.y_max}).column;
     RowId row_min = find_cell(cell_width, cell_height, {aabb.x_min, aabb.y_min}).row;
     RowId row_max = find_cell(cell_width, cell_height, {aabb.x_max, aabb.y_max}).row;
-    //std::cout << "column min " << column_min << " max " << column_max << std::endl;
-    //std::cout << "row min " << row_min << " max " << row_max << std::endl;
+#ifdef RASTERIZATION_ENABLE_DEBUG
+    std::cout << "column min " << column_min << " max " << column_max << std::endl;
+    std::cout << "row min " << row_min << " max " << row_max << std::endl;
+#endif
 
     // General case: column_inters is guaranteed non-empty for each column.
     std::vector<std::vector<ColumnIntersection>> column_intersections(column_max - column_min + 1);
@@ -194,7 +208,9 @@ std::vector<IntersectedCell> shape::rasterization(
     ElementPos number_of_intersections = 0;
     for (ColumnId column = column_min; column <= column_max; ++column)
         number_of_intersections += column_intersections[column - column_min].size();
-    //std::cout << "number_of_intersections " << number_of_intersections << std::endl;
+#ifdef RASTERIZATION_ENABLE_DEBUG
+    std::cout << "number_of_intersections " << number_of_intersections << std::endl;
+#endif
 
     // Single-column or single-row case: fill_columns_intersections produces no
     // records because the shape crosses no horizontal grid lines.
@@ -207,12 +223,16 @@ std::vector<IntersectedCell> shape::rasterization(
                 cells.push_back(cell);
             }
         }
-        //std::cout << "cells.size() " << cells.size() << std::endl;
+#ifdef RASTERIZATION_ENABLE_DEBUG
+        std::cout << "cells.size() " << cells.size() << std::endl;
+#endif
         return cells;
     }
 
     for (ColumnId column = column_min; column <= column_max; ++column) {
-        //std::cout << "column " << column << std::endl;
+#ifdef RASTERIZATION_ENABLE_DEBUG
+        std::cout << "column " << column << std::endl;
+#endif
         const std::vector<ColumnIntersection>& column_inters =
                 column_intersections[column - column_min];
 
@@ -229,6 +249,7 @@ std::vector<IntersectedCell> shape::rasterization(
                 });
 
         LengthDbl y_max_prev = -std::numeric_limits<LengthDbl>::infinity();
+        RowId row_hi_prev = row_min - 1;
         bool is_above_inside_prev = false;
         for (ElementPos intersection_pos = 0;
                 intersection_pos < sorted_intersections.size();
@@ -240,11 +261,16 @@ std::vector<IntersectedCell> shape::rasterization(
             RowId row_hi = (RowId)std::floor(column_intersection.y_max / cell_height);
             if (equal(row_hi * cell_height, column_intersection.y_max))
                 row_hi--;
-            RowId row_hi_prev = (RowId)std::floor(y_max_prev / cell_height);
-            //std::cout << "i " << intersection_pos
-            //    << " row_lo " << row_lo
-            //    << " row_hi " << row_hi
-            //    << std::endl;
+#ifdef RASTERIZATION_ENABLE_DEBUG
+            std::cout << "i " << intersection_pos
+                << " is_above_inside_prev " << is_above_inside_prev
+                << " row_hi_prev " << row_hi_prev
+                << " y_min " << column_intersection.y_min
+                << " y_max " << column_intersection.y_max
+                << " row_lo " << row_lo
+                << " row_hi " << row_hi
+                << std::endl;
+#endif
             if (is_above_inside_prev) {
                 for (RowId row = row_hi_prev + 1; row < row_lo; ++row) {
                     IntersectedCell cell;
@@ -291,4 +317,31 @@ std::vector<ShapeWithHoles> shape::cells_to_shapes(
     for (const Cell& cell: cells)
         union_input.push_back({cell_to_shape(cell, cell_width, cell_height)});
     return compute_union(union_input);
+}
+
+std::vector<ShapeWithHoles> shape::cells_to_shapes(
+        const std::vector<IntersectedCell>& cells,
+        LengthDbl cell_width,
+        LengthDbl cell_height,
+        bool only_full)
+{
+    std::vector<ShapeWithHoles> union_input;
+    for (const IntersectedCell& cell: cells)
+        if (cell.full || !only_full)
+            union_input.push_back({cell_to_shape(cell.cell, cell_width, cell_height)});
+    return compute_union(union_input);
+}
+
+void shape::rasterization_export_inputs(
+        const std::string& file_path,
+        const ShapeWithHoles& shape,
+        LengthDbl cell_width,
+        LengthDbl cell_height)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["shape"] = shape.to_json();
+    json["cell_width"] = cell_width;
+    json["cell_height"] = cell_height;
+    file << std::setw(4) << json << std::endl;
 }

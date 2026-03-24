@@ -31,6 +31,15 @@ std::vector<IntersectedCell> rasterization(
         LengthDbl cell_width,
         LengthDbl cell_height);
 
+void rasterization_export_inputs(
+        const std::string& file_path,
+        const ShapeWithHoles& shape,
+        LengthDbl cell_width,
+        LengthDbl cell_height);
+
+/**
+ * Convert a cell to a shape.
+ */
 Shape cell_to_shape(
         const Cell& cell,
         LengthDbl cell_width,
@@ -43,5 +52,14 @@ std::vector<ShapeWithHoles> cells_to_shapes(
         const std::vector<Cell>& cells,
         LengthDbl cell_width,
         LengthDbl cell_height);
+
+/**
+ * Convert a list of intersected cells into shapes with holes.
+ */
+std::vector<ShapeWithHoles> cells_to_shapes(
+        const std::vector<IntersectedCell>& cells,
+        LengthDbl cell_width,
+        LengthDbl cell_height,
+        bool only_full = false);
 
 }
