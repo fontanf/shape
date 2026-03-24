@@ -10,9 +10,13 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
+
 #include <algorithm>
+#include <fstream>
 
 using namespace shape;
+namespace fs = boost::filesystem;
 
 
 struct RasterizationTestParams
@@ -20,6 +24,33 @@ struct RasterizationTestParams
     ShapeWithHoles shape;
     LengthDbl cell_width;
     LengthDbl cell_height;
+
+
+    template <class basic_json>
+    static RasterizationTestParams from_json(
+            basic_json& json_item)
+    {
+        RasterizationTestParams test_params;
+        test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
+        test_params.cell_width = json_item["cell_width"];
+        test_params.cell_height = json_item["cell_height"];
+        return test_params;
+    }
+
+    static RasterizationTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
 };
 
 bool operator==(const Cell& a, const Cell& b)
@@ -175,4 +206,6 @@ INSTANTIATE_TEST_SUITE_P(
                 10,
                 10,
             },
+            RasterizationTestParams::read_json(
+                    (fs::path("data") / "tests" / "rasterization" / "0.json").string()),
         }));
