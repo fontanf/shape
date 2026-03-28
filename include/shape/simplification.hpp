@@ -49,6 +49,45 @@ ExtendToIntersectionOutput try_extend_to_intersection(
         const ShapeElement& element_next);
 
 
+/**
+ * Output of try_round_corner.
+ */
+struct RoundCornerOutput
+{
+    /** True iff a valid rounded corner was found. */
+    bool feasible = false;
+
+    /**
+     * The replacement elements in path order: trimmed first segment (if
+     * non-zero length), the circular arc, trimmed second segment (if
+     * non-zero length).  Contains 1 to 3 elements; zero-length segments
+     * are omitted.  Meaningful only when feasible is true.
+     */
+    std::vector<ShapeElement> elements;
+};
+
+/**
+ * Given two consecutive line segments sharing a common endpoint (the corner)
+ * and a target arc radius, replace the sharp corner with a smooth
+ * line - arc - line transition.
+ *
+ * The arc is tangent to both segments at points T1 (on element_prev) and T2
+ * (on element_next), located at equal distances from the corner along each
+ * segment.  The arc orientation (CCW/CW) matches the turn direction of the
+ * path.
+ *
+ * Returns feasible = false when:
+ *   - either input element is not a line segment,
+ *   - the two segments are collinear or nearly antiparallel, or
+ *   - the tangent length exceeds the length of either segment (radius too
+ *     large for the available geometry).
+ */
+RoundCornerOutput try_round_corner(
+        const ShapeElement& element_prev,
+        const ShapeElement& element_next,
+        LengthDbl radius);
+
+
 struct SimplifyInputShape
 {
     ShapeWithHoles shape;

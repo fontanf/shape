@@ -433,6 +433,75 @@ bool is_forward_extension(const ShapeElement& element, const Point& point)
 
 }
 
+RoundCornerOutput shape::try_round_corner(
+        const ShapeElement& element_prev,
+        const ShapeElement& element_next,
+        LengthDbl radius)
+{
+    if (element_prev.type != ShapeElementType::LineSegment
+            || element_next.type != ShapeElementType::LineSegment) {
+        return {};
+    }
+
+    LengthDbl len_prev = element_prev.length();
+    LengthDbl len_next = element_next.length();
+    if (equal(len_prev, 0.0) || equal(len_next, 0.0))
+        return {};
+
+    // Unit tangent directions at the shared corner.
+    Point dir_prev = element_prev.tangent(element_prev.end);
+    Point dir_next = element_next.tangent(element_next.start);
+
+    // CCW angle from the incoming direction to the outgoing direction.
+    // In (0, π): left/CCW turn. In (π, 2π): right/CW turn.
+    Angle turn_angle = angle_radian(dir_prev, dir_next);
+
+    // Collinear: no corner to round.
+    if (equal(turn_angle, 0.0))
+        return {};
+
+    // Antiparallel (hairpin): tangent length would be infinite.
+    if (equal(turn_angle, M_PI))
+        return {};
+
+    bool ccw = strictly_lesser(turn_angle, M_PI);
+
+    // Interior angle of the corner (always in (0, π)).
+    Angle interior_angle = ccw ? turn_angle : 2.0 * M_PI - turn_angle;
+
+    // Distance from the corner to each tangent point.
+    LengthDbl tangent_length = radius * std::tan(interior_angle / 2.0);
+
+    // Tangent points must lie within their respective segments.
+    if (strictly_greater(tangent_length, len_prev)
+            || strictly_greater(tangent_length, len_next)) {
+        return {};
+    }
+
+    Point tangent_prev = element_prev.end - tangent_length * dir_prev;
+    Point tangent_next = element_next.start + tangent_length * dir_next;
+
+    // Arc center: 90° rotation of dir_prev toward the inside of the turn.
+    // CCW turn → center is to the left  (rotate +90°).
+    // CW  turn → center is to the right (rotate −90° = +270°).
+    Angle rotation = ccw? 90.0: 270.0;
+    Point center = tangent_prev + radius * dir_prev.rotate(rotation);
+
+    ShapeElementOrientation arc_orientation = ccw?
+        ShapeElementOrientation::Anticlockwise:
+        ShapeElementOrientation::Clockwise;
+
+    RoundCornerOutput output;
+    output.feasible = true;
+    if (!equal(element_prev.start, tangent_prev))
+        output.elements.push_back(build_line_segment(element_prev.start, tangent_prev));
+    output.elements.push_back(
+            build_circular_arc(tangent_prev, tangent_next, center, arc_orientation));
+    if (!equal(tangent_next, element_next.end))
+        output.elements.push_back(build_line_segment(tangent_next, element_next.end));
+    return output;
+}
+
 ExtendToIntersectionOutput shape::try_extend_to_intersection(
         const ShapeElement& element_prev,
         const ShapeElement& element_next)
