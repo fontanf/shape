@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
+
 using namespace shape;
 
 
@@ -94,5 +96,110 @@ INSTANTIATE_TEST_SUITE_P(
                 build_circular_arc({6, 0}, {5, 1}, {5, 0}, ShapeElementOrientation::Anticlockwise),
                 false,
                 {0, 0},
+            },
+        }));
+
+
+////////////////////////////////////////////////////////////////////////////////
+// try_round_corner
+////////////////////////////////////////////////////////////////////////////////
+
+struct TryRoundCornerTestParams
+{
+    ShapeElement element_prev;
+    ShapeElement element_next;
+    LengthDbl radius;
+    bool expected_feasible;
+    /** Only meaningful when expected_feasible is true. */
+    std::vector<ShapeElement> expected_elements;
+};
+
+class TryRoundCornerTest:
+    public testing::TestWithParam<TryRoundCornerTestParams> { };
+
+TEST_P(TryRoundCornerTest, TryRoundCorner)
+{
+    TryRoundCornerTestParams test_params = GetParam();
+    std::cout << "element_prev " << test_params.element_prev.to_string() << std::endl;
+    std::cout << "element_next " << test_params.element_next.to_string() << std::endl;
+    std::cout << "radius " << test_params.radius << std::endl;
+
+    RoundCornerOutput output = try_round_corner(
+            test_params.element_prev,
+            test_params.element_next,
+            test_params.radius);
+
+    std::cout << "feasible " << output.feasible << std::endl;
+    for (const ShapeElement& element: output.elements)
+        std::cout << "  " << element.to_string() << std::endl;
+
+    EXPECT_EQ(output.feasible, test_params.expected_feasible);
+    if (test_params.expected_feasible && output.feasible) {
+        ASSERT_EQ(output.elements.size(), test_params.expected_elements.size());
+        for (ElementPos pos = 0;
+                pos < (ElementPos)output.elements.size();
+                ++pos) {
+            EXPECT_TRUE(equal(output.elements[pos], test_params.expected_elements[pos]));
+        }
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        TryRoundCornerTest,
+        testing::ValuesIn(std::vector<TryRoundCornerTestParams>{
+            {  // 90° CCW (left) turn: horizontal then up, r=1.
+               // tangent_length = r*tan(45°) = 1.
+               // T1=(1,0), T2=(2,1), center=(1,1), arc CCW.
+                build_line_segment({0, 0}, {2, 0}),
+                build_line_segment({2, 0}, {2, 2}),
+                1.0,
+                true,
+                {
+                    build_line_segment({0, 0}, {1, 0}),
+                    build_circular_arc({1, 0}, {2, 1}, {1, 1}, ShapeElementOrientation::Anticlockwise),
+                    build_line_segment({2, 1}, {2, 2}),
+                },
+            }, {  // 90° CW (right) turn: horizontal then down, r=1.
+               // tangent_length = r*tan(45°) = 1.
+               // T1=(1,0), T2=(2,-1), center=(1,-1), arc CW.
+                build_line_segment({0, 0}, {2, 0}),
+                build_line_segment({2, 0}, {2, -2}),
+                1.0,
+                true,
+                {
+                    build_line_segment({0, 0}, {1, 0}),
+                    build_circular_arc({1, 0}, {2, -1}, {1, -1}, ShapeElementOrientation::Clockwise),
+                    build_line_segment({2, -1}, {2, -2}),
+                },
+            }, {  // 90° CCW turn with tangent point at segment start: prev segment
+                  // is exactly r long, so the trimmed prev has zero length and is
+                  // omitted.  T1=(0,0)=element_prev.start, T2=(1,1).
+                build_line_segment({0, 0}, {1, 0}),
+                build_line_segment({1, 0}, {1, 2}),
+                1.0,
+                true,
+                {
+                    build_circular_arc({0, 0}, {1, 1}, {0, 1}, ShapeElementOrientation::Anticlockwise),
+                    build_line_segment({1, 1}, {1, 2}),
+                },
+            }, {  // Infeasible: element_prev is a circular arc, not a line segment.
+                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                build_line_segment({0, 1}, {0, 3}),
+                1.0,
+                false,
+                {},
+            }, {  // Infeasible: collinear segments, no corner to round.
+                build_line_segment({0, 0}, {1, 0}),
+                build_line_segment({1, 0}, {3, 0}),
+                1.0,
+                false,
+                {},
+            }, {  // Infeasible: radius too large (tangent_length = 2 > len_prev = 0.5).
+                build_line_segment({0, 0}, {0.5, 0}),
+                build_line_segment({0.5, 0}, {0.5, 2}),
+                2.0,
+                false,
+                {},
             },
         }));
