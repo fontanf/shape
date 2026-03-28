@@ -169,6 +169,114 @@ std::pair<bool, Point> shape::compute_line_intersection(
     }
 }
 
+std::vector<Point> shape::compute_line_circle_intersections(
+        const Point& line_point_1,
+        const Point& line_point_2,
+        const Point& circle_center,
+        LengthDbl circle_radius)
+{
+    std::vector<Point> points;
+
+    if (line_point_1.x == line_point_2.x) {
+        LengthDbl dx = line_point_1.x - circle_center.x;
+        LengthDbl diff = circle_radius * circle_radius - dx * dx;
+        if (strictly_lesser(diff, 0))
+            return {};
+        if (diff < 0)
+            diff = 0;
+        LengthDbl v = std::sqrt(diff);
+        points.push_back({line_point_1.x, circle_center.y + v});
+        points.push_back({line_point_1.x, circle_center.y - v});
+    } else if (line_point_1.y == line_point_2.y) {
+        LengthDbl dy = line_point_1.y - circle_center.y;
+        LengthDbl diff = circle_radius * circle_radius - dy * dy;
+        if (strictly_lesser(diff, 0))
+            return {};
+        if (diff < 0)
+            diff = 0;
+        LengthDbl v = std::sqrt(diff);
+        points.push_back({circle_center.x + v, line_point_1.y});
+        points.push_back({circle_center.x - v, line_point_1.y});
+    } else {
+        LengthDbl line_a = line_point_1.y - line_point_2.y;
+        LengthDbl line_b = line_point_2.x - line_point_1.x;
+        LengthDbl line_c = line_point_2.x * line_point_1.y
+            - line_point_1.x * line_point_2.y;
+        LengthDbl c_prime = line_c
+            - line_a * circle_center.x
+            - line_b * circle_center.y;
+        LengthDbl rsq = circle_radius * circle_radius;
+        LengthDbl denom = line_a * line_a + line_b * line_b;
+        if (strictly_lesser(rsq * denom, c_prime * c_prime))
+            return {};
+        LengthDbl discriminant = rsq * denom - c_prime * c_prime;
+        if (discriminant < 0)
+            discriminant = 0;
+        LengthDbl sqrt_disc = std::sqrt(discriminant);
+        LengthDbl eta_1 = (line_a * c_prime + line_b * sqrt_disc) / denom;
+        LengthDbl eta_2 = (line_a * c_prime - line_b * sqrt_disc) / denom;
+        LengthDbl teta_1 = (line_b * c_prime - line_a * sqrt_disc) / denom;
+        LengthDbl teta_2 = (line_b * c_prime + line_a * sqrt_disc) / denom;
+        points.push_back({circle_center.x + eta_1, circle_center.y + teta_1});
+        points.push_back({circle_center.x + eta_2, circle_center.y + teta_2});
+    }
+
+    // Collapse to a single tangent point when the two computed points coincide.
+    if (points.size() == 2) {
+        Point midpoint = 0.5 * (points[0] + points[1]);
+        if (equal(distance(midpoint, circle_center), circle_radius))
+            return {midpoint};
+    }
+
+    return points;
+}
+
+std::vector<Point> shape::compute_circle_circle_intersections(
+        const Point& center_1,
+        LengthDbl radius_1,
+        const Point& center_2,
+        LengthDbl radius_2)
+{
+    if (equal(center_1, center_2))
+        return {};
+
+    LengthDbl rsq = radius_1 * radius_1;
+    LengthDbl r2sq = radius_2 * radius_2;
+    LengthDbl line_a = 2 * (center_2.x - center_1.x);
+    LengthDbl line_b = 2 * (center_2.y - center_1.y);
+    LengthDbl line_c = rsq
+        - center_1.x * center_1.x - center_1.y * center_1.y
+        - r2sq
+        + center_2.x * center_2.x + center_2.y * center_2.y;
+    LengthDbl c_prime = line_c
+        - line_a * center_1.x
+        - line_b * center_1.y;
+    LengthDbl denom = line_a * line_a + line_b * line_b;
+    if (strictly_lesser(rsq * denom, c_prime * c_prime))
+        return {};
+    LengthDbl discriminant = rsq * denom - c_prime * c_prime;
+    if (discriminant < 0)
+        discriminant = 0;
+    LengthDbl sqrt_disc = std::sqrt(discriminant);
+    LengthDbl eta_1 = (line_a * c_prime + line_b * sqrt_disc) / denom;
+    LengthDbl eta_2 = (line_a * c_prime - line_b * sqrt_disc) / denom;
+    LengthDbl teta_1 = (line_b * c_prime - line_a * sqrt_disc) / denom;
+    LengthDbl teta_2 = (line_b * c_prime + line_a * sqrt_disc) / denom;
+    std::vector<Point> points = {
+        {center_1.x + eta_1, center_1.y + teta_1},
+        {center_1.x + eta_2, center_1.y + teta_2},
+    };
+
+    // Collapse to a single tangent point when the two computed points coincide.
+    Point midpoint = 0.5 * (points[0] + points[1]);
+    if (equal(distance(midpoint, center_1), radius_1)
+            || equal(distance(midpoint, center_2), radius_2)) {
+        return {midpoint};
+    }
+
+    return points;
+}
+
 namespace
 {
 
@@ -259,82 +367,10 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
 
     LengthDbl radius = distance(arc.start, arc.center);
 
-    std::vector<Point> points;
-    if (line.start.x == line.end.x) {
-        LengthDbl radius = distance(arc.center, arc.start);
-        LengthDbl dx = line.start.x - arc.center.x;
-        LengthDbl diff = radius * radius - (dx * dx);
-        if (strictly_lesser(diff, 0))
-            return {};
-        if (diff < 0)
-            diff = 0;
-        LengthDbl v = std::sqrt(diff);
-        Point point_1;
-        point_1.x = line.start.x;
-        point_1.y = arc.center.y + v;
-        points.push_back(point_1);
-        Point point_2;
-        point_2.x = line.start.x;
-        point_2.y = arc.center.y - v;
-        points.push_back(point_2);
-
-    } else if (line.start.y == line.end.y) {
-        LengthDbl radius = distance(arc.center, arc.start);
-        LengthDbl dy = line.start.y - arc.center.y;
-        LengthDbl diff = radius * radius - (dy * dy);
-        if (strictly_lesser(diff, 0))
-            return {};
-        if (diff < 0)
-            diff = 0;
-        LengthDbl v = std::sqrt(diff);
-        Point point_1;
-        point_1.x = arc.center.x + v;
-        point_1.y = line.start.y;
-        points.push_back(point_1);
-        Point point_2;
-        point_2.x = arc.center.x - v;
-        point_2.y = line.start.y;
-        points.push_back(point_2);
-
-    } else {
-        // x (y1 - y2) + y (x2 - x1) + (x1 y2 - x2 y1) = 0
-        LengthDbl xm = arc.center.x;
-        LengthDbl ym = arc.center.y;
-        LengthDbl a = line.start.y - line.end.y;
-        LengthDbl b = line.end.x - line.start.x;
-        LengthDbl c = line.end.x * line.start.y - line.start.x * line.end.y;
-        LengthDbl rsq = squared_distance(arc.center, arc.start);
-        LengthDbl c_prime = c - a * xm - b * ym;
-
-        // No intersection.
-        if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
-            return {};
-
-        LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
-        //std::cout << "discriminant " << discriminant << std::endl;
-        if (discriminant < 0)
-            discriminant = 0;
-        LengthDbl denom = a * a + b * b;
-        LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
-        LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
-        LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
-        LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
-        Point point_1;
-        point_1.x = xm + eta_1;
-        point_1.y = ym + teta_1;
-        points.push_back(point_1);
-        Point point_2;
-        point_2.x = xm + eta_2;
-        point_2.y = ym + teta_2;
-        points.push_back(point_2);
-    }
-    //std::cout << "p1 " << points[0].to_string() << std::endl;
-    //std::cout << "p2 " << points[1].to_string() << std::endl;
-
-    // Single intersection point.
-    Point middle = 0.5 * (points[0] + points[1]);
-    if (equal(distance(middle, arc.center), radius))
-        points = {middle};
+    std::vector<Point> points = shape::compute_line_circle_intersections(
+            line.start, line.end, arc.center, radius);
+    if (points.empty())
+        return {};
 
     bool circle_contains_line_start = equal(distance(line.start, arc.center), radius);
     if (circle_contains_line_start) {
@@ -489,45 +525,13 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
         }
     }
 
-    std::vector<Point> points;
     LengthDbl radius_1 = distance(arc.start, arc.center);
     LengthDbl radius_2 = distance(arc_2.start, arc_2.center);
 
-    LengthDbl xm = arc.center.x;
-    LengthDbl ym = arc.center.y;
-    LengthDbl xm2 = arc_2.center.x;
-    LengthDbl ym2 = arc_2.center.y;
-    LengthDbl a = 2 * (xm2 - xm);
-    LengthDbl b = 2 * (ym2 - ym);
-    LengthDbl c = rsq - (xm * xm) - (ym * ym)
-        - r2sq + (xm2 * xm2) + (ym2 * ym2);
-    //std::cout << "a " << a << " b " << b << " c " << c << std::endl;
-
-    LengthDbl c_prime = c - a * xm - b * ym;
-
-    // No intersection.
-    if (strictly_lesser(rsq * (a * a + b * b), c_prime * c_prime))
+    std::vector<Point> points = shape::compute_circle_circle_intersections(
+            arc.center, radius_1, arc_2.center, radius_2);
+    if (points.empty())
         return {};
-
-    std::vector<Point> intersections;
-    LengthDbl discriminant = rsq * (a * a + b * b) - c_prime * c_prime;
-    //std::cout << "discriminant " << discriminant << std::endl;
-    if (discriminant < 0)
-        discriminant = 0;
-    LengthDbl denom = a * a + b * b;
-    LengthDbl eta_1 = (a * c_prime + b * std::sqrt(discriminant)) / denom;
-    LengthDbl eta_2 = (a * c_prime - b * std::sqrt(discriminant)) / denom;
-    LengthDbl teta_1 = (b * c_prime - a * std::sqrt(discriminant)) / denom;
-    LengthDbl teta_2 = (b * c_prime + a * std::sqrt(discriminant)) / denom;
-    points = {{xm + eta_1, ym + teta_1}, {xm + eta_2, ym + teta_2}};
-    //std::cout << "p0 " << points[0].to_string() << std::endl;
-    //std::cout << "p1 " << points[1].to_string() << std::endl;
-
-    Point middle = 0.5 * (points[0] + points[1]);
-    if (equal(distance(middle, arc.center), radius_1)
-            || equal(distance(middle, arc.center), radius_2)) {
-        points = {middle};
-    }
 
     bool circle_1_contains_arc_2_start = equal(distance(arc_2.start, arc.center), radius_1);
     if (circle_1_contains_arc_2_start) {
