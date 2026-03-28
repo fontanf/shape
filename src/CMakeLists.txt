@@ -17,6 +17,7 @@ target_sources(Shape_shape PRIVATE
     approximation.cpp
     supports.cpp
     rasterization.cpp
+    no_fit_polygon.cpp
     writer.cpp)
 target_include_directories(Shape_shape PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
