@@ -2,6 +2,7 @@
 
 #include "shape/clean.hpp"
 #include "shape/boolean_operations.hpp"
+#include "shape/elements_intersections.hpp"
 #include "shape/shapes_intersections.hpp"
 //#include "shape/writer.hpp"
 
@@ -378,6 +379,158 @@ void apply_approximation(
     //std::cout << "element_next " << element_next.element.to_string() << std::endl;
 }
 
+}
+
+namespace
+{
+
+/**
+ * Check whether a point is at or beyond an element's end in the forward
+ * direction along the element's underlying infinite geometry.
+ *
+ * - LineSegment: the projection of (point - end) onto (end - start) is >= 0.
+ * - CircularArc CCW: arc-length from start to point >= arc span.
+ * - CircularArc CW: arc-length from start to point (CW) >= arc span.
+ * - Full arc: always false.
+ */
+bool is_forward_extension(const ShapeElement& element, const Point& point)
+{
+    switch (element.type) {
+    case ShapeElementType::LineSegment: {
+        Point direction = element.end - element.start;
+        return !strictly_lesser(
+                dot_product(point - element.end, direction),
+                0.0);
+    }
+    case ShapeElementType::CircularArc: {
+        LengthDbl radius = distance(element.start, element.center);
+        switch (element.orientation) {
+        case ShapeElementOrientation::Full:
+            return false;
+        case ShapeElementOrientation::Anticlockwise: {
+            Angle span = angle_radian(
+                    element.start - element.center,
+                    element.end - element.center);
+            Angle angle_to_point = angle_radian(
+                    element.start - element.center,
+                    point - element.center);
+            return !strictly_lesser(angle_to_point * radius, span * radius);
+        }
+        case ShapeElementOrientation::Clockwise: {
+            Angle span_cw = angle_radian(
+                    element.end - element.center,
+                    element.start - element.center);
+            Angle angle_cw_to_point = angle_radian(
+                    point - element.center,
+                    element.start - element.center);
+            return !strictly_lesser(angle_cw_to_point * radius, span_cw * radius);
+        }
+        }
+    }
+    }
+    return false;
+}
+
+}
+
+ExtendToIntersectionOutput shape::try_extend_to_intersection(
+        const ShapeElement& element_prev,
+        const ShapeElement& element_next)
+{
+    if (element_prev.orientation == ShapeElementOrientation::Full
+            || element_next.orientation == ShapeElementOrientation::Full) {
+        return {};
+    }
+
+    // Collect candidate intersection points from the underlying infinite
+    // geometries of both elements.
+    std::vector<Point> candidates;
+
+    switch (element_prev.type) {
+    case ShapeElementType::LineSegment: {
+        switch (element_next.type) {
+        case ShapeElementType::LineSegment: {
+            auto result = compute_line_intersection(
+                    element_prev.start,
+                    element_prev.end,
+                    element_next.start,
+                    element_next.end);
+            if (result.first)
+                candidates.push_back(result.second);
+            break;
+        }
+        case ShapeElementType::CircularArc: {
+            LengthDbl radius_next = distance(element_next.start, element_next.center);
+            candidates = compute_line_circle_intersections(
+                    element_prev.start,
+                    element_prev.end,
+                    element_next.center,
+                    radius_next);
+            break;
+        }
+        }
+        break;
+    }
+    case ShapeElementType::CircularArc: {
+        switch (element_next.type) {
+        case ShapeElementType::LineSegment: {
+            LengthDbl radius_prev = distance(element_prev.start, element_prev.center);
+            candidates = compute_line_circle_intersections(
+                    element_next.start,
+                    element_next.end,
+                    element_prev.center,
+                    radius_prev);
+            break;
+        }
+        case ShapeElementType::CircularArc: {
+            LengthDbl radius_prev = distance(element_prev.start, element_prev.center);
+            LengthDbl radius_next = distance(element_next.start, element_next.center);
+            candidates = compute_circle_circle_intersections(
+                    element_prev.center,
+                    radius_prev,
+                    element_next.center,
+                    radius_next);
+            break;
+        }
+        }
+        break;
+    }
+    }
+
+    // Gap midpoint used to prefer the closest valid candidate.
+    Point gap_midpoint = 0.5 * (element_prev.end + element_next.start);
+
+    ShapeElement element_next_reversed = element_next.reverse();
+
+    bool best_found = false;
+    LengthDbl best_sq_dist = std::numeric_limits<LengthDbl>::infinity();
+    Point best_point;
+
+    for (const Point& candidate: candidates) {
+        if (!is_forward_extension(element_prev, candidate))
+            continue;
+        // Backward extension of element_next == forward extension of its reverse.
+        if (!is_forward_extension(element_next_reversed, candidate))
+            continue;
+
+        LengthDbl sq_dist = squared_distance(candidate, gap_midpoint);
+        if (!best_found || strictly_lesser(sq_dist, best_sq_dist)) {
+            best_found = true;
+            best_sq_dist = sq_dist;
+            best_point = candidate;
+        }
+    }
+
+    if (!best_found)
+        return {};
+
+    ExtendToIntersectionOutput output;
+    output.feasible = true;
+    output.new_element_prev = element_prev;
+    output.new_element_prev.end = best_point;
+    output.new_element_next = element_next;
+    output.new_element_next.start = best_point;
+    return output;
 }
 
 std::vector<ShapeWithHoles> shape::simplify(
