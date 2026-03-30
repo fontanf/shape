@@ -602,6 +602,87 @@ ExtendToIntersectionOutput shape::try_extend_to_intersection(
     return output;
 }
 
+SmoothArcToLineOutput shape::try_smooth_arc_to_line(
+        const ShapeElement& element_prev,
+        const ShapeElement& element_next)
+{
+    // line + arc: delegate to the arc + line case with reversed elements, then
+    // reverse the output elements back.
+    if (element_prev.type == ShapeElementType::LineSegment
+            && element_next.type == ShapeElementType::CircularArc) {
+        SmoothArcToLineOutput reversed_output = try_smooth_arc_to_line(
+                element_next.reverse(),
+                element_prev.reverse());
+        if (!reversed_output.feasible)
+            return {};
+        SmoothArcToLineOutput output;
+        output.feasible = true;
+        output.new_element_prev = reversed_output.new_element_next.reverse();
+        output.new_element_next = reversed_output.new_element_prev.reverse();
+        return output;
+    }
+
+    if (element_prev.type != ShapeElementType::CircularArc
+            || element_next.type != ShapeElementType::LineSegment) {
+        return {};
+    }
+    if (element_prev.orientation == ShapeElementOrientation::Full)
+        return {};
+
+    LengthDbl radius = distance(element_prev.start, element_prev.center);
+    Point center_to_end = element_next.end - element_prev.center;
+    LengthDbl distance_to_end = distance(element_next.end, element_prev.center);
+
+    // element_next.end must be strictly outside the circle.
+    if (!strictly_greater(distance_to_end, radius))
+        return {};
+
+    Angle alpha = std::acos(radius / distance_to_end);
+    Point center_to_end_unit = (1.0 / distance_to_end) * center_to_end;
+
+    // Tangent point on the arc: rotate center_to_end_unit by ∓alpha.
+    // CCW arc: rotate by -alpha so the arc's CCW tangent points toward element_next.end.
+    // CW  arc: rotate by +alpha.
+    Point tangent_point;
+    if (element_prev.orientation == ShapeElementOrientation::Anticlockwise) {
+        tangent_point = element_prev.center + radius * center_to_end_unit.rotate_radians(-alpha);
+    } else {
+        tangent_point = element_prev.center + radius * center_to_end_unit.rotate_radians(alpha);
+    }
+
+    // Check that tangent_point lies strictly on the arc (not at the endpoints).
+    if (element_prev.orientation == ShapeElementOrientation::Anticlockwise) {
+        Angle arc_span = angle_radian(
+                element_prev.start - element_prev.center,
+                element_prev.end - element_prev.center);
+        Angle angle_to_tangent_point = angle_radian(
+                element_prev.start - element_prev.center,
+                tangent_point - element_prev.center);
+        if (!strictly_greater(angle_to_tangent_point * radius, 0.0)
+                || !strictly_lesser(angle_to_tangent_point * radius, arc_span * radius)) {
+            return {};
+        }
+    } else {
+        Angle arc_span_cw = angle_radian(
+                element_prev.end - element_prev.center,
+                element_prev.start - element_prev.center);
+        Angle angle_cw_to_tangent_point = angle_radian(
+                tangent_point - element_prev.center,
+                element_prev.start - element_prev.center);
+        if (!strictly_greater(angle_cw_to_tangent_point * radius, 0.0)
+                || !strictly_lesser(angle_cw_to_tangent_point * radius, arc_span_cw * radius)) {
+            return {};
+        }
+    }
+
+    SmoothArcToLineOutput output;
+    output.feasible = true;
+    output.new_element_prev = element_prev;
+    output.new_element_prev.end = tangent_point;
+    output.new_element_next = build_line_segment(tangent_point, element_next.end);
+    return output;
+}
+
 std::vector<ShapeWithHoles> shape::simplify(
         const std::vector<SimplifyInputShape>& shapes,
         AreaDbl maximum_approximation_area)

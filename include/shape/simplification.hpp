@@ -88,6 +88,54 @@ RoundCornerOutput try_round_corner(
         LengthDbl radius);
 
 
+/**
+ * Output of try_smooth_arc_to_line.
+ */
+struct SmoothArcToLineOutput
+{
+    /** True iff a valid tangent point was found on the arc. */
+    bool feasible = false;
+
+    /**
+     * For arc + line: copy of element_prev (the arc) with its end moved to P.
+     * For line + arc: new line segment from element_prev.start to P.
+     * Meaningful only when feasible is true.
+     */
+    ShapeElement new_element_prev;
+
+    /**
+     * For arc + line: new line segment from P to element_next.end.
+     * For line + arc: copy of element_next (the arc) with its start moved to P.
+     * Meaningful only when feasible is true.
+     */
+    ShapeElement new_element_next;
+};
+
+/**
+ * Given a circular arc adjacent to a line segment (in either order), find a
+ * point P strictly on the arc such that the line through P and the far
+ * endpoint of the line segment is tangent to the arc at P.  The arc is
+ * trimmed to end (or start) at P and the line segment is replaced by the
+ * tangent line, yielding a smooth (G1-continuous) arc-to-line transition.
+ *
+ * Supported configurations:
+ *   - arc + line: element_prev is the arc, element_next is the line.
+ *     P lies on element_prev; the new line runs from P to element_next.end.
+ *   - line + arc: element_prev is the line, element_next is the arc.
+ *     P lies on element_next; the new line runs from element_prev.start to P.
+ *
+ * Returns feasible = false when:
+ *   - neither (arc, line) nor (line, arc) configuration is present,
+ *   - the arc has Full orientation,
+ *   - the far endpoint of the line segment is inside or on the circle
+ *     (no external tangent exists), or
+ *   - the tangent point does not lie strictly on the arc.
+ */
+SmoothArcToLineOutput try_smooth_arc_to_line(
+        const ShapeElement& element_prev,
+        const ShapeElement& element_next);
+
+
 struct SimplifyInputShape
 {
     ShapeWithHoles shape;
