@@ -217,8 +217,12 @@ std::vector<Point> shape::compute_line_circle_intersections(
         LengthDbl eta_2 = (line_a * c_prime - line_b * sqrt_disc) / denom;
         LengthDbl teta_1 = (line_b * c_prime - line_a * sqrt_disc) / denom;
         LengthDbl teta_2 = (line_b * c_prime + line_a * sqrt_disc) / denom;
-        points.push_back({circle_center.x + eta_1, circle_center.y + teta_1});
-        points.push_back({circle_center.x + eta_2, circle_center.y + teta_2});
+        Point point_1 = {circle_center.x + eta_1, circle_center.y + teta_1};
+        Point point_2 = {circle_center.x + eta_2, circle_center.y + teta_2};
+        if (equal(distance(point_1, circle_center), circle_radius))
+            points.push_back(point_1);
+        if (equal(distance(point_2, circle_center), circle_radius))
+            points.push_back(point_2);
     }
 
     // Collapse to a single tangent point when the two computed points coincide.
@@ -262,16 +266,25 @@ std::vector<Point> shape::compute_circle_circle_intersections(
     LengthDbl eta_2 = (line_a * c_prime - line_b * sqrt_disc) / denom;
     LengthDbl teta_1 = (line_b * c_prime - line_a * sqrt_disc) / denom;
     LengthDbl teta_2 = (line_b * c_prime + line_a * sqrt_disc) / denom;
-    std::vector<Point> points = {
-        {center_1.x + eta_1, center_1.y + teta_1},
-        {center_1.x + eta_2, center_1.y + teta_2},
-    };
+    Point point_1 = {center_1.x + eta_1, center_1.y + teta_1};
+    Point point_2 = {center_1.x + eta_2, center_1.y + teta_2};
+    std::vector<Point> points;
+    if (equal(distance(point_1, center_1), radius_1)
+            && equal(distance(point_1, center_2), radius_2)) {
+        points.push_back(point_1);
+    }
+    if (equal(distance(point_2, center_1), radius_1)
+            && equal(distance(point_2, center_2), radius_2)) {
+        points.push_back(point_2);
+    }
 
     // Collapse to a single tangent point when the two computed points coincide.
-    Point midpoint = 0.5 * (points[0] + points[1]);
-    if (equal(distance(midpoint, center_1), radius_1)
-            || equal(distance(midpoint, center_2), radius_2)) {
-        return {midpoint};
+    if (points.size() == 2) {
+        Point midpoint = 0.5 * (points[0] + points[1]);
+        if (equal(distance(midpoint, center_1), radius_1)
+                || equal(distance(midpoint, center_2), radius_2)) {
+            return {midpoint};
+        }
     }
 
     return points;
