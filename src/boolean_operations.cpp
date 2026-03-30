@@ -607,28 +607,10 @@ BooleanOperationGraph compute_graph(
     return graph;
 }
 
-std::vector<ShapeWithHoles> compute_boolean_operation_component(
-        const std::vector<ShapeWithHoles>& shapes,
-        ComputeSplittedElementsOutput& cse_output,
-        ComponentId component_id,
-        BooleanOperation boolean_operation)
+std::vector<ElementPos> compute_arcs_next(
+        BooleanOperationGraph& graph,
+        const std::vector<SplittedElement>& splitted_elements)
 {
-    //std::cout << "compute_boolean_operation_component" << std::endl;
-    //for (const SplittedElement& splitted_element: splitted_elements)
-    //    std::cout << splitted_element.element.to_string() << std::endl;
-    //Writer().add_shapes_with_holes(shapes).write_json("compute_boolean_operation_component_input.json");
-
-    std::vector<SplittedElement>& splitted_elements = cse_output.components_splitted_elements[component_id];
-    std::vector<ShapeWithHoles> new_shapes;
-    BooleanOperationGraph graph = compute_graph(splitted_elements);
-
-#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
-    Writer writer;
-    for (const auto& splitted_element: splitted_elements)
-        writer.add_element(splitted_element.element);
-    writer.write_json("overlay.json");
-#endif
-
     std::vector<ElementPos> arcs_next(graph.arcs.size(), -1);
     for (NodeId node_id = 0; node_id < (NodeId)graph.nodes.size(); ++node_id) {
         BooleanOperationNode& node = graph.nodes[node_id];
@@ -638,7 +620,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             l = (std::min)(l, splitted_element.element.length());
         }
         l /= 2;
-        // Sort the arcs at this node.
+        // Sort the arcs at this node by angle.
         std::sort(
                 node.successors.begin(),
                 node.successors.end(),
@@ -665,35 +647,18 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             std::cout << arc_id
                 << " " << splitted_elements[arc_id].orig_shape_id
                 << " " << element.to_string() << std::endl;
-            //std::cout << arc.reverse_arc_id << " -> " << arc_prev_id << std::endl;
-            //std::cout << "  " << arc.reverse_arc_id
-            //    << " " << splitted_elements[arc.reverse_arc_id].element.to_string() << std::endl;
-            //std::cout << arc_prev_id
-            //    << " " << splitted_elements[arc_prev_id].element.to_string() << std::endl;
             std::cout << shape::to_string(angle_radian(element.tangent(element.start))) << std::endl;
 #endif
             arc_prev_id = arc_id;
         }
     }
+    return arcs_next;
+}
 
-    //if (boolean_operation == BooleanOperation::Difference) {
-    //    std::vector<ShapeElement> elements;
-    //    Writer writer;
-    //    for (const auto& splitted_element: splitted_elements)
-    //        writer.add_element(splitted_element.element);
-    //    writer.write_json("overlay.json");
-    //}
-
-    std::vector<ShapeWithHoles> component_shapes;
-    for (auto it = cse_output.shape_component_ids.begin(component_id);
-            it != cse_output.shape_component_ids.end(component_id);
-            ++it) {
-        component_shapes.push_back(shapes[*it]);
-    }
-    IntersectionTree intersection_tree(component_shapes, {}, {});
-
-    // Find an element from the outline.
-    // To do so, we look at the rightmost node of the graph.
+ElementPos compute_start_element_pos(
+        const std::vector<SplittedElement>& splitted_elements)
+{
+    // Find the rightmost point among all elements.
     Point p_max = {-std::numeric_limits<LengthDbl>::infinity(), -std::numeric_limits<LengthDbl>::infinity()};
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)splitted_elements.size();
@@ -713,6 +678,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     std::cout << "p_max " << p_max.to_string() << std::endl;
 #endif
 
+    // Collect elements that pass through p_max.
     std::vector<ElementPos> rightest_elements_pos;
     for (ElementPos element_pos = 0;
             element_pos < (ElementPos)splitted_elements.size();
@@ -725,6 +691,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     std::cout << "rightest_elements_pos.size() " << rightest_elements_pos.size() << std::endl;
 #endif
 
+    // Compute the step length used to sample a point slightly past p_max on
+    // each candidate element.
     LengthDbl l = std::numeric_limits<LengthDbl>::infinity();
     for (ElementPos element_pos: rightest_elements_pos) {
         const SplittedElement& splitted_element = splitted_elements[element_pos];
@@ -742,6 +710,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     std::cout << "l " << l << std::endl;
 #endif
 
+    // Among the candidates, pick the one whose direction from p_max is the
+    // most counterclockwise (largest angle from the rightward direction).
     ElementPos element_start_pos = -1;
     Point largest_angle_point = p_max + Point{1, 0};
     for (ElementPos element_pos: rightest_elements_pos) {
@@ -758,14 +728,60 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             largest_angle_point = point;
         }
     }
-#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
-    std::cout << "element_start_pos " << element_start_pos << std::endl
-        << "    " << splitted_elements[element_start_pos].element.to_string() << std::endl;
-#endif
     if (element_start_pos == -1) {
         throw std::logic_error(
                 FUNC_SIGNATURE + ": element_start_pos is '-1'.");
     }
+    return element_start_pos;
+}
+
+std::vector<ShapeWithHoles> compute_boolean_operation_component(
+        const std::vector<ShapeWithHoles>& shapes,
+        ComputeSplittedElementsOutput& cse_output,
+        ComponentId component_id,
+        BooleanOperation boolean_operation)
+{
+    //std::cout << "compute_boolean_operation_component" << std::endl;
+    //for (const SplittedElement& splitted_element: splitted_elements)
+    //    std::cout << splitted_element.element.to_string() << std::endl;
+    //Writer().add_shapes_with_holes(shapes).write_json("compute_boolean_operation_component_input.json");
+
+    std::vector<SplittedElement>& splitted_elements = cse_output.components_splitted_elements[component_id];
+    std::vector<ShapeWithHoles> new_shapes;
+    BooleanOperationGraph graph = compute_graph(splitted_elements);
+
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    Writer writer;
+    for (const auto& splitted_element: splitted_elements)
+        writer.add_element(splitted_element.element);
+    writer.write_json("overlay.json");
+#endif
+
+    std::vector<ElementPos> arcs_next = compute_arcs_next(graph, splitted_elements);
+
+    //if (boolean_operation == BooleanOperation::Difference) {
+    //    std::vector<ShapeElement> elements;
+    //    Writer writer;
+    //    for (const auto& splitted_element: splitted_elements)
+    //        writer.add_element(splitted_element.element);
+    //    writer.write_json("overlay.json");
+    //}
+
+    std::vector<ShapeWithHoles> component_shapes;
+    for (auto it = cse_output.shape_component_ids.begin(component_id);
+            it != cse_output.shape_component_ids.end(component_id);
+            ++it) {
+        component_shapes.push_back(shapes[*it]);
+    }
+    IntersectionTree intersection_tree(component_shapes, {}, {});
+
+    // Find an element from the outline.
+    // To do so, we look at the rightmost node of the graph.
+    ElementPos element_start_pos = compute_start_element_pos(splitted_elements);
+#ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
+    std::cout << "element_start_pos " << element_start_pos << std::endl
+        << "    " << splitted_elements[element_start_pos].element.to_string() << std::endl;
+#endif
 
     // Find outer loop.
 #ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
@@ -1148,6 +1164,20 @@ std::vector<ShapeWithHoles> shape::compute_intersection(
             shapes,
             BooleanOperation::Intersection);
     return compute_union(faces);
+}
+
+void shape::compute_intersection_export_inputs(
+        const std::string& file_path,
+        const std::vector<ShapeWithHoles>& shapes)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        json["shapes"][shape_pos] = shapes[shape_pos].to_json();
+    }
+    file << std::setw(4) << json << std::endl;
 }
 
 std::vector<ShapeWithHoles> shape::compute_difference(

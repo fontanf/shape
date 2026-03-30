@@ -247,11 +247,20 @@ TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
     for (const ShapeWithHoles& shape: test_params.expected_output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
+#ifdef BOOLEAN_OPERATIONS_TEST_ENABLE_DEBUG
+    Writer().add_shapes_with_holes(test_params.shapes).write_json("compute_intersection_input.json");
+    Writer().add_shapes_with_holes(test_params.expected_output).write_json("compute_intersection_expected_output.json");
+#endif
+
     auto output = compute_intersection(
             test_params.shapes);
     std::cout << "output" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
+
+#ifdef BOOLEAN_OPERATIONS_TEST_ENABLE_DEBUG
+    Writer().add_shapes_with_holes(output).write_json("compute_intersection_output.json");
+#endif
 
     if (test_params.write_json || test_params.write_svg) {
         std::string base_filename = "intersection_" + fs::path(test_params.name).filename().replace_extension("").string();

@@ -21,6 +21,10 @@ void compute_union_export_inputs(
 std::vector<ShapeWithHoles> compute_intersection(
         const std::vector<ShapeWithHoles>& shapes);
 
+void compute_intersection_export_inputs(
+        const std::string& file_path,
+        const std::vector<ShapeWithHoles>& shapes);
+
 /**
  * Compute the difference between a given shape and a given set of shapes.
  */
