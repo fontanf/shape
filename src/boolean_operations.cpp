@@ -920,7 +920,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 #endif
             throw std::logic_error(
                     FUNC_SIGNATURE + ": "
-                    "face area is not positive.");
+                    "face area is not positive; "
+                    "area: " + std::to_string(face.compute_area()) + ".");
         }
 
         switch (boolean_operation) {
