@@ -380,72 +380,79 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
 
     LengthDbl radius = distance(arc.start, arc.center);
 
-    std::vector<Point> points = shape::compute_line_circle_intersections(
+    std::vector<Point> computed_points = shape::compute_line_circle_intersections(
             line.start, line.end, arc.center, radius);
-    if (points.empty())
-        return {};
+    std::vector<uint8_t> computed_points_valid(computed_points.size(), true);
+    std::vector<Point> end_points;
 
-    bool circle_contains_line_start = equal(distance(line.start, arc.center), radius);
-    if (circle_contains_line_start) {
-        if (points.size() == 1
-                || squared_distance(line.start, points[0]) < squared_distance(line.start, points[1])) {
-            points[0] = line.start;
+    // Circle contains line start.
+    if (equal(distance(line.start, arc.center), radius)) {
+        end_points.push_back(line.start);
+        if (computed_points.size() == 0) {
+        } else if (computed_points.size() == 1
+                || squared_distance(line.start, computed_points[0]) < squared_distance(line.start, computed_points[1])) {
+            computed_points_valid[0] = false;
         } else {
-            points[1] = line.start;
+            computed_points_valid[1] = false;
         }
     }
-    bool circle_contains_line_end = equal(distance(line.end, arc.center), radius);
-    if (circle_contains_line_end) {
-        if (points.size() == 1
-                || squared_distance(line.end, points[0]) < squared_distance(line.end, points[1])) {
-            points[0] = line.end;
+    // Circle contains line end.
+    if (!(line.end == line.start)
+            && equal(distance(line.end, arc.center), radius)) {
+        end_points.push_back(line.end);
+        if (computed_points.size() == 0) {
+        } else if (computed_points.size() == 1
+                || squared_distance(line.end, computed_points[0]) < squared_distance(line.end, computed_points[1])) {
+            computed_points_valid[0] = false;
         } else {
-            points[1] = line.end;
+            computed_points_valid[1] = false;
         }
     }
-    bool line_contains_arc_start = equal(distance_point_to_line(arc.start, line.start, line.end), 0.0);
-    if (line_contains_arc_start) {
-        if (points.size() == 1
-                || squared_distance(arc.start, points[0]) < squared_distance(arc.start, points[1])) {
-            points[0] = arc.start;
+    // Line contains arc start.
+    if (!(arc.start == line.start)
+            && !(arc.start == line.end)
+            && equal(distance_point_to_line(arc.start, line.start, line.end), 0.0)) {
+        end_points.push_back(arc.start);
+        if (computed_points.size() == 0) {
+        } else if (computed_points.size() == 1
+                || squared_distance(arc.start, computed_points[0]) < squared_distance(arc.start, computed_points[1])) {
+            computed_points_valid[0] = false;
         } else {
-            points[1] = arc.start;
+            computed_points_valid[1] = false;
         }
     }
-    bool line_contains_arc_end = equal(distance_point_to_line(arc.end, line.start, line.end), 0.0);
-    if (line_contains_arc_end) {
-        if (points.size() == 1
-                || squared_distance(arc.end, points[0]) < squared_distance(arc.end, points[1])) {
-            points[0] = arc.end;
+    // Line contains arc end.
+    if (!(arc.end == line.start)
+            && !(arc.end == line.end)
+            && !(arc.end == arc.start)
+            && equal(distance_point_to_line(arc.end, line.start, line.end), 0.0)) {
+        end_points.push_back(arc.end);
+        if (computed_points.size() == 0) {
+        } else if (computed_points.size() == 1
+                || squared_distance(arc.end, computed_points[0]) < squared_distance(arc.end, computed_points[1])) {
+            computed_points_valid[0] = false;
         } else {
-            points[1] = arc.end;
+            computed_points_valid[1] = false;
         }
     }
 
     ShapeElementIntersectionsOutput output;
-    for (const Point& p: points) {
-        // Check if any intersection coincides with an arc endpoint
-        if (equal(p, line.start)) {
-            if (arc.contains(p))
-                output.improper_intersections.push_back(line.start);
-        } else if (equal(p, line.end)) {
-            if (arc.contains(p))
-                output.improper_intersections.push_back(line.end);
-        } else if (equal(p, arc.start)) {
-            if (line.contains(p))
-                output.improper_intersections.push_back(arc.start);
-        } else if (equal(p, arc.end)) {
-            if (line.contains(p))
-                output.improper_intersections.push_back(arc.end);
-        } else if (line.contains(p) && arc.contains(p)) {
-            if (points.size() == 1) {
+    for (const Point& p: end_points)
+        if (arc.contains(p) && line.contains(p))
+            output.improper_intersections.push_back(p);
+    for (ElementPos pos = 0; pos < (ElementPos)computed_points.size(); ++pos) {
+        if (!computed_points_valid[pos])
+            continue;
+        const Point& p = computed_points[pos];
+        // Check if any intersection coincides with an arc_2 endpoint
+        if (arc.contains(p) && line.contains(p)) {
+            if (computed_points.size() == 1) {
                 output.improper_intersections.push_back(p);
             } else {
                 output.proper_intersections.push_back(p);
             }
         }
     }
-
     return output;
 }
 
@@ -544,11 +551,11 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     std::vector<Point> computed_points = shape::compute_circle_circle_intersections(
             arc.center, radius_1, arc_2.center, radius_2);
     std::vector<uint8_t> computed_points_valid(computed_points.size(), true);
-    std::vector<Point> valid_points;
+    std::vector<Point> end_points;
 
     // Circle 1 contains arc 2 start.
     if (equal(distance(arc_2.start, arc.center), radius_1)) {
-        valid_points.push_back(arc_2.start);
+        end_points.push_back(arc_2.start);
         if (computed_points.size() == 0) {
         } else if (computed_points.size() == 1
                 || squared_distance(arc_2.start, computed_points[0]) < squared_distance(arc_2.start, computed_points[1])) {
@@ -560,7 +567,7 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     // Circle 1 contains arc 2 end.
     if (!(arc_2.end == arc_2.start)
             && equal(distance(arc_2.end, arc.center), radius_1)) {
-        valid_points.push_back(arc_2.end);
+        end_points.push_back(arc_2.end);
         if (computed_points.size() == 0) {
         } else if (computed_points.size() == 1
                 || squared_distance(arc_2.end, computed_points[0]) < squared_distance(arc_2.end, computed_points[1])) {
@@ -573,7 +580,7 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     if (!(arc.start == arc_2.start)
             && !(arc.start == arc_2.end)
             && equal(distance(arc.start, arc_2.center), radius_2)) {
-        valid_points.push_back(arc.start);
+        end_points.push_back(arc.start);
         if (computed_points.size() == 0) {
         } else if (computed_points.size() == 1
                 || squared_distance(arc.start, computed_points[0]) < squared_distance(arc.start, computed_points[1])) {
@@ -587,7 +594,7 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
             && !(arc.end == arc_2.end)
             && !(arc.end == arc.start)
             && equal(distance(arc.end, arc_2.center), radius_2)) {
-        valid_points.push_back(arc.end);
+        end_points.push_back(arc.end);
         if (computed_points.size() == 0) {
         } else if (computed_points.size() == 1
                 || squared_distance(arc.end, computed_points[0]) < squared_distance(arc.end, computed_points[1])) {
@@ -598,7 +605,7 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     }
 
     ShapeElementIntersectionsOutput output;
-    for (const Point& p: valid_points)
+    for (const Point& p: end_points)
         if (arc.contains(p) && arc_2.contains(p))
             output.improper_intersections.push_back(p);
     for (ElementPos pos = 0; pos < (ElementPos)computed_points.size(); ++pos) {
