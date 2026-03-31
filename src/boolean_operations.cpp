@@ -95,6 +95,101 @@ struct ElementToSplit
     ShapePos orig_shape_id = -1;
 };
 
+struct ComponentBridge
+{
+    ShapeElement element;
+    ShapePos orig_shape_id = -1;
+};
+
+/**
+ * Find a horizontal bridge connecting the leftmost boundary point of
+ * inner_component_id to the nearest boundary of outer_component_id to its
+ * left.  Used to merge two non-intersecting components into a single planar
+ * graph component.
+ */
+ComponentBridge find_component_bridge(
+        ComponentId inner_component_id,
+        ComponentId outer_component_id,
+        const std::vector<ShapeWithHoles>& shapes,
+        const std::vector<ShapeElement>& elements_tmp,
+        const std::vector<ElementToSplit>& elements_info,
+        const optimizationtools::DoublyIndexedMap& shape_component_ids)
+{
+    // Find the leftmost boundary point of inner_component_id.
+    ComponentBridge bridge;
+    Point bridge_end = {std::numeric_limits<LengthDbl>::infinity(), 0};
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        if (!shape_component_ids.contains(shape_pos))
+            continue;
+        if (shape_component_ids[shape_pos] != inner_component_id)
+            continue;
+        auto furthest_points
+            = shapes[shape_pos].shape.compute_furthest_points(90);
+        if (strictly_greater(bridge_end.x, furthest_points.second.point.x))
+            bridge_end = furthest_points.second.point;
+    }
+
+    // Find the AABB of the outer component to bound the ray.
+    // Also pick a shape from the outer component for orig_shape_id: the bridge
+    // starts at the outer boundary, so it must be attributed to the outer
+    // (base) shape so that face traversal correctly marks the donut face as
+    // "inside the base" rather than "inside the subtractor".
+    LengthDbl outer_x_min = std::numeric_limits<LengthDbl>::infinity();
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)shapes.size();
+            ++shape_pos) {
+        if (!shape_component_ids.contains(shape_pos))
+            continue;
+        if (shape_component_ids[shape_pos] != outer_component_id)
+            continue;
+        if (bridge.orig_shape_id == -1)
+            bridge.orig_shape_id = shape_pos;
+        AxisAlignedBoundingBox aabb = shapes[shape_pos].compute_min_max();
+        if (aabb.x_min < outer_x_min)
+            outer_x_min = aabb.x_min;
+    }
+
+    // Shoot a horizontal ray leftward from bridge_end to the outer component's
+    // left boundary, and find the nearest intersection.
+    ShapeElement ray = build_line_segment(
+            {outer_x_min, bridge_end.y},
+            bridge_end);
+
+    LengthDbl x_max = -std::numeric_limits<LengthDbl>::infinity();
+    Point bridge_start = bridge_end;
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)elements_tmp.size();
+            ++element_pos) {
+        ShapePos sp = elements_info[element_pos].orig_shape_id;
+        if (!shape_component_ids.contains(sp))
+            continue;
+        if (shape_component_ids[sp] != outer_component_id)
+            continue;
+        ShapeElementIntersectionsOutput intersections
+            = compute_intersections(ray, elements_tmp[element_pos]);
+        for (const Point& point: intersections.proper_intersections) {
+            if (strictly_lesser(point.x, bridge_end.x)
+                    && strictly_greater(point.x, x_max)) {
+                x_max = point.x;
+                bridge_start = point;
+            }
+        }
+        for (const Point& point: intersections.improper_intersections) {
+            if (strictly_lesser(point.x, bridge_end.x)
+                    && strictly_greater(point.x, x_max)) {
+                x_max = point.x;
+                bridge_start = point;
+            }
+        }
+    }
+
+    bridge.element = build_line_segment(bridge_start, bridge_end);
+    return bridge;
+}
+
+
 ComputeSplittedElementsOutput compute_splitted_elements(
         const std::vector<ShapeWithHoles>& shapes,
         BooleanOperation boolean_operation)
@@ -208,31 +303,6 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         }
     }
 
-    // Equalize points.
-    std::vector<Point*> equalize_to_orig;
-    std::vector<Point> equalize_input;
-    std::vector<ShapeElement> elements_tmp = elements;
-    for (ElementPos element_pos = 0;
-            element_pos < (ElementPos)elements.size();
-            ++element_pos) {
-        ShapeElement& element = elements_tmp[element_pos];
-        equalize_input.push_back(element.start);
-        equalize_to_orig.push_back(&element.start);
-        equalize_input.push_back(element.end);
-        equalize_to_orig.push_back(&element.end);
-        if (element.type == ShapeElementType::CircularArc) {
-            equalize_input.push_back(element.center);
-            equalize_to_orig.push_back(&element.center);
-        }
-        for (Point& intersection: elements_intersections[element_pos]) {
-            equalize_input.push_back(intersection);
-            equalize_to_orig.push_back(&intersection);
-        }
-    }
-    std::vector<Point> equalize_output = equalize_points(equalize_input);
-    for (ElementPos pos = 0; pos < (ElementPos)equalize_output.size(); ++pos)
-        *equalize_to_orig[pos] = equalize_output[pos];
-
     // For each pair of connected component, check if one is strictly inside the
     // other.
     IntersectionTree intersection_tree_2(shapes, {}, {});
@@ -310,9 +380,65 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 }
                 break;
             } case BooleanOperation::Difference: {
-                throw std::logic_error(
-                        FUNC_SIGNATURE + ": "
-                        "not implemented.");
+                // component_id is strictly inside component_2_id.
+                // Bridge the two components so the planar graph can represent
+                // the subtractor as a hole in the base.
+                ComponentBridge bridge = find_component_bridge(
+                        component_id,
+                        component_2_id,
+                        shapes,
+                        elements,
+                        elements_info,
+                        output.shape_component_ids);
+
+                ElementPos bridge_pos = elements.size();
+                elements.push_back(bridge.element);
+                {
+                    ElementToSplit element_info;
+                    element_info.orig_shape_id = bridge.orig_shape_id;
+                    elements_info.push_back(element_info);
+                }
+                elements_intersections.push_back({});
+
+                // Compute intersections of the bridge with all existing
+                // elements so planar graph nodes are consistent.
+                for (ElementPos element_pos = 0;
+                        element_pos < bridge_pos;
+                        ++element_pos) {
+                    ShapeElementIntersectionsOutput bridge_intersections
+                        = compute_intersections(
+                                bridge.element, elements[element_pos]);
+                    for (const ShapeElement& overlapping_part:
+                            bridge_intersections.overlapping_parts) {
+                        elements_intersections[bridge_pos].push_back(
+                                overlapping_part.start);
+                        elements_intersections[bridge_pos].push_back(
+                                overlapping_part.end);
+                        elements_intersections[element_pos].push_back(
+                                overlapping_part.start);
+                        elements_intersections[element_pos].push_back(
+                                overlapping_part.end);
+                    }
+                    for (const Point& point:
+                            bridge_intersections.proper_intersections) {
+                        elements_intersections[bridge_pos].push_back(point);
+                        elements_intersections[element_pos].push_back(point);
+                    }
+                    for (const Point& point:
+                            bridge_intersections.improper_intersections) {
+                        elements_intersections[bridge_pos].push_back(point);
+                        elements_intersections[element_pos].push_back(point);
+                    }
+                }
+
+                // Merge component_id into component_2_id.
+                while (output.shape_component_ids.number_of_elements(
+                        component_id) > 0) {
+                    output.shape_component_ids.set(
+                            *output.shape_component_ids.begin(component_id),
+                            component_2_id);
+                }
+
                 break;
             } case BooleanOperation::SymmetricDifference: {
                 throw std::logic_error(
@@ -333,6 +459,31 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             }
         }
     }
+
+    // Equalize points.
+    std::vector<Point*> equalize_to_orig;
+    std::vector<Point> equalize_input;
+    std::vector<ShapeElement> elements_tmp = elements;
+    for (ElementPos element_pos = 0;
+            element_pos < (ElementPos)elements.size();
+            ++element_pos) {
+        ShapeElement& element = elements_tmp[element_pos];
+        equalize_input.push_back(element.start);
+        equalize_to_orig.push_back(&element.start);
+        equalize_input.push_back(element.end);
+        equalize_to_orig.push_back(&element.end);
+        if (element.type == ShapeElementType::CircularArc) {
+            equalize_input.push_back(element.center);
+            equalize_to_orig.push_back(&element.center);
+        }
+        for (Point& intersection: elements_intersections[element_pos]) {
+            equalize_input.push_back(intersection);
+            equalize_to_orig.push_back(&intersection);
+        }
+    }
+    std::vector<Point> equalize_output = equalize_points(equalize_input);
+    for (ElementPos pos = 0; pos < (ElementPos)equalize_output.size(); ++pos)
+        *equalize_to_orig[pos] = equalize_output[pos];
 
     // Build splitted elements.
     output.components_splitted_elements = std::vector<std::vector<SplittedElement>>(shapes.size());
