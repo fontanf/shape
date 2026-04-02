@@ -555,7 +555,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
 
 #ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
                 std::cout << "  - " << point_cur.to_string() << std::endl;
-                std::cout << "    " << new_element.element.to_string() << std::endl;
+                std::cout << "    " << output.components_splitted_elements[component_id].size() - 1 << " " << new_element.element.to_string() << std::endl;
                 std::cout << "    length " << new_element.element.length() << std::endl;
 #endif
             } else {
@@ -583,7 +583,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
 
 #ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
                 std::cout << "  - " << point_cur.to_string() << std::endl;
-                std::cout << "    " << new_element.element.to_string() << std::endl;
+                std::cout << "    " << output.components_splitted_elements[component_id].size() - 1 << " " << new_element.element.to_string() << std::endl;
                 std::cout << "    length " << new_element.element.length() << std::endl;
 #endif
             }
@@ -598,7 +598,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             output.components_splitted_elements[component_id].push_back(new_element);
 
 #ifdef BOOLEAN_OPERATIONS_ENABLE_DEBUG
-            std::cout << "  - " << new_element.element.to_string() << std::endl;
+            std::cout << "  - " << output.components_splitted_elements[component_id].size() - 1 << " " << new_element.element.to_string() << std::endl;
             std::cout << "    length " << new_element.element.length() << std::endl;
 #endif
         }
@@ -622,12 +622,42 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         }
     }
 
-    // Re-compute centers to avoid numerical issues.
     for (auto it = output.shape_component_ids.values_begin();
             it != output.shape_component_ids.values_end();
             ++it) {
+        // Re-compute centers to avoid numerical issues.
         ComponentId component_id = *it;
         auto& splitted_elements = output.components_splitted_elements[component_id];
+        for (SplittedElement& splitted_element: splitted_elements) {
+            if (splitted_element.element.type == shape::ShapeElementType::CircularArc
+                    && !(splitted_element.element.start == splitted_element.element.end)) {
+                splitted_element.element.center = splitted_element.element.recompute_center();
+            }
+        }
+
+        // Re-equalize points.
+        std::vector<Point*> equalize_to_orig;
+        std::vector<Point> equalize_input;
+        std::vector<SplittedElement> elements_tmp = splitted_elements;
+        for (ElementPos element_pos = 0;
+                element_pos < (ElementPos)splitted_elements.size();
+                ++element_pos) {
+            ShapeElement& element = elements_tmp[element_pos].element;
+            equalize_input.push_back(element.start);
+            equalize_to_orig.push_back(&element.start);
+            equalize_input.push_back(element.end);
+            equalize_to_orig.push_back(&element.end);
+            if (element.type == ShapeElementType::CircularArc) {
+                equalize_input.push_back(element.center);
+                equalize_to_orig.push_back(&element.center);
+            }
+        }
+        std::vector<Point> equalize_output = equalize_points(equalize_input);
+        for (ElementPos pos = 0; pos < (ElementPos)equalize_output.size(); ++pos)
+            *equalize_to_orig[pos] = equalize_output[pos];
+        splitted_elements = std::move(elements_tmp);
+
+        // Re-recompute centers.
         for (SplittedElement& splitted_element: splitted_elements) {
             if (splitted_element.element.type == shape::ShapeElementType::CircularArc
                     && !(splitted_element.element.start == splitted_element.element.end)) {
