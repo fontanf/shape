@@ -2286,6 +2286,15 @@ ShapeWithHoles shape::operator*(
     return shape_new;
 }
 
+void shift(
+        std::vector<ShapeWithHoles>& shapes_with_holes,
+        LengthDbl x,
+        LengthDbl y)
+{
+    for (ShapeWithHoles& shape_with_holes: shapes_with_holes)
+        shape_with_holes.shift(x, y);
+}
+
 bool shape::operator==(
         const ShapeElement& element_1,
         const ShapeElement& element_2)

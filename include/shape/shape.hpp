@@ -76,6 +76,12 @@ struct Point
             LengthDbl x,
             LengthDbl y);
 
+    Point& shift(
+            const Point& vector)
+    {
+        return this->shift(vector.x, vector.y);
+    }
+
     Point rotate(Angle angle) const;
 
     Point rotate(const Point& center, Angle angle) const;
@@ -374,6 +380,12 @@ struct ShapeElement
             LengthDbl x,
             LengthDbl y);
 
+    ShapeElement& shift(
+            const Point& vector)
+    {
+        return this->shift(vector.x, vector.y);
+    }
+
     ShapeElement rotate(Angle angle) const;
 
     ShapeElement axial_symmetry_identity_line() const;
@@ -565,6 +577,12 @@ struct Shape
             LengthDbl x,
             LengthDbl y);
 
+    Shape& shift(
+            const Point& vector)
+    {
+        return this->shift(vector.x, vector.y);
+    }
+
     Shape rotate(Angle angle) const;
 
     Shape axial_symmetry_identity_line() const;
@@ -656,6 +674,12 @@ struct ShapeWithHoles
             LengthDbl x,
             LengthDbl y);
 
+    ShapeWithHoles& shift(
+            const Point& vector)
+    {
+        return this->shift(vector.x, vector.y);
+    }
+
     ShapeWithHoles rotate(Angle angle) const;
 
     ShapeWithHoles axial_symmetry_identity_line() const;
@@ -707,6 +731,18 @@ struct ShapeWithHoles
 ShapeWithHoles operator*(
         LengthDbl scalar,
         const ShapeWithHoles& shape);
+
+void shift(
+        std::vector<ShapeWithHoles>& shapes_with_holes,
+        LengthDbl x,
+        LengthDbl y);
+
+inline void shift(
+        std::vector<ShapeWithHoles>& shapes_with_holes,
+        const Point& vector)
+{
+    shift(shapes_with_holes, vector.x, vector.y);
+}
 
 struct BuildShapeElement
 {
