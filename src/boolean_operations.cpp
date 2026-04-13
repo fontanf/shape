@@ -529,7 +529,11 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             }
             if (equal(point_cur, element.start)
                     || equal(point_cur, element.end)) {
-                throw std::logic_error(FUNC_SIGNATURE);
+                throw std::logic_error(
+                        FUNC_SIGNATURE + ": "
+                        "element_pos: " + std::to_string(element_pos) + "; "
+                        "element: " + element.to_string() + "; "
+                        "point_cur: " + point_cur.to_string() + ".");
             }
 
             if (first

@@ -50,7 +50,7 @@ std::vector<Point> shape::equalize_points(
     std::vector<uint8_t> visited(unique_points.size(), 0);
     std::vector<Point> new_points = points;
     std::vector<ElementPos> current_component;
-    Point current_component_point = {0, 0};
+    Point current_component_center = {0, 0};
     for (;;) {
         while (node_id < unique_points.size()
                 && visited[node_id]) {
@@ -62,7 +62,7 @@ std::vector<Point> shape::equalize_points(
         const Point& point = unique_points[node_id];
         visited[node_id] = 1;
         current_component = {node_id};
-        current_component_point = unique_points[node_id];
+        current_component_center = unique_points[node_id];
         std::vector<ElementPos> stack = {node_id};
         while (!stack.empty()) {
             ElementPos node_id_cur = stack.back();
@@ -73,12 +73,24 @@ std::vector<Point> shape::equalize_points(
                 stack.push_back(neighbor);
                 visited[neighbor] = 1;
                 current_component.push_back(neighbor);
-                current_component_point = current_component_point + unique_points[neighbor];
+                current_component_center = current_component_center + unique_points[neighbor];
                 //std::cout << "new_points[neighbor] " << new_points[neighbor].to_string()
                 //    << " -> " << point.to_string() << std::endl;
             }
         }
-        current_component_point = 1.0 / current_component.size() * current_component_point;
+        current_component_center = 1.0 / current_component.size() * current_component_center;
+
+        Point current_component_point = {0, 0};
+        LengthDbl length_best = std::numeric_limits<LengthDbl>::infinity();
+        for (ElementPos point_pos: current_component) {
+            const Point& point = unique_points[point_pos];
+            LengthDbl length = distance(point, current_component_center);
+            if (length_best > length) {
+                length_best = length;
+                current_component_point = point;
+            }
+        }
+
         for (ElementPos point_pos: current_component)
             for (ElementPos orig_point_pos: unique_to_orig[point_pos])
                 new_points[orig_point_pos] = current_component_point;
