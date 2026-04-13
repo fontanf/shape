@@ -16,6 +16,13 @@ Shape remove_backtracks(
         const Shape& shape);
 
 
+Shape flatten_arcs(
+        const Shape& shape);
+
+ShapeWithHoles flatten_arcs(
+        const ShapeWithHoles& shape_with_holes);
+
+
 Shape recompute_centers(
         const Shape& shape);
 

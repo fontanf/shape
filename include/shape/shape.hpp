@@ -513,6 +513,9 @@ struct Shape
     /** Return true iff the shape is a polygon. */
     bool is_polygon() const;
 
+    /** Return true iff the shape is a polyline. */
+    bool is_polyline() const;
+
     /** Return true iff the shape is convex. */
     bool is_convex() const;
 
@@ -669,6 +672,12 @@ struct ShapeWithHoles
 
     std::vector<Shape> holes;
 
+
+    /* Check if the shape is connected and in anticlockwise direction. */
+    bool check() const;
+
+    /** Return true iff the shape is a polygon. */
+    bool is_polygon() const;
 
     ShapeWithHoles& shift(
             LengthDbl x,

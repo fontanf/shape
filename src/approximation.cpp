@@ -1,11 +1,17 @@
+//#define APPROXIMATE_ENABLE_DEBUG
+
 #include "shape/approximation.hpp"
 
 #include "shape/boolean_operations.hpp"
 #include "shape/clean.hpp"
 #include "shape/shapes_intersections.hpp"
-//#include "shape/writer.hpp"
+#ifdef APPROXIMATE_ENABLE_DEBUG
+#include "shape/writer.hpp"
+#endif
 
-//#include <iostream>
+#ifdef APPROXIMATE_ENABLE_DEBUG
+#include <iostream>
+#endif
 #include <fstream>
 
 using namespace shape;
@@ -102,6 +108,11 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
     line_segment.end = circular_arc.end;
     line_segment.type = ShapeElementType::LineSegment;
     line_segments.push_back(line_segment);
+    for (const ShapeElement& element: line_segments) {
+        if (element.type != ShapeElementType::LineSegment) {
+            throw std::logic_error(FUNC_SIGNATURE);
+        }
+    }
     return line_segments;
 }
 
@@ -318,6 +329,7 @@ ShapeWithHoles shape::approximate_shape_by_line_segments(
     }
 
     Shape shape = remove_redundant_vertices(shape_orig).second;
+    shape = flatten_arcs(shape);
 
     ShapeWithHoles shape_new;
 
@@ -340,8 +352,12 @@ ShapeWithHoles shape::approximate_shape_by_line_segments(
     }
 
     //std::cout << "shape_new " << shape_new.to_string(0) << std::endl;
-    if (!intersect(shape_new))
+    if (!intersect(shape_new)) {
+        if (!shape_new.is_polygon()) {
+            throw std::logic_error(FUNC_SIGNATURE);
+        }
         return shape_new;
+    }
 
     std::vector<ShapeWithHoles> union_input = {{shape}};
 
@@ -384,6 +400,7 @@ Shape shape::approximate_path_by_line_segments(
     }
 
     Shape path = remove_redundant_vertices(path_orig).second;
+    path = flatten_arcs(path);
 
     Shape path_new;
 
@@ -418,8 +435,23 @@ ShapeWithHoles shape::approximate_by_line_segments(
     //        shape_orig.shape,
     //        segment_length,
     //        true);
+#ifdef APPROXIMATE_ENABLE_DEBUG
+    if (!shape_orig.check()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid input shape.");
+    }
+#endif
 
     ShapeWithHoles shape = remove_redundant_vertices(shape_orig).second;
+    shape = flatten_arcs(shape);
+#ifdef APPROXIMATE_ENABLE_DEBUG
+    if (!shape.check()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "invalid input shape.");
+    }
+#endif
 
     ShapeWithHoles shape_new;
 
@@ -460,11 +492,15 @@ ShapeWithHoles shape::approximate_by_line_segments(
             }
             }
         }
-        shape_new.holes.push_back(hole);
+        shape_new.holes.push_back(hole_new);
     }
 
-    if (!intersect(shape_new))
+    if (!intersect(shape_new)) {
+        if (!shape_new.is_polygon()) {
+            throw std::logic_error(FUNC_SIGNATURE);
+        }
         return shape_new;
+    }
 
     std::vector<ShapeWithHoles> union_input = {shape};
 
@@ -502,8 +538,17 @@ ShapeWithHoles shape::approximate_by_line_segments(
         shape_new.holes.push_back(hole);
     }
 
-    //Writer().add_shapes_with_holes(union_input).write_json("union_input.json");
     std::vector<ShapeWithHoles> union_output = compute_union(union_input);
+#ifdef APPROXIMATE_ENABLE_DEBUG
+    Writer()
+        .add_shape_with_holes(shape_orig, "Input shape")
+        .add_shapes_with_holes(union_input, "Union input")
+        .add_shapes_with_holes(union_output, "Union output")
+        .write_json("union_input.json");
+#endif
+    if (!union_output.front().is_polygon()) {
+        throw std::logic_error(FUNC_SIGNATURE);
+    }
     return union_output.front();
 }
 
@@ -518,5 +563,17 @@ void shape::approximate_shape_by_line_segments_export_inputs(
     json["shape"] = shape.to_json();
     json["segment_length"] = segment_length;
     json["outer"] = outer;
+    file << std::setw(4) << json << std::endl;
+}
+
+void shape::approximate_by_line_segments_export_inputs(
+        const std::string& file_path,
+        const ShapeWithHoles& shape,
+        LengthDbl segment_length)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["shape"] = shape.to_json();
+    json["segment_length"] = segment_length;
     file << std::setw(4) << json << std::endl;
 }

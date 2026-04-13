@@ -1010,8 +1010,20 @@ bool Shape::is_rectangle() const
 
 bool Shape::is_polygon() const
 {
-    for (auto it = elements.begin(); it != elements.end(); ++it)
-        if (it->type != ShapeElementType::LineSegment)
+    if (this->is_path)
+        return false;
+    for (const ShapeElement& element: this->elements)
+        if (element.type != ShapeElementType::LineSegment)
+            return false;
+    return true;
+}
+
+bool Shape::is_polyline() const
+{
+    if (!this->is_path)
+        return false;
+    for (const ShapeElement& element: this->elements)
+        if (element.type != ShapeElementType::LineSegment)
             return false;
     return true;
 }
@@ -2028,6 +2040,41 @@ Shape shape::build_path(
     shape.elements = elements;
     shape.is_path = true;
     return shape;
+}
+
+bool ShapeWithHoles::check() const
+{
+    if (this->shape.is_path)
+        return false;
+
+    if (!this->shape.check())
+        return false;
+
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)this->holes.size();
+            ++hole_pos) {
+        const Shape& hole = this->holes[hole_pos];
+        if (!hole.check())
+            return false;
+    }
+
+    return true;
+}
+
+bool ShapeWithHoles::is_polygon() const
+{
+    if (!this->shape.is_polygon())
+        return false;
+
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)this->holes.size();
+            ++hole_pos) {
+        const Shape& hole = this->holes[hole_pos];
+        if (!hole.is_polygon())
+            return false;
+    }
+
+    return true;
 }
 
 ShapeWithHoles& ShapeWithHoles::shift(

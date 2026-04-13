@@ -33,4 +33,9 @@ ShapeWithHoles approximate_by_line_segments(
         const ShapeWithHoles& shape,
         LengthDbl segment_length);
 
+void approximate_by_line_segments_export_inputs(
+        const std::string& file_path,
+        const ShapeWithHoles& shape,
+        LengthDbl segment_length);
+
 }

@@ -216,6 +216,34 @@ Shape shape::remove_backtracks(
     return output;
 }
 
+Shape shape::flatten_arcs(
+        const Shape& shape)
+{
+    Shape new_shape = shape;
+    for (ShapeElement& element: new_shape.elements) {
+        if (element.type == ShapeElementType::CircularArc
+                && element.contains((element.start + element.end) / 2)) {
+            element.type = ShapeElementType::LineSegment;
+        }
+    }
+    return new_shape;
+}
+
+ShapeWithHoles shape::flatten_arcs(
+        const ShapeWithHoles& shape_with_holes)
+{
+    ShapeWithHoles new_shape_with_holes = shape_with_holes;
+    new_shape_with_holes.shape = flatten_arcs(shape_with_holes.shape);
+    new_shape_with_holes.holes = std::vector<Shape>(shape_with_holes.holes.size());
+    for (ShapePos hole_pos = 0;
+            hole_pos < (ShapePos)shape_with_holes.holes.size();
+            ++hole_pos) {
+        const Shape& hole = shape_with_holes.holes[hole_pos];
+        new_shape_with_holes.holes[hole_pos] = flatten_arcs(hole);
+    }
+    return new_shape_with_holes;
+}
+
 Shape shape::recompute_centers(
         const Shape& shape)
 {
