@@ -430,11 +430,10 @@ ShapeWithHoles shape::approximate_by_line_segments(
         LengthDbl segment_length)
 {
     //std::cout << "approximate_by_line_segments" << std::endl;
-    //approximate_shape_by_line_segments_export_inputs(
-    //        "approximate_shape_by_line_segments_inputs.json",
-    //        shape_orig.shape,
-    //        segment_length,
-    //        true);
+    //approximate_by_line_segments_export_inputs(
+    //        "approximate_by_line_segments_inputs.json",
+    //        shape_orig,
+    //        segment_length);
 #ifdef APPROXIMATE_ENABLE_DEBUG
     if (!shape_orig.check()) {
         throw std::invalid_argument(
@@ -535,7 +534,7 @@ ShapeWithHoles shape::approximate_by_line_segments(
             }
             }
         }
-        shape_new.holes.push_back(hole);
+        shape_new.holes.push_back(hole_new);
     }
 
     std::vector<ShapeWithHoles> union_output = compute_union(union_input);
@@ -568,12 +567,12 @@ void shape::approximate_shape_by_line_segments_export_inputs(
 
 void shape::approximate_by_line_segments_export_inputs(
         const std::string& file_path,
-        const ShapeWithHoles& shape,
+        const ShapeWithHoles& shape_with_holes,
         LengthDbl segment_length)
 {
     std::ofstream file{file_path};
     nlohmann::json json;
-    json["shape"] = shape.to_json();
+    json["shape_with_holes"] = shape_with_holes.to_json();
     json["segment_length"] = segment_length;
     file << std::setw(4) << json << std::endl;
 }

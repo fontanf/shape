@@ -1,10 +1,18 @@
+//#define APPROXIMATION_TEST_ENABLE_DEBUG
+
 #include "shape/approximation.hpp"
 
-//#include "shape/writer.hpp"
+#ifdef APPROXIMATION_TEST_ENABLE_DEBUG
+#include "shape/writer.hpp"
+#endif
+
+#include <boost/filesystem.hpp>
 
 #include <gtest/gtest.h>
 
-#include "test_params.hpp"
+#include <fstream>
+
+namespace fs = boost::filesystem;
 
 using namespace shape;
 
@@ -125,18 +133,25 @@ TEST_P(ApproximateShapeByLineSegmentsTest, ApproximateShapeByLineSegments)
     std::cout << "segment_length " << shape::to_string(test_params.segment_length) << std::endl;
     std::cout << "outer " << test_params.outer << std::endl;
     std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
-    //Writer writer;
-    //writer.add_shape(test_params.shape);
-    //if (!test_params.expected_output.shape.elements.empty())
-    //    writer.add_shape_with_holes(test_params.expected_output);
-    //writer.write_json("approximate_shape_by_line_segments_input.json");;
+
+#ifdef APPROXIMATION_TEST_ENABLE_DEBUG
+    Writer writer;
+    writer.add_shape(test_params.shape);
+    if (!test_params.expected_output.shape.elements.empty())
+        writer.add_shape_with_holes(test_params.expected_output);
+    writer.write_json("approximate_shape_by_line_segments_input.json");;
+#endif
 
     auto output = approximate_shape_by_line_segments(
         test_params.shape,
         test_params.segment_length,
         test_params.outer);
     std::cout << "output " << output.to_string(0) << std::endl;
-    //Writer().add_shape_with_holes(output).write_json("approximate_shape_by_line_segments_output.json");
+
+#ifdef APPROXIMATION_TEST_ENABLE_DEBUG
+    writer.add_shape_with_holes(output);
+    writer.write_json("approximate_by_line_segments_output.json");
+#endif
 
     EXPECT_TRUE(equal(output, test_params.expected_output));
 }
@@ -165,4 +180,79 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "approximation" / "approximate_shape_by_line_segments" / "0.json").string()),
             ApproximateShapeByLineSegmentsTestParams::read_json(
                     (fs::path("data") / "tests" / "approximation" / "approximate_shape_by_line_segments" / "1.json").string()),
+            }));
+
+
+struct ApproximateByLineSegmentsTestParams
+{
+    ShapeWithHoles shape_with_holes;
+    LengthDbl segment_length;
+    ShapeWithHoles expected_output;
+
+
+    static ApproximateByLineSegmentsTestParams from_json(
+            nlohmann::basic_json<>& json_item)
+    {
+        ApproximateByLineSegmentsTestParams test_params;
+        test_params.shape_with_holes = ShapeWithHoles::from_json(json_item["shape_with_holes"]);
+        test_params.segment_length = json_item["segment_length"];
+        if (json_item.contains("expected_output"))
+            test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
+        return test_params;
+    }
+
+    static ApproximateByLineSegmentsTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        return from_json(json);
+    }
+};
+
+class ApproximateByLineSegmentsTest: public testing::TestWithParam<ApproximateByLineSegmentsTestParams> { };
+
+TEST_P(ApproximateByLineSegmentsTest, ApproximateByLineSegments)
+{
+    ApproximateByLineSegmentsTestParams test_params = GetParam();
+    std::cout << "shape_with_holes " << test_params.shape_with_holes.to_string(0) << std::endl;
+    std::cout << "segment_length " << shape::to_string(test_params.segment_length) << std::endl;
+    std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
+
+#ifdef APPROXIMATION_TEST_ENABLE_DEBUG
+    Writer writer;
+    writer.add_shape_with_holes(test_params.shape_with_holes);
+    if (!test_params.expected_output.shape.elements.empty())
+        writer.add_shape_with_holes(test_params.expected_output);
+    writer.write_json("approximate_by_line_segments_input.json");;
+#endif
+
+    auto output = approximate_by_line_segments(
+        test_params.shape_with_holes,
+        test_params.segment_length);
+    std::cout << "output " << output.to_string(0) << std::endl;
+
+#ifdef APPROXIMATION_TEST_ENABLE_DEBUG
+    writer.add_shape_with_holes(output);
+    writer.write_json("approximate_by_line_segments_output.json");
+#endif
+
+    EXPECT_TRUE(equal(output, test_params.expected_output));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ApproximateByLineSegmentsTest,
+        testing::ValuesIn(std::vector<ApproximateByLineSegmentsTestParams>{
+            ApproximateByLineSegmentsTestParams::read_json(
+                    (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "0.json").string()),
+            ApproximateByLineSegmentsTestParams::read_json(
+                    (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "1.json").string()),
             }));
