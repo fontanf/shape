@@ -227,9 +227,9 @@ IntersectionTree::IntersectionTree(
         for (int i = 0; i < (int)xs.size(); ++i) {
             ShapePos nl = left_shape_ids[i].size() + left_element_ids[i].size() + left_point_ids[i].size();
             ShapePos nr = right_shape_ids[i].size() + right_element_ids[i].size() + right_point_ids[i].size();
-            ShapePos nv = nl * (nl - 1) / 1 + nr * (nr - 1) / 2;
             if (nl == 0 || nr == 0)
                 continue;
+            ShapePos nv = nl * (nl - 1) / 2 + nr * (nr - 1) / 2;
             //std::cout << "i " << i << " nl " << nl << " nr " << nr << " nv " << nv << std::endl;
             if (n_best > nv) {
                 n_best = nv;
