@@ -9,6 +9,29 @@ using namespace shape;
 namespace
 {
 
+bool aabb_intersect(
+        const AxisAlignedBoundingBox& aabb_1,
+        const AxisAlignedBoundingBox& aabb_2,
+        bool strict)
+{
+    if (strict)
+        return shape::intersect(aabb_1, aabb_2);
+    return !strictly_greater(aabb_2.x_min, aabb_1.x_max)
+        && !strictly_greater(aabb_1.x_min, aabb_2.x_max)
+        && !strictly_greater(aabb_2.y_min, aabb_1.y_max)
+        && !strictly_greater(aabb_1.y_min, aabb_2.y_max);
+}
+
+bool aabb_contains(
+        const AxisAlignedBoundingBox& aabb,
+        const Point& point)
+{
+    return !strictly_greater(aabb.x_min, point.x)
+        && !strictly_lesser(aabb.x_max, point.x)
+        && !strictly_greater(aabb.y_min, point.y)
+        && !strictly_lesser(aabb.y_max, point.y);
+}
+
 std::vector<LengthDbl> find_median(
         std::vector<LengthDbl>& values_left,
         std::vector<LengthDbl>& values_right,
@@ -50,25 +73,23 @@ IntersectionTree::IntersectionTree(
     potentially_intersecting_elements_(this->number_of_elements()),
     potentially_intersecting_points_(this->number_of_points())
 {
-    if (shapes.size() + elements.size() + points.size() < 32) {
-        small_ = true;
-        return;
-    }
-
     // Compute min/max of shapes and elements.
-    std::vector<AxisAlignedBoundingBox> shapes_min_max(shapes.size());
+    shapes_aabb_.resize(shapes.size());
     for (ShapePos shape_id = 0;
             shape_id < (ShapePos)shapes.size();
             ++shape_id) {
-        const ShapeWithHoles& shape = shapes[shape_id];
-        shapes_min_max[shape_id] = shape.compute_min_max();
+        shapes_aabb_[shape_id] = shapes[shape_id].compute_min_max();
     }
-    std::vector<AxisAlignedBoundingBox> elements_min_max(elements.size());
+    elements_aabb_.resize(elements.size());
     for (ElementPos element_id = 0;
             element_id < (ElementPos)elements.size();
             ++element_id) {
-        const ShapeElement& element = elements[element_id];
-        elements_min_max[element_id] = element.min_max();
+        elements_aabb_[element_id] = elements[element_id].min_max();
+    }
+
+    if (shapes.size() + elements.size() + points.size() < 32) {
+        small_ = true;
+        return;
     }
 
     Node root;
@@ -76,19 +97,19 @@ IntersectionTree::IntersectionTree(
     for (ShapePos shape_id = 0;
             shape_id < (ShapePos)shapes.size();
             ++shape_id) {
-        root.l = (std::min)(root.l, shapes_min_max[shape_id].x_min);
-        root.r = (std::max)(root.r, shapes_min_max[shape_id].x_max);
-        root.b = (std::min)(root.b, shapes_min_max[shape_id].y_min);
-        root.t = (std::max)(root.t, shapes_min_max[shape_id].y_max);
+        root.l = (std::min)(root.l, shapes_aabb_[shape_id].x_min);
+        root.r = (std::max)(root.r, shapes_aabb_[shape_id].x_max);
+        root.b = (std::min)(root.b, shapes_aabb_[shape_id].y_min);
+        root.t = (std::max)(root.t, shapes_aabb_[shape_id].y_max);
     }
     for (ElementPos element_id = 0;
             element_id < (ElementPos)elements.size();
             ++element_id) {
         const ShapeElement& element = elements[element_id];
-        root.l = (std::min)(root.l, elements_min_max[element_id].x_min);
-        root.r = (std::max)(root.r, elements_min_max[element_id].x_max);
-        root.b = (std::min)(root.b, elements_min_max[element_id].y_min);
-        root.t = (std::max)(root.t, elements_min_max[element_id].y_max);
+        root.l = (std::min)(root.l, elements_aabb_[element_id].x_min);
+        root.r = (std::max)(root.r, elements_aabb_[element_id].x_max);
+        root.b = (std::min)(root.b, elements_aabb_[element_id].y_min);
+        root.t = (std::max)(root.t, elements_aabb_[element_id].y_max);
     }
     for (ElementPos point_id = 0;
             point_id < (ElementPos)points.size();
@@ -133,10 +154,10 @@ IntersectionTree::IntersectionTree(
         std::vector<double> values_y_bottom;
         std::vector<double> values_y_top;
         for (ShapePos shape_id: stack_element.shape_ids) {
-            values_x_left.push_back(shapes_min_max[shape_id].x_min);
-            values_x_right.push_back(shapes_min_max[shape_id].x_max);
-            values_y_bottom.push_back(shapes_min_max[shape_id].y_min);
-            values_y_top.push_back(shapes_min_max[shape_id].y_max);
+            values_x_left.push_back(shapes_aabb_[shape_id].x_min);
+            values_x_right.push_back(shapes_aabb_[shape_id].x_max);
+            values_y_bottom.push_back(shapes_aabb_[shape_id].y_min);
+            values_y_top.push_back(shapes_aabb_[shape_id].y_max);
         }
         for (ElementPos element_id: stack_element.element_ids) {
             AxisAlignedBoundingBox aabb = elements[element_id].min_max();
@@ -164,7 +185,7 @@ IntersectionTree::IntersectionTree(
         std::vector<std::vector<ShapePos>> bottom_shape_ids(ys.size());
         std::vector<std::vector<ShapePos>> top_shape_ids(ys.size());
         for (ShapePos shape_id: stack_element.shape_ids) {
-            AxisAlignedBoundingBox aabb = shapes_min_max[shape_id];
+            AxisAlignedBoundingBox aabb = shapes_aabb_[shape_id];
             for (int i = 0; i < (int)xs.size(); ++i) {
                 if (!strictly_greater(aabb.x_min, xs[i]))
                     left_shape_ids[i].push_back(shape_id);
@@ -183,7 +204,7 @@ IntersectionTree::IntersectionTree(
         std::vector<std::vector<ShapePos>> bottom_element_ids(ys.size());
         std::vector<std::vector<ShapePos>> top_element_ids(ys.size());
         for (ElementPos element_id: stack_element.element_ids) {
-            AxisAlignedBoundingBox aabb = elements_min_max[element_id];
+            AxisAlignedBoundingBox aabb = elements_aabb_[element_id];
             for (int i = 0; i < (int)xs.size(); ++i) {
                 if (!strictly_greater(aabb.x_min, xs[i]))
                     left_element_ids[i].push_back(element_id);
@@ -331,14 +352,14 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     //std::cout << "intersect..." << std::endl;
     IntersectOutput output;
 
+    AxisAlignedBoundingBox aabb = shape.compute_min_max();
+
     if (small_) {
         potentially_intersecting_shapes_.fill();
         potentially_intersecting_elements_.fill();
         potentially_intersecting_points_.fill();
 
     } else {
-        AxisAlignedBoundingBox aabb = shape.compute_min_max();
-
         potentially_intersecting_shapes_.clear();
         potentially_intersecting_elements_.clear();
         potentially_intersecting_points_.clear();
@@ -372,11 +393,13 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     }
 
     for (ShapePos shape_id: potentially_intersecting_shapes_)
-        if (shape::intersect(shape, this->shape(shape_id), strict))
-            output.shape_ids.push_back(shape_id);
+        if (aabb_intersect(aabb, shapes_aabb_[shape_id], strict))
+            if (shape::intersect(shape, this->shape(shape_id), strict))
+                output.shape_ids.push_back(shape_id);
     for (ShapePos element_id: potentially_intersecting_elements_)
-        if (shape::intersect(shape, this->element(element_id), strict))
-            output.element_ids.push_back(element_id);
+        if (aabb_intersect(aabb, elements_aabb_[element_id], strict))
+            if (shape::intersect(shape, this->element(element_id), strict))
+                output.element_ids.push_back(element_id);
     for (ShapePos point_id: potentially_intersecting_points_)
         if (shape.contains(this->point(point_id), strict))
             output.point_ids.push_back(point_id);
@@ -390,14 +413,14 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     //std::cout << "intersect..." << std::endl;
     IntersectOutput output;
 
+    AxisAlignedBoundingBox aabb = shape.compute_min_max();
+
     if (small_) {
         potentially_intersecting_shapes_.fill();
         potentially_intersecting_elements_.fill();
         potentially_intersecting_points_.fill();
 
     } else {
-        AxisAlignedBoundingBox aabb = shape.compute_min_max();
-
         potentially_intersecting_shapes_.clear();
         potentially_intersecting_elements_.clear();
         potentially_intersecting_points_.clear();
@@ -431,11 +454,13 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     }
 
     for (ShapePos shape_id: potentially_intersecting_shapes_)
-        if (shape::intersect(shape, this->shape(shape_id), strict))
-            output.shape_ids.push_back(shape_id);
+        if (aabb_intersect(aabb, shapes_aabb_[shape_id], strict))
+            if (shape::intersect(shape, this->shape(shape_id), strict))
+                output.shape_ids.push_back(shape_id);
     for (ShapePos element_id: potentially_intersecting_elements_)
-        if (shape::intersect(shape, this->element(element_id), strict))
-            output.element_ids.push_back(element_id);
+        if (aabb_intersect(aabb, elements_aabb_[element_id], strict))
+            if (shape::intersect(shape, this->element(element_id), strict))
+                output.element_ids.push_back(element_id);
     for (ShapePos point_id: potentially_intersecting_points_)
         if (shape.contains(this->point(point_id), strict))
             output.point_ids.push_back(point_id);
@@ -448,14 +473,14 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
 {
     IntersectOutput output;
 
+    AxisAlignedBoundingBox aabb = element.min_max();
+
     if (small_) {
         potentially_intersecting_shapes_.fill();
         potentially_intersecting_elements_.fill();
         potentially_intersecting_points_.fill();
 
     } else {
-        AxisAlignedBoundingBox aabb = element.min_max();
-
         potentially_intersecting_shapes_.clear();
         potentially_intersecting_elements_.clear();
         potentially_intersecting_points_.clear();
@@ -490,16 +515,21 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
 
     std::vector<ShapePos> intersecting_shapes;
     for (ShapePos shape_id: potentially_intersecting_shapes_)
-        if (shape::intersect(this->shape(shape_id), element, strict))
-            output.shape_ids.push_back(shape_id);
+        if (aabb_intersect(aabb, shapes_aabb_[shape_id], strict))
+            if (shape::intersect(this->shape(shape_id), element, strict))
+                output.shape_ids.push_back(shape_id);
     if (strict) {
         for (ElementPos element_id: potentially_intersecting_elements_) {
+            if (!aabb_intersect(aabb, elements_aabb_[element_id], strict))
+                continue;
             ShapeElementIntersectionsOutput intersections = compute_intersections(this->element(element_id), element);
             if (!intersections.improper_intersections.empty())
                 output.element_ids.push_back(element_id);
         }
     } else {
         for (ElementPos element_id: potentially_intersecting_elements_) {
+            if (!aabb_intersect(aabb, elements_aabb_[element_id], strict))
+                continue;
             ShapeElementIntersectionsOutput intersections = compute_intersections(this->element(element_id), element);
             if (!intersections.overlapping_parts.empty()
                     || !intersections.improper_intersections.empty()
@@ -563,12 +593,14 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
 
     std::vector<ShapePos> intersecting_shapes;
     for (ShapePos shape_id: potentially_intersecting_shapes_)
-        if (this->shape(shape_id).contains(point, strict))
-            output.shape_ids.push_back(shape_id);
+        if (aabb_contains(shapes_aabb_[shape_id], point))
+            if (this->shape(shape_id).contains(point, strict))
+                output.shape_ids.push_back(shape_id);
     if (!strict) {
         for (ElementPos element_id: potentially_intersecting_elements_)
-            if (this->element(element_id).contains(point))
-                output.element_ids.push_back(element_id);
+            if (aabb_contains(elements_aabb_[element_id], point))
+                if (this->element(element_id).contains(point))
+                    output.element_ids.push_back(element_id);
         for (ShapePos point_id: potentially_intersecting_points_)
             if (equal(point, this->point(point_id)))
                 output.point_ids.push_back(point_id);
@@ -590,8 +622,9 @@ std::vector<std::pair<ShapePos, ShapePos>> IntersectionTree::compute_intersectin
             for (ShapePos shape_2_pos = shape_1_pos + 1;
                     shape_2_pos < (ShapePos)shapes_->size();
                     ++shape_2_pos) {
-                if (shape::intersect(this->shape(shape_1_pos), this->shape(shape_2_pos), strict))
-                    intersecting_shapes.push_back({shape_1_pos, shape_2_pos});
+                if (aabb_intersect(shapes_aabb_[shape_1_pos], shapes_aabb_[shape_2_pos], strict))
+                    if (shape::intersect(this->shape(shape_1_pos), this->shape(shape_2_pos), strict))
+                        intersecting_shapes.push_back({shape_1_pos, shape_2_pos});
             }
         }
         return intersecting_shapes;
@@ -623,7 +656,8 @@ std::vector<std::pair<ShapePos, ShapePos>> IntersectionTree::compute_intersectin
     // Compute intersections.
     std::vector<std::pair<ShapePos, ShapePos>> intersecting_shapes;
     for (auto p: potentially_intersecting_shapes)
-        if (shape::intersect(this->shape(p.first), this->shape(p.second), strict))
+        if (aabb_intersect(shapes_aabb_[p.first], shapes_aabb_[p.second], strict))
+            if (shape::intersect(this->shape(p.first), this->shape(p.second), strict))
             intersecting_shapes.push_back(p);
     return intersecting_shapes;
 }
@@ -642,6 +676,8 @@ std::vector<ElementElementIntersection> IntersectionTree::compute_intersecting_e
             for (ElementPos element_2_pos = element_1_pos + 1;
                     element_2_pos < (ElementPos)elements_->size();
                     ++element_2_pos) {
+                if (!aabb_intersect(elements_aabb_[element_1_pos], elements_aabb_[element_2_pos], strict))
+                    continue;
                 auto intersections = shape::compute_intersections(
                         this->element(element_1_pos),
                         this->element(element_2_pos));
@@ -695,6 +731,8 @@ std::vector<ElementElementIntersection> IntersectionTree::compute_intersecting_e
     // Compute intersections.
     std::vector<ElementElementIntersection> intersecting_elements;
     for (auto p: potentially_intersecting_elements) {
+        if (!aabb_intersect(elements_aabb_[p.first], elements_aabb_[p.second], strict))
+            continue;
         auto intersections = shape::compute_intersections(
                 this->element(p.first),
                 this->element(p.second));

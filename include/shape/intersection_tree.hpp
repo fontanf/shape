@@ -127,6 +127,10 @@ private:
     /** Points. */
     const std::vector<Point>* points_ = nullptr;
 
+    std::vector<AxisAlignedBoundingBox> shapes_aabb_;
+
+    std::vector<AxisAlignedBoundingBox> elements_aabb_;
+
     bool small_ = false;
 
     mutable optimizationtools::IndexedSet potentially_intersecting_shapes_;
