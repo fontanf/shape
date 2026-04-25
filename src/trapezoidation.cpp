@@ -1,6 +1,7 @@
 #include "shape/trapezoidation.hpp"
 
 #include "shape/boolean_operations.hpp"
+#include "shape/writer.hpp"
 
 using namespace shape;
 
@@ -166,20 +167,15 @@ std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
 std::vector<GeneralizedTrapezoid> shape::trapezoidation(
         const ShapeWithHoles& shape_orig)
 {
-    if (!shape_orig.shape.check()) {
+    if (!shape_orig.check()) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "invalid input shape.");
     }
-    for (ShapePos hole_pos = 0;
-            hole_pos < (ShapePos)shape_orig.holes.size();
-            ++hole_pos) {
-        const Shape& hole = shape_orig.holes[hole_pos];
-        if (!hole.check()) {
-            throw std::invalid_argument(
-                    FUNC_SIGNATURE + ": "
-                    "invalid input shape.");
-        }
+    if (!shape_orig.is_polygon()) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "input shape must be a polygon.");
     }
 
     //std::cout << "polygon_trapezoidation" << std::endl;
@@ -973,7 +969,13 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
     AreaDbl trapezoidation_area = 0.0;
     for (const GeneralizedTrapezoid& trapezoid: trapezoids)
         trapezoidation_area += trapezoid.area();
+
     if (!equal(shape_area, trapezoidation_area)) {
+        Writer writer;
+        writer.add_shape_with_holes(shape_orig);
+        for (const GeneralizedTrapezoid& trapezoid: trapezoids)
+            writer.add_shape(trapezoid.to_shape(), "Trapezoid");
+        writer.write_json("trapezoidation.json");
         throw std::runtime_error(
                 FUNC_SIGNATURE + "; "
                 "shape_area: " + std::to_string(shape_area) + "; "
