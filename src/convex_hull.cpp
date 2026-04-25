@@ -1,5 +1,9 @@
 #include "shape/convex_hull.hpp"
 
+#include "shape/writer.hpp"
+
+//#include <iostream>
+
 using namespace shape;
 
 Shape shape::convex_hull(
@@ -82,7 +86,15 @@ Shape shape::convex_hull(
         convex_hull_shape.elements.push_back(element);
     }
 
-    if (strictly_lesser(convex_hull_shape.compute_area(), shape.compute_area())) {
+    if (strictly_lesser(
+                std::sqrt(convex_hull_shape.compute_area()),
+                std::sqrt(shape.compute_area()))) {
+        //std::cout << shape.to_string(0) << std::endl;
+        //std::cout << convex_hull_shape.to_string(0) << std::endl;
+        Writer()
+            .add_shape(shape)
+            .add_shape(convex_hull_shape)
+            .write_json("convex_hull.json");
         throw std::runtime_error(
                 FUNC_SIGNATURE + "; "
                 "shape.compute_area(): " + std::to_string(shape.compute_area()) + "; "
