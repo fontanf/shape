@@ -6,9 +6,18 @@ using namespace shape;
 
 struct ExtractBordersTestParams
 {
+    std::string name;
     Shape shape;
     std::vector<Shape> expected_borders;
 };
+
+void PrintTo(const ExtractBordersTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "expected_borders\n";
+    for (const Shape& border: params.expected_borders)
+        *os << "- " << border.to_string(0) << "\n";
+}
 
 class ExtractBordersTest: public testing::TestWithParam<ExtractBordersTestParams> { };
 
@@ -33,23 +42,31 @@ INSTANTIATE_TEST_SUITE_P(
         ExtractBordersTest,
         testing::ValuesIn(std::vector<ExtractBordersTestParams>{
             {
+                "Square",
                 build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
                 {},
             }, {
+                "Triangle",
                 build_shape({{2, 0}, {3, 1}, {0, 1}}),
                 {
                     build_shape({{3, 0}, {3, 1}, {2, 0}}),
                     build_shape({{0, 0}, {2, 0}, {0, 1}}),
-                }
+                },
             }, {
+                "FlatTriangle",
                 build_shape({{0, 0}, {3, 1}, {0, 1}}),
                 {
                     build_shape({{3, 0}, {3, 1}, {0, 0}}),
-                }
+                },
             }, {
+                "LargeTriangle",
                 build_shape({{0, 0}, {50, 0}, {30, 30}}),
                 {
                     build_shape({{0, 0}, {30, 30}, {0, 30}}),
                     build_shape({{30, 30}, {50, 0}, {50, 30}}),
-                }
-            }}));
+                },
+            }
+        }),
+        [](const testing::TestParamInfo<ExtractBordersTest::ParamType>& info) {
+            return info.param.name;
+        });

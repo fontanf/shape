@@ -13,6 +13,7 @@ using namespace shape;
 
 struct FindHolesBridgesTestParams
 {
+    std::string name;
     ShapeWithHoles shape;
     std::vector<ShapeElement> expected_output;
 
@@ -43,15 +44,20 @@ struct FindHolesBridgesTestParams
     }
 };
 
+void PrintTo(const FindHolesBridgesTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "expected_output\n";
+    for (const ShapeElement& bridge: params.expected_output)
+        *os << "- " << bridge.to_string() << "\n";
+}
+
 class FindHolesBridgesTest: public testing::TestWithParam<FindHolesBridgesTestParams> { };
 
 TEST_P(FindHolesBridgesTest, FindHolesBridges)
 {
     FindHolesBridgesTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "expected_output" << std::endl;
-    for (const ShapeElement& bridge: test_params.expected_output)
-        std::cout << "- " << bridge.to_string() << std::endl;
+    PrintTo(test_params, &std::cout);
 
     std::vector<ShapeElement> output = find_holes_bridges(test_params.shape);
     std::cout << "output" << std::endl;
@@ -73,21 +79,25 @@ INSTANTIATE_TEST_SUITE_P(
         FindHolesBridgesTest,
         testing::ValuesIn(std::vector<FindHolesBridgesTestParams>{
             {  // Shape without hole.
+                "NoHole",
                 {build_rectangle(200, 100)},
                 {},
             }, {  // Shape with one touching hole.
+                "OneTouchingHole",
                 {
                     build_rectangle(200, 100),
                     {build_shape({{0, 50}, {10, 40}, {20, 50}, {10, 60}})}
                 },
                 {},
             }, {  // Shape with one non-touching hole.
+                "OneNonTouchingHole",
                 {
                     build_rectangle(200, 100),
                     {build_shape({{40, 50}, {50, 40}, {60, 50}, {50, 60}})}
                 },
                 {build_line_segment({0, 50}, {40, 50})},
             }, {  // Shape with one touching hole and on non-touching hole.
+                "OneTouchingOneNonTouching",
                 {
                     build_rectangle(200, 100),
                     {
@@ -97,6 +107,7 @@ INSTANTIATE_TEST_SUITE_P(
                 },
                 {build_line_segment({20, 50}, {40, 50})},
             }, {  // Shape with two touching holes.
+                "TwoTouchingHoles",
                 {
                     build_rectangle(200, 100),
                     {
@@ -106,6 +117,7 @@ INSTANTIATE_TEST_SUITE_P(
                 },
                 {},
             }, {  // Shape with two holes touching each other.
+                "TwoHolesTouchingEachOther",
                 {
                     build_rectangle(200, 100),
                     {
@@ -115,6 +127,7 @@ INSTANTIATE_TEST_SUITE_P(
                 },
                 {build_line_segment({0, 50}, {20, 50})},
             }, {  // Shape with two holes.
+                "TwoSeparateHoles",
                 {
                     build_rectangle(200, 100),
                     {
@@ -126,7 +139,11 @@ INSTANTIATE_TEST_SUITE_P(
                     build_line_segment({0, 50}, {20, 50}),
                     build_line_segment({40, 50}, {60, 50}),
                 },
-            }}));
+            }
+        }),
+        [](const testing::TestParamInfo<FindHolesBridgesTest::ParamType>& info) {
+            return info.param.name;
+        });
 
 
 struct ComputeBooleanUnionTestParams: TestParams<ComputeBooleanUnionTestParams>
@@ -148,18 +165,23 @@ struct ComputeBooleanUnionTestParams: TestParams<ComputeBooleanUnionTestParams>
     }
 };
 
+void PrintTo(const ComputeBooleanUnionTestParams& params, std::ostream* os)
+{
+    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "shapes\n";
+    for (const ShapeWithHoles& shape: params.shapes)
+        *os << "- " << shape.to_string(2) << "\n";
+    *os << "expected_output\n";
+    for (const ShapeWithHoles& shape: params.expected_output)
+        *os << "- " << shape.to_string(2) << "\n";
+}
+
 class ComputeBooleanUnionTest: public testing::TestWithParam<ComputeBooleanUnionTestParams> { };
 
 TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
 {
     ComputeBooleanUnionTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
-    std::cout << "shapes" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.shapes)
-        std::cout << "- " << shape.to_string(2) << std::endl;
-    std::cout << "expected_output" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.expected_output)
-        std::cout << "- " << shape.to_string(2) << std::endl;
+    PrintTo(test_params, &std::cout);
 
 #ifdef BOOLEAN_OPERATIONS_TEST_ENABLE_DEBUG
     Writer().add_shapes_with_holes(test_params.shapes).write_json("compute_union_input.json");
@@ -213,7 +235,10 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         ComputeBooleanUnionTest,
-        testing::ValuesIn(ComputeBooleanUnionTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "union").string())));
+        testing::ValuesIn(ComputeBooleanUnionTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "union").string())),
+        [](const testing::TestParamInfo<ComputeBooleanUnionTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct ComputeBooleanIntersectionTestParams: TestParams<ComputeBooleanIntersectionTestParams>
@@ -234,18 +259,23 @@ struct ComputeBooleanIntersectionTestParams: TestParams<ComputeBooleanIntersecti
     }
 };
 
+void PrintTo(const ComputeBooleanIntersectionTestParams& params, std::ostream* os)
+{
+    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "shapes\n";
+    for (const ShapeWithHoles& shape: params.shapes)
+        *os << "- " << shape.to_string(2) << "\n";
+    *os << "expected_output\n";
+    for (const ShapeWithHoles& shape: params.expected_output)
+        *os << "- " << shape.to_string(2) << "\n";
+}
+
 class ComputeBooleanIntersectionTest: public testing::TestWithParam<ComputeBooleanIntersectionTestParams> { };
 
 TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
 {
     ComputeBooleanIntersectionTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
-    std::cout << "shapes" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.shapes)
-        std::cout << "- " << shape.to_string(2) << std::endl;
-    std::cout << "expected_output" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.expected_output)
-        std::cout << "- " << shape.to_string(2) << std::endl;
+    PrintTo(test_params, &std::cout);
 
 #ifdef BOOLEAN_OPERATIONS_TEST_ENABLE_DEBUG
     Writer().add_shapes_with_holes(test_params.shapes).write_json("compute_intersection_input.json");
@@ -291,7 +321,10 @@ TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         ComputeBooleanIntersectionTest,
-        testing::ValuesIn(ComputeBooleanIntersectionTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "intersection").string())));
+        testing::ValuesIn(ComputeBooleanIntersectionTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "intersection").string())),
+        [](const testing::TestParamInfo<ComputeBooleanIntersectionTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct ComputeBooleanDifferenceTestParams : TestParams<ComputeBooleanDifferenceTestParams>
@@ -314,20 +347,25 @@ struct ComputeBooleanDifferenceTestParams : TestParams<ComputeBooleanDifferenceT
     }
 };
 
+void PrintTo(const ComputeBooleanDifferenceTestParams& params, std::ostream* os)
+{
+    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "shape\n";
+    *os << "- " << params.shape.to_string(2) << "\n";
+    *os << "shapes\n";
+    for (const ShapeWithHoles& shape: params.shapes)
+        *os << "- " << shape.to_string(2) << "\n";
+    *os << "expected_output\n";
+    for (const ShapeWithHoles& shape: params.expected_output)
+        *os << "- " << shape.to_string(2) << "\n";
+}
+
 class ComputeBooleanDifferenceTest: public testing::TestWithParam<ComputeBooleanDifferenceTestParams> { };
 
 TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
 {
     ComputeBooleanDifferenceTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
-    std::cout << "shape" << std::endl;
-    std::cout << "- " << test_params.shape.to_string(2) << std::endl;
-    std::cout << "shapes" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.shapes)
-        std::cout << "- " << shape.to_string(2) << std::endl;
-    std::cout << "expected_output" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.expected_output)
-        std::cout << "- " << shape.to_string(2) << std::endl;
+    PrintTo(test_params, &std::cout);
 
     auto output = compute_difference(
             test_params.shape,
@@ -364,7 +402,10 @@ TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         ComputeBooleanDifferenceTest,
-        testing::ValuesIn(ComputeBooleanDifferenceTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "difference").string())));
+        testing::ValuesIn(ComputeBooleanDifferenceTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "difference").string())),
+        [](const testing::TestParamInfo<ComputeBooleanDifferenceTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSymmetricDifferenceTestParams>
@@ -386,19 +427,24 @@ struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSy
     }
 };
 
+void PrintTo(const ComputeBooleanSymmetricDifferenceTestParams& params, std::ostream* os)
+{
+    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "shape_1\n";
+    *os << "- " << params.shape_1.to_string(2) << "\n";
+    *os << "shape_2\n";
+    *os << "- " << params.shape_2.to_string(2) << "\n";
+    *os << "expected_output\n";
+    for (const ShapeWithHoles& shape: params.expected_output)
+        *os << "- " << shape.to_string(2) << "\n";
+}
+
 class ComputeBooleanSymmetricDifferenceTest: public testing::TestWithParam<ComputeBooleanSymmetricDifferenceTestParams> { };
 
 TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
 {
     ComputeBooleanSymmetricDifferenceTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
-    std::cout << "shape_1" << std::endl;
-    std::cout << "- " << test_params.shape_1.to_string(2) << std::endl;
-    std::cout << "shape_2" << std::endl;
-    std::cout << "- " << test_params.shape_2.to_string(2) << std::endl;
-    std::cout << "expected_output" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.expected_output)
-        std::cout << "- " << shape.to_string(2) << std::endl;
+    PrintTo(test_params, &std::cout);
 
     auto output = compute_symmetric_difference(
             test_params.shape_1,
@@ -436,11 +482,15 @@ TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         ComputeBooleanSymmetricDifferenceTest,
-        testing::ValuesIn(ComputeBooleanSymmetricDifferenceTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference").string())));
+        testing::ValuesIn(ComputeBooleanSymmetricDifferenceTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference").string())),
+        [](const testing::TestParamInfo<ComputeBooleanSymmetricDifferenceTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct ExtractOutlineTestParams
 {
+    std::string name;
     Shape shape;
     Shape expected_output;
 
@@ -466,17 +516,24 @@ struct ExtractOutlineTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        auto test_params = from_json(json);
+        test_params.name = file_path;
+        return test_params;
     }
 };
+
+void PrintTo(const ExtractOutlineTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(2) << "\n";
+    *os << "expected_output " << params.expected_output.to_string(2) << "\n";
+}
 
 class ExtractOutlineTest: public testing::TestWithParam<ExtractOutlineTestParams> { };
 
 TEST_P(ExtractOutlineTest, ExtractOutline)
 {
     ExtractOutlineTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
-    std::cout << "expected_output " << test_params.expected_output.to_string(2) << std::endl;
+    PrintTo(test_params, &std::cout);
 
     Shape output = extract_outline(test_params.shape);
     std::cout << "output " << output.to_string(2) << std::endl;
@@ -494,16 +551,21 @@ INSTANTIATE_TEST_SUITE_P(
         ExtractOutlineTest,
         testing::ValuesIn(std::vector<ExtractOutlineTestParams>{
             {
+                "StarShape",
                 build_shape({{0, 0}, {10, 0}, {10, 10}, {1, 1}, {9, 1}, {0, 10}}),
                 build_shape({{0, 0}, {10, 0}, {10, 10}, {5, 5}, {0, 10}}),
             },
             ExtractOutlineTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "extract_outline" / "0.json").string()),
-            }));
+        }),
+        [](const testing::TestParamInfo<ExtractOutlineTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct ExtractFacesTestParams
 {
+    std::string name;
     Shape shape;
     std::vector<Shape> expected_output;
 
@@ -534,15 +596,20 @@ struct ExtractFacesTestParams
     }
 };
 
+void PrintTo(const ExtractFacesTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(2) << "\n";
+    *os << "expected_output\n";
+    for (const Shape& shape: params.expected_output)
+        *os << shape.to_string(2) << "\n";
+}
+
 class ExtractFacesTest: public testing::TestWithParam<ExtractFacesTestParams> { };
 
 TEST_P(ExtractFacesTest, ExtractFaces)
 {
     ExtractFacesTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
-    std::cout << "expected_output" << std::endl;
-    for (const Shape& shape: test_params.expected_output)
-        std::cout << shape.to_string(2) << std::endl;
+    PrintTo(test_params, &std::cout);
 
     std::vector<Shape> output = extract_faces(test_params.shape);
     std::cout << "output" << std::endl;
@@ -569,22 +636,30 @@ INSTANTIATE_TEST_SUITE_P(
         ExtractFacesTest,
         testing::ValuesIn(std::vector<ExtractFacesTestParams>{
             {
+                "Rhombus",
                 build_shape({{0, 10}, {10, 0}, {20, 10}, {10, 20}}),
                 {build_shape({{0, 10}, {10, 0}, {20, 10}, {10, 20}})},
             }, {
+                "RhombusReversed",
                 build_shape({{0, 10}, {10, 0}, {20, 10}, {10, 20}}).reverse(),
                 {build_shape({{0, 10}, {10, 0}, {20, 10}, {10, 20}})},
             }, {
+                "SelfIntersectingBowtie",
                 build_shape({{0, 0}, {20, 20}, {20, 0}, {0, 20}}),
                 {
                     build_shape({{0, 0}, {10, 10}, {0, 20}}),
                     build_shape({{20, 0}, {20, 20}, {10, 10}}),
                 },
-            }}));
+            }
+        }),
+        [](const testing::TestParamInfo<ExtractFacesTest::ParamType>& info) {
+            return info.param.name;
+        });
 
 
 struct BridgeTouchingHolesTestParams
 {
+    std::string name;
     ShapeWithHoles shape;
     std::vector<ShapeWithHoles> expected_output;
 
@@ -611,19 +686,26 @@ struct BridgeTouchingHolesTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        auto test_params = from_json(json);
+        test_params.name = file_path;
+        return test_params;
     }
 };
+
+void PrintTo(const BridgeTouchingHolesTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(2) << "\n";
+    *os << "expected_output\n";
+    for (const ShapeWithHoles& shape: params.expected_output)
+        *os << shape.to_string(2) << "\n";
+}
 
 class BridgeTouchingHolesTest: public testing::TestWithParam<BridgeTouchingHolesTestParams> { };
 
 TEST_P(BridgeTouchingHolesTest, BridgeTouchingHoles)
 {
     BridgeTouchingHolesTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(2) << std::endl;
-    std::cout << "expected_output" << std::endl;
-    for (const ShapeWithHoles& shape: test_params.expected_output)
-        std::cout << shape.to_string(2) << std::endl;
+    PrintTo(test_params, &std::cout);
 
     std::vector<ShapeWithHoles> output = bridge_touching_holes(test_params.shape);
     std::cout << "output" << std::endl;
@@ -650,9 +732,11 @@ INSTANTIATE_TEST_SUITE_P(
         BridgeTouchingHolesTest,
         testing::ValuesIn(std::vector<BridgeTouchingHolesTestParams>{
             {  // Shape without hole.
+                "NoHole",
                 {build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}})},
                 {{build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}})}},
             }, {  // Shape with one hole not touching its outline.
+                "OneNonTouchingHole",
                 {
                     build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
                     {build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}})}
@@ -661,6 +745,7 @@ INSTANTIATE_TEST_SUITE_P(
                     {build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}})}
                 }},
             }, {  // Shape with one hole touching its outline.
+                "OneTouchingOutline",
                 {
                     build_shape({{0, 0}, {20, 0}, {20, 10}, {0, 10}}),
                     {
@@ -672,6 +757,7 @@ INSTANTIATE_TEST_SUITE_P(
                         {19, 4}, {18, 5}, {19, 6},
                         {20, 5}, {20, 10}, {0, 10}})}},
             }, {  // Shape with one hole touching its outline.
+                "OneTouchingVertex",
                 {
                     build_shape({{0, 0}, {20, 0}, {19, 5}, {20, 10}, {0, 10}}),
                     {
@@ -683,6 +769,7 @@ INSTANTIATE_TEST_SUITE_P(
                         {19, 4}, {17, 4}, {17, 6}, {19, 6},
                         {19, 5}, {20, 10}, {0, 10}})}},
             }, {  // Shape with one hole touching its outline and another hole touching the first hole.
+                "OutlineTouchingHoleTouchingHole",
                 {
                     build_shape({{0, 0}, {20, 0}, {20, 50}, {0, 50}}),
                     {
@@ -697,6 +784,7 @@ INSTANTIATE_TEST_SUITE_P(
                         {11, 1}, {10, 0},
                         {20, 0}, {20, 50}, {0, 50}})}},
             }, {  // Shape with 3 holes.
+                "ThreeChainedHoles",
                 {
                     build_shape({{0, 0}, {20, 0}, {20, 50}, {0, 50}}),
                     {
@@ -714,6 +802,7 @@ INSTANTIATE_TEST_SUITE_P(
                         {11, 1}, {10, 0},
                         {20, 0}, {20, 50}, {0, 50}})}},
             }, {  // Shape with one hole touching its outline.
+                "VertexTouchingHole",
                 {
                     build_shape({{0, 0}, {10, 1}, {20, 0}, {20, 50}, {0, 50}}),
                     {
@@ -725,6 +814,7 @@ INSTANTIATE_TEST_SUITE_P(
                         {10, 1}, {9, 1}, {10, 2}, {11, 1}, {10, 1},
                         {20, 0}, {20, 50}, {0, 50}})}},
             }, {  // Shape with one hole touching its outline and another hole touching the first hole.
+                "VertexTouchingHoleTouchingHole",
                 {
                     build_shape({{0, 0}, {10, 1}, {20, 0}, {20, 50}, {0, 50}}),
                     {
@@ -739,6 +829,7 @@ INSTANTIATE_TEST_SUITE_P(
                         {11, 1}, {10, 1},
                         {20, 0}, {20, 50}, {0, 50}})}},
             }, {  // Shape with 3 holes.
+                "ThreeChainedHolesVertex",
                 {
                     build_shape({{0, 0}, {10, 1}, {20, 0}, {20, 50}, {0, 50}}),
                     {
@@ -758,4 +849,7 @@ INSTANTIATE_TEST_SUITE_P(
             },
             BridgeTouchingHolesTestParams::read_json(
                     (fs::path("data") / "tests" / "shape_with_holes" / "bridge_touching_holes" / "0.json").string()),
-            }));
+        }),
+        [](const testing::TestParamInfo<BridgeTouchingHolesTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });

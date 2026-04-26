@@ -18,7 +18,17 @@ struct IntersectionTreeTestParams
 
     std::vector<std::pair<ShapePos, ShapePos>> expected_intersecting_shapes;
     std::vector<std::pair<ElementPos, ElementPos>> expected_equal_points;
+
+    std::string name;
 };
+
+void PrintTo(const IntersectionTreeTestParams& params, std::ostream* os)
+{
+    *os << "shapes (" << params.shapes.size() << ")\n";
+    for (const ShapeWithHoles& shape: params.shapes)
+        *os << "- " << shape.to_string(0) << "\n";
+    *os << "strict " << params.strict << "\n";
+}
 
 class IntersectionTreeTest: public testing::TestWithParam<IntersectionTreeTestParams> { };
 
@@ -91,6 +101,7 @@ INSTANTIATE_TEST_SUITE_P(
                 true,
                 {}, {}, {},
                 {}, {},
+                "Square",
             //}, {
             //    {{build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}), {}}, {}, {}},
             //    true,
@@ -124,4 +135,7 @@ INSTANTIATE_TEST_SUITE_P(
             //    {}, {}, {},
             //    {}, {{4, 6}},
             },
-            }));
+            }),
+        [](const testing::TestParamInfo<IntersectionTreeTest::ParamType>& info) {
+            return info.param.name;
+        });

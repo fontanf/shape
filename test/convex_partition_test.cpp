@@ -11,14 +11,20 @@ using namespace shape;
 struct ConvexPartitionTestParams
 {
     ShapeWithHoles shape;
+    std::string name;
 };
+
+void PrintTo(const ConvexPartitionTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+}
 
 class ConvexPartitionTest: public testing::TestWithParam<ConvexPartitionTestParams> { };
 
 TEST_P(ConvexPartitionTest, ConvexPartition)
 {
     ConvexPartitionTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    PrintTo(test_params, &std::cout);
 
     std::vector<Shape> parts = compute_convex_partition(test_params.shape);
 
@@ -66,37 +72,47 @@ INSTANTIATE_TEST_SUITE_P(
             // Convex inputs: should produce a single convex part.
             {  // Triangle.
                 {build_shape({{0, 0}, {3, 0}, {1, 3}})},
+                "Triangle",
             }, {  // Rectangle.
                 {build_rectangle(4, 3)},
+                "Rectangle",
             }, {  // Convex trapezoid.
                 {build_shape({{0, 0}, {4, 0}, {3, 2}, {1, 2}})},
+                "ConvexTrapezoid",
             }, {  // Convex pentagon.
                 {build_shape({{0, 0}, {4, 0}, {5, 2}, {3, 4}, {1, 4}})},
+                "ConvexPentagon",
             },
             // Non-convex inputs: should produce multiple convex parts.
             {  // L-shape.
                 {build_shape({{0, 0}, {3, 0}, {3, 1}, {1, 1}, {1, 2}, {0, 2}})},
+                "LShape",
             }, {  // Cross/plus shape.
                 {build_shape({
                     {1, 0}, {2, 0}, {2, 1}, {3, 1}, {3, 2}, {2, 2},
                     {2, 3}, {1, 3}, {1, 2}, {0, 2}, {0, 1}, {1, 1}})},
+                "CrossShape",
             }, {  // U-shape.
                 {build_shape({
                     {0, 0}, {3, 0}, {3, 3}, {2, 3},
                     {2, 1}, {1, 1}, {1, 3}, {0, 3}})},
+                "UShape",
             }, {  // W-shape.
                 {build_shape({
                     {0, 0}, {5, 0}, {5, 3}, {4, 3},
                     {4, 1}, {3, 1}, {3, 2}, {2, 2},
                     {2, 1}, {1, 1}, {1, 3}, {0, 3}})},
+                "WShape",
             }, {  // T-shape.
                 {build_shape({
                     {0, 2}, {1, 2}, {1, 0}, {2, 0},
                     {2, 2}, {3, 2}, {3, 3}, {0, 3}})},
+                "TShape",
             }, {  // Staircase shape.
                 {build_shape({
                     {0, 0}, {4, 0}, {4, 2}, {3, 2},
                     {3, 1}, {1, 1}, {1, 2}, {0, 2}})},
+                "StaircaseShape",
             },
             // Shapes with holes.
             {  // Square ring: square with a square hole.
@@ -104,10 +120,15 @@ INSTANTIATE_TEST_SUITE_P(
                     build_shape({{0, 0}, {4, 0}, {4, 4}, {0, 4}}),
                     {build_shape({{1, 1}, {3, 1}, {3, 3}, {1, 3}})}
                 },
+                "SquareRing",
             }, {  // Octagon with a diamond hole.
                 {
                     build_shape({{1, 0}, {3, 0}, {4, 1}, {4, 3}, {3, 4}, {1, 4}, {0, 3}, {0, 1}}),
                     {build_shape({{2, 1}, {3, 2}, {2, 3}, {1, 2}})}
                 },
+                "OctagonWithDiamondHole",
             },
-        }));
+        }),
+        [](const testing::TestParamInfo<ConvexPartitionTest::ParamType>& info) {
+            return info.param.name;
+        });
