@@ -13,6 +13,7 @@ using namespace shape;
 
 struct InflateShapeTestParams
 {
+    std::string name;
     Shape shape;
     LengthDbl offset;
     ShapeWithHoles expected_output;
@@ -41,18 +42,25 @@ struct InflateShapeTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        auto test_params = from_json(json);
+        test_params.name = file_path;
+        return test_params;
     }
 };
+
+void PrintTo(const InflateShapeTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "offset " << params.offset << "\n";
+    *os << "expected_output " << params.expected_output.to_string(0) << "\n";
+}
 
 class InflateShapeTest: public testing::TestWithParam<InflateShapeTestParams> { };
 
 TEST_P(InflateShapeTest, InflateShape)
 {
     InflateShapeTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "offset " << test_params.offset << std::endl;
-    std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
+    PrintTo(test_params, &std::cout);
 
 #ifdef OFFSET_TEST_DEBUG
     Writer writer;
@@ -78,6 +86,7 @@ INSTANTIATE_TEST_SUITE_P(
         InflateShapeTest,
         testing::ValuesIn(std::vector<InflateShapeTestParams>{
             {
+                "VerticalSegment",
                 build_path({{0, 0}, {0, 10}}),
                 1.0,
                 {
@@ -85,6 +94,7 @@ INSTANTIATE_TEST_SUITE_P(
                 },
             },
             {
+                "DiagonalSegment",
                 build_path({{6, 5}, {7, 13}}),
                 1e-3,
                 {
@@ -98,6 +108,7 @@ INSTANTIATE_TEST_SUITE_P(
                 },
             },
             {
+                "TwoSegmentPath",
                 build_path({{8, 0}, {10, 20}, {12, -10}}),
                 1e-3,
                 {
@@ -115,6 +126,7 @@ INSTANTIATE_TEST_SUITE_P(
                 },
             },
             {
+                "ArcPath1",
                 build_path({{1, 0}, {0, 0, 1}, {0, 1}}),
                 1,
                 {
@@ -128,6 +140,7 @@ INSTANTIATE_TEST_SUITE_P(
                 },
             },
             {
+                "ArcPath2",
                 build_path({{1, 0}, {0, 0, 1}, {0, 1}}),
                 2,
                 {
@@ -154,7 +167,10 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "offset" / "inflate_shape" / "5.json").string()),
             InflateShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "offset" / "inflate_shape" / "6.json").string()),
-            }));
+        }),
+        [](const testing::TestParamInfo<InflateShapeTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct InflateShapeWithHolesTestParams: TestParams<InflateShapeWithHolesTestParams>
@@ -176,15 +192,20 @@ struct InflateShapeWithHolesTestParams: TestParams<InflateShapeWithHolesTestPara
     }
 };
 
+void PrintTo(const InflateShapeWithHolesTestParams& params, std::ostream* os)
+{
+    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "offset " << params.offset << "\n";
+    *os << "expected_output " << params.expected_output.to_string(0) << "\n";
+}
+
 class InflateShapeWithHolesTest: public testing::TestWithParam<InflateShapeWithHolesTestParams> { };
 
 TEST_P(InflateShapeWithHolesTest, InflateShapeWithHoles)
 {
     InflateShapeWithHolesTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "offset " << test_params.offset << std::endl;
-    std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
+    PrintTo(test_params, &std::cout);
 #ifdef OFFSET_TEST_DEBUG
     Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(test_params.expected_output).write_json("inflate_input.json");
 #endif
@@ -221,7 +242,10 @@ TEST_P(InflateShapeWithHolesTest, InflateShapeWithHoles)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         InflateShapeWithHolesTest,
-        testing::ValuesIn(InflateShapeWithHolesTestParams::read_dir((fs::path("data") / "tests" / "offset" / "inflate").string())));
+        testing::ValuesIn(InflateShapeWithHolesTestParams::read_dir((fs::path("data") / "tests" / "offset" / "inflate").string())),
+        [](const testing::TestParamInfo<InflateShapeWithHolesTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct DeflateTestParams: TestParams<DeflateTestParams>
@@ -245,17 +269,22 @@ struct DeflateTestParams: TestParams<DeflateTestParams>
     }
 };
 
+void PrintTo(const DeflateTestParams& params, std::ostream* os)
+{
+    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "hole " << params.shape.to_string(0) << "\n";
+    *os << "offset " << params.offset << "\n";
+    *os << "expected_output\n";
+    for (const Shape& hole: params.expected_output)
+        *os << "- " << hole.to_string(2) << "\n";
+}
+
 class DeflateTest: public testing::TestWithParam<DeflateTestParams> { };
 
 TEST_P(DeflateTest, Deflate)
 {
     DeflateTestParams test_params = GetParam();
-    std::cout << "Testing " << test_params.name << " (" << test_params.description << ")" << "..." << std::endl;
-    std::cout << "hole " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "offset " << test_params.offset << std::endl;
-    std::cout << "expected_output" << std::endl;
-    for (const Shape& hole: test_params.expected_output)
-        std::cout << "- " << hole.to_string(2) << std::endl;
+    PrintTo(test_params, &std::cout);
 
     auto output = deflate(
         test_params.shape,
@@ -307,4 +336,7 @@ TEST_P(DeflateTest, Deflate)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         DeflateTest,
-        testing::ValuesIn(DeflateTestParams::read_dir((fs::path("data") / "tests" / "offset" / "deflate").string())));
+        testing::ValuesIn(DeflateTestParams::read_dir((fs::path("data") / "tests" / "offset" / "deflate").string())),
+        [](const testing::TestParamInfo<DeflateTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });

@@ -24,14 +24,19 @@ struct StrictlyLesserAngleTestParams
     bool expected_output;
 };
 
+void PrintTo(const StrictlyLesserAngleTestParams& params, std::ostream* os)
+{
+    *os << "vector_1 " << params.vector_1.to_string() << "\n";
+    *os << "vector_2 " << params.vector_2.to_string() << "\n";
+    *os << "expected_output " << params.expected_output << "\n";
+}
+
 class StrictlyLesserAngleTest: public testing::TestWithParam<StrictlyLesserAngleTestParams> { };
 
 TEST_P(StrictlyLesserAngleTest, StrictlyLesserAngle)
 {
     StrictlyLesserAngleTestParams test_params = GetParam();
-    std::cout << "vector_1 " << test_params.vector_1.to_string() << std::endl;
-    std::cout << "vector_2 " << test_params.vector_2.to_string() << std::endl;
-    std::cout << "expected_output " << test_params.expected_output << std::endl;
+    PrintTo(test_params, &std::cout);
 #ifdef SHAPE_TEST_DEBUG
     Writer()
         .add_element(build_line_segment({0, 0}, test_params.vector_1))
@@ -57,7 +62,10 @@ INSTANTIATE_TEST_SUITE_P(
                 {0.00058755222531203799, 0.00073094802962714311},
                 true,
             },
-            }));
+        }),
+        [](const testing::TestParamInfo<StrictlyLesserAngleTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeElementLengthTestParams
@@ -66,13 +74,18 @@ struct ShapeElementLengthTestParams
     LengthDbl expected_length;
 };
 
+void PrintTo(const ShapeElementLengthTestParams& params, std::ostream* os)
+{
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "expected_length " << params.expected_length << "\n";
+}
+
 class ShapeElementLengthTest: public testing::TestWithParam<ShapeElementLengthTestParams> { };
 
 TEST_P(ShapeElementLengthTest, ShapeElementLength)
 {
     ShapeElementLengthTestParams test_params = GetParam();
-    std::cout << "element " << test_params.element.to_string() << std::endl;
-    std::cout << "expected_length " << test_params.expected_length << std::endl;
+    PrintTo(test_params, &std::cout);
     LengthDbl length = test_params.element.length();
     EXPECT_TRUE(equal(length, test_params.expected_length));
     std::cout << "length " << length << std::endl;
@@ -88,7 +101,10 @@ INSTANTIATE_TEST_SUITE_P(
             {build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise), M_PI / 2},
             {build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Clockwise), 3 * M_PI / 2},
             {build_circular_arc({1, 0}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise), 3 * M_PI / 2},
-            }));
+        }),
+        [](const testing::TestParamInfo<ShapeElementLengthTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeElementLengthPointTestParams
@@ -98,14 +114,19 @@ struct ShapeElementLengthPointTestParams
     LengthDbl expected_length;
 };
 
+void PrintTo(const ShapeElementLengthPointTestParams& params, std::ostream* os)
+{
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "point " << params.point.to_string() << "\n";
+    *os << "expected_length " << params.expected_length << "\n";
+}
+
 class ShapeElementLengthPointTest: public testing::TestWithParam<ShapeElementLengthPointTestParams> { };
 
 TEST_P(ShapeElementLengthPointTest, ShapeElementLengthPoint)
 {
     ShapeElementLengthPointTestParams test_params = GetParam();
-    std::cout << "element " << test_params.element.to_string() << std::endl;
-    std::cout << "point " << test_params.point.to_string() << std::endl;
-    std::cout << "expected_length " << test_params.expected_length << std::endl;
+    PrintTo(test_params, &std::cout);
     if (!test_params.element.contains(test_params.point)) {
         throw std::invalid_argument(FUNC_SIGNATURE);
     }
@@ -137,7 +158,10 @@ INSTANTIATE_TEST_SUITE_P(
 //path_element_pos 21 shape_element_pos 1 point (24.017319578247072, 562.69162748260499) l 0.568959
 //path_element_pos 21 shape_element_pos 2 point (24.017319578247072, 562.69162748260499) l 0.568959
 
-            }));
+        }),
+        [](const testing::TestParamInfo<ShapeElementLengthPointTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeElementPointTestParams
@@ -147,14 +171,19 @@ struct ShapeElementPointTestParams
     Point expected_output;
 };
 
+void PrintTo(const ShapeElementPointTestParams& params, std::ostream* os)
+{
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "length " << params.length << "\n";
+    *os << "expected_output " << params.expected_output.to_string() << "\n";
+}
+
 class ShapeElementPointTest: public testing::TestWithParam<ShapeElementPointTestParams> { };
 
 TEST_P(ShapeElementPointTest, ShapeElementPoint)
 {
     ShapeElementPointTestParams test_params = GetParam();
-    std::cout << "element " << test_params.element.to_string() << std::endl;
-    std::cout << "length " << test_params.length << std::endl;
-    std::cout << "expected_output " << test_params.expected_output.to_string() << std::endl;
+    PrintTo(test_params, &std::cout);
     Point output = test_params.element.point(test_params.length);
     EXPECT_TRUE(equal(output, test_params.expected_output));
     std::cout << "output " << output.to_string() << std::endl;
@@ -168,7 +197,10 @@ INSTANTIATE_TEST_SUITE_P(
             {build_line_segment({0, 0}, {2, 0}), 1, {1, 0}},
             {build_circular_arc({1, 0}, {-1, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise), M_PI / 2, {0, 1}},
             {build_circular_arc({1, 0}, {-1, 1}, {0, 0}, ShapeElementOrientation::Clockwise), M_PI / 2, {0, -1}},
-            }));
+        }),
+        [](const testing::TestParamInfo<ShapeElementPointTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeElementFindPointBetweenTestParams
@@ -179,15 +211,20 @@ struct ShapeElementFindPointBetweenTestParams
     Point expected_output;
 };
 
+void PrintTo(const ShapeElementFindPointBetweenTestParams& params, std::ostream* os)
+{
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "point_1 " << params.point_1.to_string() << "\n";
+    *os << "point_2 " << params.point_2.to_string() << "\n";
+    *os << "expected_output " << params.expected_output.to_string() << "\n";
+}
+
 class ShapeElementFindPointBetweenTest: public testing::TestWithParam<ShapeElementFindPointBetweenTestParams> { };
 
 TEST_P(ShapeElementFindPointBetweenTest, ShapeElementFindPointBetween)
 {
     ShapeElementFindPointBetweenTestParams test_params = GetParam();
-    std::cout << "element " << test_params.element.to_string() << std::endl;
-    std::cout << "point_1 " << test_params.point_1.to_string() << std::endl;
-    std::cout << "point_2 " << test_params.point_2.to_string() << std::endl;
-    std::cout << "expected_output " << test_params.expected_output.to_string() << std::endl;
+    PrintTo(test_params, &std::cout);
 
     Point output = test_params.element.find_point_between(
             test_params.point_1,
@@ -216,7 +253,11 @@ INSTANTIATE_TEST_SUITE_P(
                 {25.12314661878088, 562.1174128418544},
                 {25.12432681320623, 562.1171997938548},
                 {25.12373636714434, 562.1173043853798},
-            }}));
+            }
+        }),
+        [](const testing::TestParamInfo<ShapeElementFindPointBetweenTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeFindPointBetweenTestParams
@@ -226,6 +267,14 @@ struct ShapeFindPointBetweenTestParams
     ShapePoint point_2;
     ShapePoint expected_output;
 };
+
+void PrintTo(const ShapeFindPointBetweenTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "point_1 element_pos " << params.point_1.element_pos << " point " << params.point_1.point.to_string() << "\n";
+    *os << "point_2 element_pos " << params.point_2.element_pos << " point " << params.point_2.point.to_string() << "\n";
+    *os << "expected_output element_pos " << params.expected_output.element_pos << " point " << params.expected_output.point.to_string() << "\n";
+}
 
 class ShapeFindPointBetweenTest: public testing::TestWithParam<ShapeFindPointBetweenTestParams> { };
 
@@ -252,7 +301,10 @@ INSTANTIATE_TEST_SUITE_P(
                 {1, {1, 0.5}},
                 {0, {0.5, 0}},
             },
-        }));
+        }),
+        [](const testing::TestParamInfo<ShapeFindPointBetweenTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeElementMiddleTestParams
@@ -261,15 +313,18 @@ struct ShapeElementMiddleTestParams
     Point expected_middle;
 };
 
+void PrintTo(const ShapeElementMiddleTestParams& params, std::ostream* os)
+{
+    *os << "circular_arc\n" << params.circular_arc.to_string() << "\n";
+    *os << "expected_middle\n" << params.expected_middle.to_string() << "\n";
+}
+
 class ShapeElementMiddleTest: public testing::TestWithParam<ShapeElementMiddleTestParams> { };
 
 TEST_P(ShapeElementMiddleTest, ShapeElementMiddle)
 {
     ShapeElementMiddleTestParams test_params = GetParam();
-    std::cout << "circular_arc" << std::endl;
-    std::cout << test_params.circular_arc.to_string() << std::endl;
-    std::cout << "expected_middle" << std::endl;
-    std::cout << test_params.expected_middle.to_string() << std::endl;
+    PrintTo(test_params, &std::cout);
 
     Point middle = test_params.circular_arc.middle();
     std::cout << "computed_middle" << std::endl;
@@ -301,7 +356,10 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{-1, 0}, {0, 0, -1}, {0, 1}}, true).elements.front(),
                 {- sqrt(2) / 2, sqrt(2) / 2}
             }
-        }));
+        }),
+        [](const testing::TestParamInfo<ShapeElementMiddleTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeElementMinMaxTestParams
@@ -313,16 +371,21 @@ struct ShapeElementMinMaxTestParams
     LengthDbl expected_y_max;
 };
 
+void PrintTo(const ShapeElementMinMaxTestParams& params, std::ostream* os)
+{
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "expected x_min " << params.expected_x_min
+        << " y_min " << params.expected_y_min
+        << " x_max " << params.expected_x_max
+        << " y_max " << params.expected_y_max << "\n";
+}
+
 class ShapeElementMinMaxTest: public testing::TestWithParam<ShapeElementMinMaxTestParams> { };
 
 TEST_P(ShapeElementMinMaxTest, ShapeElementMinMax)
 {
     ShapeElementMinMaxTestParams test_params = GetParam();
-    std::cout << "element " << test_params.element.to_string() << std::endl;
-    std::cout << "expected x_min " << test_params.expected_x_min
-        << " y_min " << test_params.expected_y_min
-        << " x_max " << test_params.expected_x_max
-        << " y_max " << test_params.expected_y_max << std::endl;
+    PrintTo(test_params, &std::cout);
     AxisAlignedBoundingBox aabb = test_params.element.min_max();
     std::cout << "x_min " << aabb.x_min
         << " y_min " << aabb.y_min
@@ -346,7 +409,10 @@ INSTANTIATE_TEST_SUITE_P(
             {build_shape({{-1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(), -1, -1, 1, 1 },
             {build_shape({{0, -1}, {0, 0, 1}, {-1, 0}}, true).elements.front(), -1, -1, 1, 1 },
             {build_shape({{1, 0}, {0, 0, 1}, {0, -1}}, true).elements.front(), -1, -1, 1, 1 },
-            }));
+        }),
+        [](const testing::TestParamInfo<ShapeElementMinMaxTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeElementContainsTestParams
@@ -356,14 +422,19 @@ struct ShapeElementContainsTestParams
     bool expected_output;
 };
 
+void PrintTo(const ShapeElementContainsTestParams& params, std::ostream* os)
+{
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "point " << params.point.to_string() << "\n";
+    *os << "expceted output " << params.expected_output << "\n";
+}
+
 class ShapeElementContainsTest: public testing::TestWithParam<ShapeElementContainsTestParams> { };
 
 TEST_P(ShapeElementContainsTest, ShapeElementContains)
 {
     ShapeElementContainsTestParams test_params = GetParam();
-    std::cout << "element " << test_params.element.to_string() << std::endl;
-    std::cout << "point " << test_params.point.to_string() << std::endl;
-    std::cout << "expceted output " << test_params.expected_output << std::endl;
+    PrintTo(test_params, &std::cout);
     bool output = test_params.element.contains(test_params.point);
     std::cout << "output " << output << std::endl;
     EXPECT_EQ(output, test_params.expected_output);
@@ -378,7 +449,10 @@ INSTANTIATE_TEST_SUITE_P(
                 {174.91570697722955, 709.95140487030301},
                 false,
             },
-            }));
+        }),
+        [](const testing::TestParamInfo<ShapeElementContainsTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeElementRecomputeCenterTestParams
@@ -386,12 +460,17 @@ struct ShapeElementRecomputeCenterTestParams
     ShapeElement element;
 };
 
+void PrintTo(const ShapeElementRecomputeCenterTestParams& params, std::ostream* os)
+{
+    *os << "element " << params.element.to_string() << "\n";
+}
+
 class ShapeElementRecomputeCenterTest: public testing::TestWithParam<ShapeElementRecomputeCenterTestParams> { };
 
 TEST_P(ShapeElementRecomputeCenterTest, ShapeElementRecomputeCenter)
 {
     ShapeElementRecomputeCenterTestParams test_params = GetParam();
-    std::cout << "element " << test_params.element.to_string() << std::endl;
+    PrintTo(test_params, &std::cout);
     ShapeElement element = test_params.element;
     element.recompute_center();
     std::cout << "output " << element.to_string() << std::endl;
@@ -405,7 +484,10 @@ INSTANTIATE_TEST_SUITE_P(
             {build_circular_arc({0, 1}, {1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise)},
             {build_circular_arc({1, 0}, {0, -1}, {0, 0}, ShapeElementOrientation::Anticlockwise)},
             {build_circular_arc({1, 2}, {2, 1}, {1, 1}, ShapeElementOrientation::Anticlockwise)},
-            }));
+        }),
+        [](const testing::TestParamInfo<ShapeElementRecomputeCenterTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeIsConvexTestParams
@@ -414,13 +496,18 @@ struct ShapeIsConvexTestParams
     bool expected_output;
 };
 
+void PrintTo(const ShapeIsConvexTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "expected_output " << params.expected_output << "\n";
+}
+
 class ShapeIsConvexTest: public testing::TestWithParam<ShapeIsConvexTestParams> { };
 
 TEST_P(ShapeIsConvexTest, ShapeIsConvex)
 {
     ShapeIsConvexTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "expected_output " << test_params.expected_output << std::endl;
+    PrintTo(test_params, &std::cout);
     bool output = test_params.shape.is_convex();
     std::cout << "output " << output << std::endl;
     EXPECT_EQ(output, test_params.expected_output);
@@ -484,7 +571,10 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 0}, {2, 0}, {2, 1}, {1, 1, -1}, {0, 1}}),
                 false,
             },
-        }));
+        }),
+        [](const testing::TestParamInfo<ShapeIsConvexTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeComputeAreaTestParams
@@ -493,13 +583,18 @@ struct ShapeComputeAreaTestParams
     AreaDbl expected_area;
 };
 
+void PrintTo(const ShapeComputeAreaTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "expected area " << to_string(params.expected_area) << "\n";
+}
+
 class ShapeComputeAreaTest: public testing::TestWithParam<ShapeComputeAreaTestParams> { };
 
 TEST_P(ShapeComputeAreaTest, ShapeComputeArea)
 {
     ShapeComputeAreaTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "expected area " << to_string(test_params.expected_area) << std::endl;
+    PrintTo(test_params, &std::cout);
     AreaDbl area = test_params.shape.compute_area();
     std::cout << "area " << to_string(area) << std::endl;
     EXPECT_TRUE(equal(area, test_params.expected_area));
@@ -529,7 +624,11 @@ INSTANTIATE_TEST_SUITE_P(
                     build_line_segment({43.62858633055728, 195.7612139523166}, {41.39894441055727, 194.5414289923167}),
                 }),
                 23.6526695078428,
-            }}));
+            }
+        }),
+        [](const testing::TestParamInfo<ShapeComputeAreaTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeComputeFurthestPointsTestParams
@@ -540,18 +639,23 @@ struct ShapeComputeFurthestPointsTestParams
     Shape::FurthestPoint expected_point_max;
 };
 
+void PrintTo(const ShapeComputeFurthestPointsTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "angle " << params.angle << "\n";
+    *os << "expected point_min " << params.expected_point_min.point.to_string()
+        << " pos " << params.expected_point_min.element_pos
+        << " point_max " << params.expected_point_max.point.to_string()
+        << " pos " << params.expected_point_max.element_pos
+        << "\n";
+}
+
 class ShapeComputeFurthestPointsTest: public testing::TestWithParam<ShapeComputeFurthestPointsTestParams> { };
 
 TEST_P(ShapeComputeFurthestPointsTest, ShapeComputeFurthestPoints)
 {
     ShapeComputeFurthestPointsTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "angle " << test_params.angle << std::endl;
-    std::cout << "expected point_min " << test_params.expected_point_min.point.to_string()
-        << " pos " << test_params.expected_point_min.element_pos
-        << " point_max " << test_params.expected_point_max.point.to_string()
-        << " pos " << test_params.expected_point_max.element_pos
-        << std::endl;
+    PrintTo(test_params, &std::cout);
     auto p = test_params.shape.compute_furthest_points(test_params.angle);
     std::cout << "point_min " << p.first.point.to_string()
         << " pos " << p.first.element_pos
@@ -584,7 +688,10 @@ INSTANTIATE_TEST_SUITE_P(
                 {Point{4, 4}, 2},
                 {Point{0, 0}, 0},
             },
-            }));
+        }),
+        [](const testing::TestParamInfo<ShapeComputeFurthestPointsTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeContainsTestParams
@@ -624,15 +731,20 @@ struct ShapeContainsTestParams
     }
 };
 
+void PrintTo(const ShapeContainsTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "point " << params.point.to_string() << "\n";
+    *os << "strict " << params.strict << "\n";
+    *os << "expceted output " << params.expected_output << "\n";
+}
+
 class ShapeContainsTest: public testing::TestWithParam<ShapeContainsTestParams> { };
 
 TEST_P(ShapeContainsTest, ShapeContains)
 {
     ShapeContainsTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "point " << test_params.point.to_string() << std::endl;
-    std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expceted output " << test_params.expected_output << std::endl;
+    PrintTo(test_params, &std::cout);
     bool output = test_params.shape.contains(
             test_params.point,
             test_params.strict);
@@ -652,7 +764,10 @@ INSTANTIATE_TEST_SUITE_P(
             },
             ShapeContainsTestParams::read_json(
                     (fs::path("data") / "tests" / "shape" / "shape_contains" / "0.json").string()),
-            }));
+        }),
+        [](const testing::TestParamInfo<ShapeContainsTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeFindPointStrictlyInsideTestParams
@@ -660,12 +775,17 @@ struct ShapeFindPointStrictlyInsideTestParams
     Shape shape;
 };
 
+void PrintTo(const ShapeFindPointStrictlyInsideTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+}
+
 class ShapeFindPointStrictlyInsideTest: public testing::TestWithParam<ShapeFindPointStrictlyInsideTestParams> { };
 
 TEST_P(ShapeFindPointStrictlyInsideTest, ShapeFindPointStrictlyInside)
 {
     ShapeFindPointStrictlyInsideTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
+    PrintTo(test_params, &std::cout);
     Point output = test_params.shape.find_point_strictly_inside();
     std::cout << "output " << output.to_string() << std::endl;
     EXPECT_TRUE(test_params.shape.contains(output, true));
@@ -683,7 +803,11 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 100}, {100, 100}, {100, 0}, {200, 0}, {200, 200}, {0, 200}}),
             }, {
                 build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}}),
-            }}));
+            }
+        }),
+        [](const testing::TestParamInfo<ShapeFindPointStrictlyInsideTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeExtractPathTestParams
@@ -694,15 +818,20 @@ struct ShapeExtractPathTestParams
     Shape expected_path;
 };
 
+void PrintTo(const ShapeExtractPathTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "point_start element_pos " << params.point_start.element_pos << " point " << params.point_start.point.to_string() << "\n";
+    *os << "point_end element_pos " << params.point_end.element_pos << " point " << params.point_end.point.to_string() << "\n";
+    *os << "expected path " << params.expected_path.to_string(1) << "\n";
+}
+
 class ShapeExtractPathTest: public testing::TestWithParam<ShapeExtractPathTestParams> { };
 
 TEST_P(ShapeExtractPathTest, ShapeExtractPath)
 {
     ShapeExtractPathTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "point_start element_pos " << test_params.point_start.element_pos << " point " << test_params.point_start.point.to_string() << std::endl;
-    std::cout << "point_end element_pos " << test_params.point_end.element_pos << " point " << test_params.point_end.point.to_string() << std::endl;
-    std::cout << "expected path " << test_params.expected_path.to_string(1) << std::endl;
+    PrintTo(test_params, &std::cout);
     Shape path = test_params.shape.extract_path(test_params.point_start, test_params.point_end);
     std::cout << "path " << path.to_string(1) << std::endl;
     EXPECT_TRUE(equal(path, test_params.expected_path));
@@ -743,7 +872,10 @@ INSTANTIATE_TEST_SUITE_P(
                 {1, {4, 1}},
                 build_path({{4, 3}, {4, 4}, {0, 4}, {0, 0}, {4, 0}, {4, 1}}),
             },
-            }));
+        }),
+        [](const testing::TestParamInfo<ShapeExtractPathTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeReplaceTestParams
@@ -753,17 +885,22 @@ struct ShapeReplaceTestParams
     Shape expected_output;
 };
 
+void PrintTo(const ShapeReplaceTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    for (const Shape::PathReplacement& path: params.paths) {
+        *os << "start " << path.start.element_pos << " " << path.start.point.to_string() << "\n";
+        *os << "end " << path.end.element_pos << " " << path.end.point.to_string() << "\n";
+    }
+    *os << "expceted output " << params.expected_output.to_string(0) << "\n";
+}
+
 class ShapeReplaceTest: public testing::TestWithParam<ShapeReplaceTestParams> { };
 
 TEST_P(ShapeReplaceTest, ShapeReplace)
 {
     ShapeReplaceTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    for (const Shape::PathReplacement& path: test_params.paths) {
-        std::cout << "start " << path.start.element_pos << " " << path.start.point.to_string() << std::endl;
-        std::cout << "end " << path.end.element_pos << " " << path.end.point.to_string() << std::endl;
-    }
-    std::cout << "expceted output " << test_params.expected_output.to_string(0) << std::endl;
+    PrintTo(test_params, &std::cout);
     Shape output = test_params.shape.replace(test_params.paths);
     std::cout << "output " << output.to_string(0) << std::endl;
     ASSERT_TRUE(equal(output, test_params.expected_output));
@@ -792,7 +929,11 @@ INSTANTIATE_TEST_SUITE_P(
                     {{0, {0, 1}}, {0, {0, 9}}, build_path({{0, 1}, {1, 5}, {0, 9}}).elements},
                 },
                 build_path({{0, 0}, {0, 1}, {1, 5}, {0, 9}, {0, 10}, {1, 10}, {5, 11}, {9, 10}, {10, 10}}),
-            }}));
+            }
+        }),
+        [](const testing::TestParamInfo<ShapeReplaceTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
 
 
 struct ShapeComputeMinMaxTestParams
@@ -806,20 +947,25 @@ struct ShapeComputeMinMaxTestParams
     LengthDbl expected_y_max;
 };
 
+void PrintTo(const ShapeComputeMinMaxTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "point_1 element_pos " << params.point_1.element_pos
+        << " point " << params.point_1.point.to_string() << "\n";
+    *os << "point_2 element_pos " << params.point_2.element_pos
+        << " point " << params.point_2.point.to_string() << "\n";
+    *os << "expected x_min " << params.expected_x_min
+        << " y_min " << params.expected_y_min
+        << " x_max " << params.expected_x_max
+        << " y_max " << params.expected_y_max << "\n";
+}
+
 class ShapeComputeMinMaxTest: public testing::TestWithParam<ShapeComputeMinMaxTestParams> { };
 
 TEST_P(ShapeComputeMinMaxTest, ShapeComputeMinMax)
 {
     ShapeComputeMinMaxTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "point_1 element_pos " << test_params.point_1.element_pos
-        << " point " << test_params.point_1.point.to_string() << std::endl;
-    std::cout << "point_2 element_pos " << test_params.point_2.element_pos
-        << " point " << test_params.point_2.point.to_string() << std::endl;
-    std::cout << "expected x_min " << test_params.expected_x_min
-        << " y_min " << test_params.expected_y_min
-        << " x_max " << test_params.expected_x_max
-        << " y_max " << test_params.expected_y_max << std::endl;
+    PrintTo(test_params, &std::cout);
     AxisAlignedBoundingBox aabb = test_params.shape.compute_min_max(test_params.point_1, test_params.point_2);
     std::cout << "x_min " << aabb.x_min
         << " y_min " << aabb.y_min
@@ -886,4 +1032,7 @@ INSTANTIATE_TEST_SUITE_P(
                 {1, {0, 1}}, {0, {0, 0}},
                 -1, 0, 0, 1,
             },
-        }));
+        }),
+        [](const testing::TestParamInfo<ShapeComputeMinMaxTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });

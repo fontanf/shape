@@ -19,22 +19,27 @@ using namespace shape;
 
 struct ApproximateCircularArcByLineSegmentsTestParams
 {
+    std::string name;
     ShapeElement circular_arc;
     LengthDbl number_of_line_segments;
     bool outer;
     std::vector<ShapeElement> expected_line_segments;
 };
 
+void PrintTo(const ApproximateCircularArcByLineSegmentsTestParams& params, std::ostream* os)
+{
+    *os << "circular_arc\n" << params.circular_arc.to_string() << "\n";
+    *os << "expected_line_segments\n";
+    for (const ShapeElement& line_segment: params.expected_line_segments)
+        *os << line_segment.to_string() << "\n";
+}
+
 class ApproximateCircularArcByLineSegmentsTest: public testing::TestWithParam<ApproximateCircularArcByLineSegmentsTestParams> { };
 
 TEST_P(ApproximateCircularArcByLineSegmentsTest, ApproximateCircularArcByLineSegments)
 {
     ApproximateCircularArcByLineSegmentsTestParams test_params = GetParam();
-    std::cout << "circular_arc" << std::endl;
-    std::cout << test_params.circular_arc.to_string() << std::endl;
-    std::cout << "expected_line_segments" << std::endl;
-    for (const ShapeElement& line_segment: test_params.expected_line_segments)
-        std::cout << line_segment.to_string() << std::endl;
+    PrintTo(test_params, &std::cout);
     LengthDbl segment_length = test_params.circular_arc.length() / test_params.number_of_line_segments;
     std::vector<ShapeElement> line_segments = approximate_circular_arc_by_line_segments(
             test_params.circular_arc,
@@ -56,40 +61,51 @@ INSTANTIATE_TEST_SUITE_P(
         ApproximateCircularArcByLineSegmentsTest,
         testing::ValuesIn(std::vector<ApproximateCircularArcByLineSegmentsTestParams>{
             {
+                "CCW1SegInner",
                 build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
                 1,
                 false,
-                build_shape({{1, 0}, {0, 1}}, true).elements
+                build_shape({{1, 0}, {0, 1}}, true).elements,
             }, {
+                "CW1SegOuter",
                 build_shape({{1, 0}, {1, 1, -1}, {0, 1}}, true).elements.front(),
                 1,
                 true,
-                build_shape({{1, 0}, {0, 1}}, true).elements
+                build_shape({{1, 0}, {0, 1}}, true).elements,
             }, {
+                "CCW2SegOuter",
                 build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
                 2,
                 true,
-                build_shape({{1, 0}, {1, 1}, {0, 1}}, true).elements
+                build_shape({{1, 0}, {1, 1}, {0, 1}}, true).elements,
             }, {
+                "CW2SegInner",
                 build_shape({{1, 0}, {1, 1, -1}, {0, 1}}, true).elements.front(),
                 2,
                 false,
-                build_shape({{1, 0}, {0, 0}, {0, 1}}, true).elements
+                build_shape({{1, 0}, {0, 0}, {0, 1}}, true).elements,
             }, {
+                "CCW3SegOuter",
                 build_shape({{1, 0}, {0, 0, 1}, {0, 1}}, true).elements.front(),
                 3,
                 true,
-                build_shape({{1, 0}, {1, 0.414213562373095}, {0.414213562373095, 1}, {0, 1}}, true).elements
+                build_shape({{1, 0}, {1, 0.414213562373095}, {0.414213562373095, 1}, {0, 1}}, true).elements,
             }, {
+                "CW3SegInner",
                 build_shape({{1, 0}, {1, 1, -1}, {0, 1}}, true).elements.front(),
                 3,
                 false,
-                build_shape({{1, 0}, {0.585786437626905, 0}, {0, 0.585786437626905}, {0, 1}}, true).elements
-            }}));
+                build_shape({{1, 0}, {0.585786437626905, 0}, {0, 0.585786437626905}, {0, 1}}, true).elements,
+            }
+        }),
+        [](const testing::TestParamInfo<ApproximateCircularArcByLineSegmentsTest::ParamType>& info) {
+            return info.param.name;
+        });
 
 
 struct ApproximateShapeByLineSegmentsTestParams
 {
+    std::string name;
     Shape shape;
     LengthDbl segment_length;
     bool outer;
@@ -120,19 +136,26 @@ struct ApproximateShapeByLineSegmentsTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        auto test_params = from_json(json);
+        test_params.name = file_path;
+        return test_params;
     }
 };
+
+void PrintTo(const ApproximateShapeByLineSegmentsTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "segment_length " << shape::to_string(params.segment_length) << "\n";
+    *os << "outer " << params.outer << "\n";
+    *os << "expected_output " << params.expected_output.to_string(0) << "\n";
+}
 
 class ApproximateShapeByLineSegmentsTest: public testing::TestWithParam<ApproximateShapeByLineSegmentsTestParams> { };
 
 TEST_P(ApproximateShapeByLineSegmentsTest, ApproximateShapeByLineSegments)
 {
     ApproximateShapeByLineSegmentsTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "segment_length " << shape::to_string(test_params.segment_length) << std::endl;
-    std::cout << "outer " << test_params.outer << std::endl;
-    std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
+    PrintTo(test_params, &std::cout);
 
 #ifdef APPROXIMATION_TEST_ENABLE_DEBUG
     Writer writer;
@@ -161,6 +184,7 @@ INSTANTIATE_TEST_SUITE_P(
         ApproximateShapeByLineSegmentsTest,
         testing::ValuesIn(std::vector<ApproximateShapeByLineSegmentsTestParams>{
             {
+                "ArcSeg1Outer",
                 build_shape({{1, 0}, {0, 0, 1}, {0, 1}, {0, 0}}),
                 1.0,
                 true,
@@ -169,6 +193,7 @@ INSTANTIATE_TEST_SUITE_P(
                 },
             },
             {
+                "ArcSeg2Inner",
                 build_shape({{1, 0}, {0, 0, 1}, {0, 1}, {0, 0}}),
                 2,
                 false,
@@ -180,11 +205,15 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "approximation" / "approximate_shape_by_line_segments" / "0.json").string()),
             ApproximateShapeByLineSegmentsTestParams::read_json(
                     (fs::path("data") / "tests" / "approximation" / "approximate_shape_by_line_segments" / "1.json").string()),
-            }));
+        }),
+        [](const testing::TestParamInfo<ApproximateShapeByLineSegmentsTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct ApproximateByLineSegmentsTestParams
 {
+    std::string name;
     ShapeWithHoles shape_with_holes;
     LengthDbl segment_length;
     ShapeWithHoles expected_output;
@@ -213,18 +242,25 @@ struct ApproximateByLineSegmentsTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        auto test_params = from_json(json);
+        test_params.name = file_path;
+        return test_params;
     }
 };
+
+void PrintTo(const ApproximateByLineSegmentsTestParams& params, std::ostream* os)
+{
+    *os << "shape_with_holes " << params.shape_with_holes.to_string(0) << "\n";
+    *os << "segment_length " << shape::to_string(params.segment_length) << "\n";
+    *os << "expected_output " << params.expected_output.to_string(0) << "\n";
+}
 
 class ApproximateByLineSegmentsTest: public testing::TestWithParam<ApproximateByLineSegmentsTestParams> { };
 
 TEST_P(ApproximateByLineSegmentsTest, ApproximateByLineSegments)
 {
     ApproximateByLineSegmentsTestParams test_params = GetParam();
-    std::cout << "shape_with_holes " << test_params.shape_with_holes.to_string(0) << std::endl;
-    std::cout << "segment_length " << shape::to_string(test_params.segment_length) << std::endl;
-    std::cout << "expected_output " << test_params.expected_output.to_string(0) << std::endl;
+    PrintTo(test_params, &std::cout);
 
 #ifdef APPROXIMATION_TEST_ENABLE_DEBUG
     Writer writer;
@@ -255,4 +291,7 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "0.json").string()),
             ApproximateByLineSegmentsTestParams::read_json(
                     (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "1.json").string()),
-            }));
+        }),
+        [](const testing::TestParamInfo<ApproximateByLineSegmentsTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });

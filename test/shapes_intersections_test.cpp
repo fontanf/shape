@@ -19,6 +19,7 @@ namespace fs = boost::filesystem;
 
 struct IntersectShapeTestParams
 {
+    std::string name;
     Shape shape;
     bool expected_output;
 
@@ -48,13 +49,18 @@ struct IntersectShapeTestParams
     }
 };
 
+void PrintTo(const IntersectShapeTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "expected_output " << params.expected_output << "\n";
+}
+
 class IntersectShapeTest: public testing::TestWithParam<IntersectShapeTestParams> { };
 
 TEST_P(IntersectShapeTest, IntersectShape)
 {
     IntersectShapeTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "expected_output " << test_params.expected_output << std::endl;
+    PrintTo(test_params, &std::cout);
     //write_json({{test_params.shape}}, {}, "intersect_input.json");
 
     bool output = intersect(test_params.shape);
@@ -68,24 +74,31 @@ INSTANTIATE_TEST_SUITE_P(
         IntersectShapeTest,
         testing::ValuesIn(std::vector<IntersectShapeTestParams>{
             {
+                "Square",
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
                 false,
             }, {
+                "Bowtie",
                 build_shape({{0, 0}, {2, 2}, {2, 0}, {0, 2}}),
                 true,
             }, {
+                "DoubleSquare",
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}, {0, 0}, {2, 0}, {2, 2}, {0, 2}}),
                 true,
             }, {
+                "UShapeWithSelfIntersection",
                 build_shape({{0, 0}, {4, 0}, {4, 4}, {2, 4}, {2, 3}, {3, 3}, {3, 2}, {1, 2}, {1, 3}, {2, 3}, {2, 4}, {0, 4}}),
                 true,
             }, {
+                "TriangleWithInnerCross1",
                 build_shape({{0, 0}, {6, 0}, {3, 2}, {2, 1}, {4, 1}, {3, 2}}),
                 true,
             }, {
+                "TriangleWithInnerCross2",
                 build_shape({{0, 0}, {6, 0}, {3, 2}, {4, 1}, {2, 1}, {3, 2}}),
                 true,
             }, {
+                "ComplexNonSelfIntersecting",
                 build_shape({
                         {31.49606296, 144.25196848},
                         {0, 144.25196848},
@@ -103,6 +116,7 @@ INSTANTIATE_TEST_SUITE_P(
                         {31.49606295999999, 134.8031497200001}}),
                 false,
             }, {
+                "TouchingSquares",
                 build_shape({
                         {0, 0},
                         {1, 0},
@@ -113,11 +127,16 @@ INSTANTIATE_TEST_SUITE_P(
                         {1, 1},
                         {0, 1}}),
                 true,
-            }}));
+            }
+        }),
+        [](const testing::TestParamInfo<IntersectShapeTest::ParamType>& info) {
+            return info.param.name;
+        });
 
 
 struct IntersectShapeShapeElementTestParams
 {
+    std::string name;
     Shape shape;
     ShapeElement element;
     bool strict = false;
@@ -147,19 +166,26 @@ struct IntersectShapeShapeElementTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        auto test_params = from_json(json);
+        test_params.name = file_path;
+        return test_params;
     }
 };
+
+void PrintTo(const IntersectShapeShapeElementTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "strict " << params.strict << "\n";
+    *os << "expected_output " << params.expected_output << "\n";
+}
 
 class IntersectShapeShapeElementTest: public testing::TestWithParam<IntersectShapeShapeElementTestParams> { };
 
 TEST_P(IntersectShapeShapeElementTest, IntersectShapeShapeElement)
 {
     IntersectShapeShapeElementTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "element " << test_params.element.to_string() << std::endl;
-    std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expected_output " << test_params.expected_output << std::endl;
+    PrintTo(test_params, &std::cout);
 
 #ifdef SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
     Writer().add_shape(test_params.shape).add_element(test_params.element).write_json("intersect_input.json");
@@ -181,26 +207,33 @@ INSTANTIATE_TEST_SUITE_P(
             IntersectShapeShapeElementTestParams::read_json(
                     (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_shape_element" / "0.json").string()),
             {
+                "SquareSegmentOutside",
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
                 build_line_segment({3, 0}, {3, 2}),
                 false,
                 false,
             }, {
+                "RectangleSegmentInside",
                 build_shape({{0, 0}, {2, 0}, {2, 4}, {0, 4}}),
                 build_line_segment({1, 1}, {1, 3}),
                 false,
                 true,
             }, {
+                "PathSegmentInside",
                 build_path({{0, 0}, {2, 0}, {2, 4}, {0, 4}}),
                 build_line_segment({1, 1}, {1, 3}),
                 false,
                 false,
             },
-            }));
+        }),
+        [](const testing::TestParamInfo<IntersectShapeShapeElementTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct ComputeIntersectionsPathShapeTestParams
 {
+    std::string name;
     Shape path;
     Shape shape;
     bool only_min_max;
@@ -237,24 +270,31 @@ struct ComputeIntersectionsPathShapeTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        auto test_params = from_json(json);
+        test_params.name = file_path;
+        return test_params;
     }
 };
+
+void PrintTo(const ComputeIntersectionsPathShapeTestParams& params, std::ostream* os)
+{
+    *os << "path " << params.path.to_string(0) << "\n";
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "only_min_max " << params.only_min_max << "\n";
+    *os << "expected_output\n";
+    for (const PathShapeIntersectionPoint& intersection: params.expected_output) {
+        *os << "path_element_pos " << intersection.path_element_pos
+            << " shape_element_pos " << intersection.shape_element_pos
+            << " point " << intersection.point.to_string() << "\n";
+    }
+}
 
 class ComputeIntersectionsPathShapeTest: public testing::TestWithParam<ComputeIntersectionsPathShapeTestParams> { };
 
 TEST_P(ComputeIntersectionsPathShapeTest, ComputeIntersectionsPathShape)
 {
     ComputeIntersectionsPathShapeTestParams test_params = GetParam();
-    std::cout << "path " << test_params.path.to_string(0) << std::endl;
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "only_min_max " << test_params.only_min_max << std::endl;
-    std::cout << "expected_output" << std::endl;
-    for (const PathShapeIntersectionPoint& intersection: test_params.expected_output) {
-        std::cout << "path_element_pos " << intersection.path_element_pos
-            << " shape_element_pos " << intersection.shape_element_pos
-            << " point " << intersection.point.to_string() << std::endl;
-    }
+    PrintTo(test_params, &std::cout);
 
     std::vector<PathShapeIntersectionPoint> output = compute_intersections(
             test_params.path,
@@ -287,6 +327,7 @@ INSTANTIATE_TEST_SUITE_P(
         ComputeIntersectionsPathShapeTest,
         testing::ValuesIn(std::vector<ComputeIntersectionsPathShapeTestParams>{
             {
+                "ArcLineArcCrossesTriangle",
                 build_path({
                         build_circular_arc({64, 0}, {192, 128}, {192, 0}, ShapeElementOrientation::Clockwise),
                         build_line_segment({192, 128}, {704, 128}),
@@ -304,11 +345,15 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "shapes_intersections" / "compute_intersections_path_shape" / "1.json").string()),
             ComputeIntersectionsPathShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "shapes_intersections" / "compute_intersections_path_shape" / "2.json").string()),
-            }));
+        }),
+        [](const testing::TestParamInfo<ComputeIntersectionsPathShapeTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct ComputeStrictIntersectionsPathShapeTestParams
 {
+    std::string name;
     Shape path;
     Shape shape;
     bool only_first;
@@ -349,20 +394,25 @@ struct ComputeStrictIntersectionsPathShapeTestParams
     }
 };
 
+void PrintTo(const ComputeStrictIntersectionsPathShapeTestParams& params, std::ostream* os)
+{
+    *os << "path " << params.path.to_string(0) << "\n";
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "only_first " << params.only_first << "\n";
+    *os << "expected_output\n";
+    for (const PathShapeIntersectionPoint& intersection: params.expected_output) {
+        *os << "path_element_pos " << intersection.path_element_pos
+            << " shape_element_pos " << intersection.shape_element_pos
+            << " point " << intersection.point.to_string() << "\n";
+    }
+}
+
 class ComputeStrictIntersectionsPathShapeTest: public testing::TestWithParam<ComputeStrictIntersectionsPathShapeTestParams> { };
 
 TEST_P(ComputeStrictIntersectionsPathShapeTest, ComputeStrictIntersectionsPathShape)
 {
     ComputeStrictIntersectionsPathShapeTestParams test_params = GetParam();
-    std::cout << "path " << test_params.path.to_string(0) << std::endl;
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "only_first " << test_params.only_first << std::endl;
-    std::cout << "expected_output" << std::endl;
-    for (const PathShapeIntersectionPoint& intersection: test_params.expected_output) {
-        std::cout << "path_element_pos " << intersection.path_element_pos
-            << " shape_element_pos " << intersection.shape_element_pos
-            << " point " << intersection.point.to_string() << std::endl;
-    }
+    PrintTo(test_params, &std::cout);
 
     std::vector<PathShapeIntersectionPoint> output = compute_strict_intersections(
             test_params.path,
@@ -395,6 +445,7 @@ INSTANTIATE_TEST_SUITE_P(
         ComputeStrictIntersectionsPathShapeTest,
         testing::ValuesIn(std::vector<ComputeStrictIntersectionsPathShapeTestParams>{
             {
+                "ArcLineArcCrossesTriangle",
                 build_path({
                         build_circular_arc({64, 0}, {192, 128}, {192, 0}, ShapeElementOrientation::Clockwise),
                         build_line_segment({192, 128}, {704, 128}),
@@ -403,11 +454,15 @@ INSTANTIATE_TEST_SUITE_P(
                 true,
                 {{1, 0, {408, 128}}},
             },
-            }));
+        }),
+        [](const testing::TestParamInfo<ComputeStrictIntersectionsPathShapeTest::ParamType>& info) {
+            return info.param.name;
+        });
 
 
 struct IntersectShapeShapeTestParams
 {
+    std::string name;
     Shape shape_1;
     Shape shape_2;
     bool strict = false;
@@ -438,19 +493,26 @@ struct IntersectShapeShapeTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        auto test_params = from_json(json);
+        test_params.name = file_path;
+        return test_params;
     }
 };
+
+void PrintTo(const IntersectShapeShapeTestParams& params, std::ostream* os)
+{
+    *os << "shape_1 " << params.shape_1.to_string(0) << "\n";
+    *os << "shape_2 " << params.shape_2.to_string(0) << "\n";
+    *os << "strict " << params.strict << "\n";
+    *os << "expected_output " << params.expected_output << "\n";
+}
 
 class IntersectShapeShapeTest: public testing::TestWithParam<IntersectShapeShapeTestParams> { };
 
 TEST_P(IntersectShapeShapeTest, IntersectShapeShape)
 {
     IntersectShapeShapeTestParams test_params = GetParam();
-    std::cout << "shape_1 " << test_params.shape_1.to_string(0) << std::endl;
-    std::cout << "shape_2 " << test_params.shape_2.to_string(0) << std::endl;
-    std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expected_output " << test_params.expected_output << std::endl;
+    PrintTo(test_params, &std::cout);
 
 #ifdef SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
     Writer()
@@ -473,39 +535,46 @@ INSTANTIATE_TEST_SUITE_P(
         IntersectShapeShapeTest,
         testing::ValuesIn(std::vector<IntersectShapeShapeTestParams>{
             {
+                "SquareOverlapStrict",
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
                 true,
                 true,
             }, {
+                "SquarePathOutside",
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
                 build_path({{3, 0}, {3, 2}}),
                 false,
                 false,
             }, {
+                "RectanglePathInside",
                 build_shape({{0, 0}, {2, 0}, {2, 4}, {0, 4}}),
                 build_path({{1, 1}, {1, 3}}),
                 false,
                 true,
             }, {
+                "PathInsideRectangle",
                 build_path({{1, 1}, {1, 3}}),
                 build_shape({{0, 0}, {2, 0}, {2, 4}, {0, 4}}),
                 false,
                 true,
             }, {
+                "TwoPaths",
                 build_path({{0, 0}, {2, 0}, {2, 4}, {0, 4}}),
                 build_path({{1, 1}, {1, 3}}),
                 false,
                 false,
             }, {
+                "TwoPathsReversed",
                 build_path({{1, 1}, {1, 3}}),
                 build_path({{0, 0}, {2, 0}, {2, 4}, {0, 4}}),
                 false,
                 false,
-            }, {
-                IntersectShapeShapeTestParams::read_json(
-                        (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_shape" / "0.json").string()),
-            }, {
+            },
+            IntersectShapeShapeTestParams::read_json(
+                    (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_shape" / "0.json").string()),
+            {
+                "ArrowShapesMeetAtTip",
                 build_shape({{4, 0}, {0, 0}, {0, 2}, {1, 2}, {2, 3}, {3, 2}, {4, 2}}),
                 build_shape({{0, 2}, {0, 4}, {4, 4}, {4, 2}, {3, 2}, {2, 1}, {1, 2}}),
                 true,
@@ -521,11 +590,15 @@ INSTANTIATE_TEST_SUITE_P(
             //    true,
             //    false,
             },
-            }));
+        }),
+        [](const testing::TestParamInfo<IntersectShapeShapeTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct IntersectShapeWithHolesShapeTestParams
 {
+    std::string name;
     ShapeWithHoles shape_with_holes;
     Shape shape;
     bool strict = false;
@@ -557,19 +630,26 @@ struct IntersectShapeWithHolesShapeTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        auto test_params = from_json(json);
+        test_params.name = file_path;
+        return test_params;
     }
 };
+
+void PrintTo(const IntersectShapeWithHolesShapeTestParams& params, std::ostream* os)
+{
+    *os << "shape_with_holes " << params.shape_with_holes.to_string(0) << "\n";
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "strict " << params.strict << "\n";
+    *os << "expected_output " << params.expected_output << "\n";
+}
 
 class IntersectShapeWithHolesShapeTest: public testing::TestWithParam<IntersectShapeWithHolesShapeTestParams> { };
 
 TEST_P(IntersectShapeWithHolesShapeTest, IntersectShapeWithHolesShape)
 {
     IntersectShapeWithHolesShapeTestParams test_params = GetParam();
-    std::cout << "shape_with_holes " << test_params.shape_with_holes.to_string(0) << std::endl;
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expected_output " << test_params.expected_output << std::endl;
+    PrintTo(test_params, &std::cout);
 
 #ifdef SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
     Writer()
@@ -592,6 +672,7 @@ INSTANTIATE_TEST_SUITE_P(
         IntersectShapeWithHolesShapeTest,
         testing::ValuesIn(std::vector<IntersectShapeWithHolesShapeTestParams>{
             {
+                "ShapeInHole",
                 {
                     build_shape({{500, 500}, {0, 500}, {0, 0}, {500, 0}}),
                     {build_shape({{100, 100}, {400, 100}, {400, 400}, {100, 400}})}
@@ -600,6 +681,7 @@ INSTANTIATE_TEST_SUITE_P(
                 true,
                 false,
             }, {
+                "CircleWithArcInside",
                 {
                     build_circle(10).shift(5, 0),
                 },
@@ -611,6 +693,7 @@ INSTANTIATE_TEST_SUITE_P(
                 true,
                 false,
             }, {
+                "UShapeLineAcrossNotch",
                 {
                     build_shape({{0, 0}, {3, 0}, {3, 1}, {1, 1}, {1, 2}, {3, 2}, {3, 3}, {0, 3}}),
                 },
@@ -618,6 +701,7 @@ INSTANTIATE_TEST_SUITE_P(
                 true,
                 false,
             }, {
+                "CShapeLineAcrossNotch",
                 {
                     build_shape({{2, 0}, {5, 0}, {5, 3}, {2, 3}, {2, 2}, {4, 2}, {4, 1}, {2, 1}}),
                 },
@@ -625,6 +709,7 @@ INSTANTIATE_TEST_SUITE_P(
                 true,
                 false,
             }, {
+                "CircleWithArcOutside",
                 {
                     build_circle(10),
                 },
@@ -636,6 +721,7 @@ INSTANTIATE_TEST_SUITE_P(
                 true,
                 false,
             }, {
+                "ArcShapeTangentToPath",
                 {
                     build_shape({
                             {19.68503937, 17.7480315},
@@ -654,11 +740,15 @@ INSTANTIATE_TEST_SUITE_P(
             },
             IntersectShapeWithHolesShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_with_holes_shape" / "0.json").string()),
-            }));
+        }),
+        [](const testing::TestParamInfo<IntersectShapeWithHolesShapeTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
 
 
 struct IntersectShapeWithHolesShapeWithHolesTestParams
 {
+    std::string name;
     ShapeWithHoles shape_with_holes_1;
     ShapeWithHoles shape_with_holes_2;
     bool strict = false;
@@ -693,15 +783,20 @@ struct IntersectShapeWithHolesShapeWithHolesTestParams
     }
 };
 
+void PrintTo(const IntersectShapeWithHolesShapeWithHolesTestParams& params, std::ostream* os)
+{
+    *os << "shape_with_holes_1 " << params.shape_with_holes_1.to_string(0) << "\n";
+    *os << "shape_with_holes_2 " << params.shape_with_holes_2.to_string(0) << "\n";
+    *os << "strict " << params.strict << "\n";
+    *os << "expected_output " << params.expected_output << "\n";
+}
+
 class IntersectShapeWithHolesShapeWithHolesTest: public testing::TestWithParam<IntersectShapeWithHolesShapeWithHolesTestParams> { };
 
 TEST_P(IntersectShapeWithHolesShapeWithHolesTest, IntersectShapeWithHolesShapeWithHoles)
 {
     IntersectShapeWithHolesShapeWithHolesTestParams test_params = GetParam();
-    std::cout << "shape_with_holes_1 " << test_params.shape_with_holes_1.to_string(0) << std::endl;
-    std::cout << "shape_with_holes_2 " << test_params.shape_with_holes_2.to_string(0) << std::endl;
-    std::cout << "strict " << test_params.strict << std::endl;
-    std::cout << "expected_output " << test_params.expected_output << std::endl;
+    PrintTo(test_params, &std::cout);
 
     bool output = intersect(
             test_params.shape_with_holes_1,
@@ -717,6 +812,7 @@ INSTANTIATE_TEST_SUITE_P(
         IntersectShapeWithHolesShapeWithHolesTest,
         testing::ValuesIn(std::vector<IntersectShapeWithHolesShapeWithHolesTestParams>{
             {
+                "ShapeInHole",
                 {build_shape({{100, 200}, {200, 200}, {200, 400}, {100, 400}})},
                 {
                     build_shape({{500, 500}, {0, 500}, {0, 0}, {500, 0}}),
@@ -724,4 +820,8 @@ INSTANTIATE_TEST_SUITE_P(
                 },
                 true,
                 false,
-            }}));
+            }
+        }),
+        [](const testing::TestParamInfo<IntersectShapeWithHolesShapeWithHolesTest::ParamType>& info) {
+            return info.param.name;
+        });

@@ -51,15 +51,20 @@ struct ComputeIntersectionsTestParams
     }
 };
 
+void PrintTo(const ComputeIntersectionsTestParams& params, std::ostream* os)
+{
+    *os << "element_1 " << params.element_1.to_string() << "\n";
+    *os << "element_2 " << params.element_2.to_string() << "\n";
+    *os << "expected_output\n";
+    *os << "  " << params.expected_output.to_string(2) << "\n";
+}
+
 class ComputeIntersectionsTest: public testing::TestWithParam<ComputeIntersectionsTestParams> { };
 
 TEST_P(ComputeIntersectionsTest, ComputeIntersections)
 {
     ComputeIntersectionsTestParams test_params = GetParam();
-    std::cout << "element_1 " << test_params.element_1.to_string() << std::endl;
-    std::cout << "element_2 " << test_params.element_2.to_string() << std::endl;
-    std::cout << "expected_output" << std::endl;
-    std::cout << "  " << test_params.expected_output.to_string(2) << std::endl;
+    PrintTo(test_params, &std::cout);
 
 #ifdef ELEMENTS_INTERSECTIONS_TEST_ENABLE_DEBUG
     Writer().add_element(test_params.element_1).add_element(test_params.element_2).write_json("elements_intersections_input.json");
@@ -390,4 +395,8 @@ INSTANTIATE_TEST_SUITE_P(
                 build_circular_arc({51.87571790450103, 829.62616084793081}, {51.898968087141867, 829.66319973722932}, {51.7325166990734, 829.74186840337882}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({51.87704326994384, 829.62782063296618}, {51.859870441010187, 829.60894475579755}, {51.734086740113739, 829.74062946385982}, ShapeElementOrientation::Clockwise),
                 {{}, {{51.87704326994384, 829.62782063296618}, {51.87571790450103, 829.62616084793081}}, {}},
-            }}));
+            }
+        }),
+        [](const testing::TestParamInfo<ComputeIntersectionsTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });

@@ -16,7 +16,14 @@ struct NoFitPolygonConvexTestParams
     Shape fixed_shape;
     Shape orbiting_shape;
     Shape expected_nfp;
+    std::string name;
 };
+
+void PrintTo(const NoFitPolygonConvexTestParams& params, std::ostream* os)
+{
+    *os << "fixed_shape " << params.fixed_shape.to_string(0) << "\n";
+    *os << "orbiting_shape " << params.orbiting_shape.to_string(0) << "\n";
+}
 
 class NoFitPolygonConvexTest:
     public testing::TestWithParam<NoFitPolygonConvexTestParams> { };
@@ -24,8 +31,7 @@ class NoFitPolygonConvexTest:
 TEST_P(NoFitPolygonConvexTest, NoFitPolygonConvex)
 {
     NoFitPolygonConvexTestParams test_params = GetParam();
-    std::cout << "fixed_shape " << test_params.fixed_shape.to_string(0) << std::endl;
-    std::cout << "orbiting_shape " << test_params.orbiting_shape.to_string(0) << std::endl;
+    PrintTo(test_params, &std::cout);
 
     Shape nfp = no_fit_polygon(test_params.fixed_shape, test_params.orbiting_shape);
 
@@ -68,24 +74,32 @@ INSTANTIATE_TEST_SUITE_P(
                 build_rectangle(0, 4, 0, 4),
                 build_rectangle(0, 2, 0, 2),
                 build_rectangle(-2, 4, -2, 4),
+                "SquareAndSmallerSquare",
             }, {  // Rectangle with itself.
                 build_shape({{0, 0}, {3, 0}, {3, 2}, {0, 2}}),
                 build_shape({{0, 0}, {3, 0}, {3, 2}, {0, 2}}),
                 build_rectangle(-3, 3, -2, 2),
+                "RectangleWithItself",
             }, {  // Square and triangle.
                 build_rectangle(0, 4, 0, 4),
                 build_shape({{0, 0}, {2, 0}, {1, 2}}),
                 build_shape({{-1, -2}, {3, -2}, {4, 0}, {4, 4}, {-2, 4}, {-2, 0}}),
+                "SquareAndTriangle",
             }, {  // Triangle and triangle.
                 build_shape({{0, 0}, {4, 0}, {2, 4}}),
                 build_shape({{0, 0}, {2, 0}, {1, 2}}),
                 build_shape({{-1, -2}, {3, -2}, {4, 0}, {2, 4}, {0, 4}, {-2, 0}}),
+                "TriangleAndTriangle",
             }, {  // Convex pentagon and unit square.
                 build_shape({{0, 0}, {4, 0}, {5, 2}, {3, 4}, {1, 4}}),
                 build_rectangle(0, 1, 0, 1),
                 build_shape({{-1, -1}, {4, -1}, {5, 1}, {5, 2}, {3, 4}, {0, 4}, {-1, 0}}),
+                "ConvexPentagonAndUnitSquare",
             },
-        }));
+        }),
+        [](const testing::TestParamInfo<NoFitPolygonConvexTest::ParamType>& info) {
+            return info.param.name;
+        });
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -97,7 +111,14 @@ struct NoFitPolygonGeneralTestParams
     ShapeWithHoles fixed_shape;
     ShapeWithHoles orbiting_shape;
     ShapePos expected_num_components;
+    std::string name;
 };
+
+void PrintTo(const NoFitPolygonGeneralTestParams& params, std::ostream* os)
+{
+    *os << "fixed_shape " << params.fixed_shape.to_string(0) << "\n";
+    *os << "orbiting_shape " << params.orbiting_shape.to_string(0) << "\n";
+}
 
 class NoFitPolygonGeneralTest:
     public testing::TestWithParam<NoFitPolygonGeneralTestParams> { };
@@ -105,8 +126,7 @@ class NoFitPolygonGeneralTest:
 TEST_P(NoFitPolygonGeneralTest, NoFitPolygonGeneral)
 {
     NoFitPolygonGeneralTestParams test_params = GetParam();
-    std::cout << "fixed_shape " << test_params.fixed_shape.to_string(0) << std::endl;
-    std::cout << "orbiting_shape " << test_params.orbiting_shape.to_string(0) << std::endl;
+    PrintTo(test_params, &std::cout);
 
     std::vector<ShapeWithHoles> nfp = no_fit_polygon(
             test_params.fixed_shape,
@@ -175,17 +195,24 @@ INSTANTIATE_TEST_SUITE_P(
                 {build_rectangle(0, 4, 0, 4), {}},
                 {build_rectangle(0, 2, 0, 2), {}},
                 1,
+                "ConvexSquares",
             }, {  // L-shape fixed, unit square orbiting: one connected NFP.
                 {build_shape({{0, 0}, {4, 0}, {4, 2}, {2, 2}, {2, 4}, {0, 4}}), {}},
                 {build_rectangle(0, 1, 0, 1), {}},
                 1,
+                "LShapeAndUnitSquare",
             }, {  // Two L-shapes.
                 {build_shape({{0, 0}, {4, 0}, {4, 2}, {2, 2}, {2, 4}, {0, 4}}), {}},
                 {build_shape({{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 2}, {0, 2}}), {}},
                 1,
+                "TwoLShapes",
             }, {  // T-shape fixed, unit square orbiting.
                 {build_shape({{0, 2}, {1, 2}, {1, 0}, {2, 0}, {2, 2}, {3, 2}, {3, 3}, {0, 3}}), {}},
                 {build_rectangle(0, 1, 0, 1), {}},
                 1,
+                "TShapeAndUnitSquare",
             },
-        }));
+        }),
+        [](const testing::TestParamInfo<NoFitPolygonGeneralTest::ParamType>& info) {
+            return info.param.name;
+        });

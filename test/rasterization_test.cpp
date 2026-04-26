@@ -21,6 +21,7 @@ namespace fs = boost::filesystem;
 
 struct RasterizationTestParams
 {
+    std::string name;
     ShapeWithHoles shape;
     LengthDbl cell_width;
     LengthDbl cell_height;
@@ -49,9 +50,18 @@ struct RasterizationTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        auto test_params = from_json(json);
+        test_params.name = file_path;
+        return test_params;
     }
 };
+
+void PrintTo(const RasterizationTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "cell_width " << params.cell_width
+        << " cell_height " << params.cell_height << "\n";
+}
 
 bool operator==(const Cell& a, const Cell& b)
 {
@@ -63,9 +73,7 @@ class RasterizationTest: public testing::TestWithParam<RasterizationTestParams> 
 TEST_P(RasterizationTest, Rasterization)
 {
     RasterizationTestParams test_params = GetParam();
-    std::cout << "shape " << test_params.shape.to_string(0) << std::endl;
-    std::cout << "cell_width " << test_params.cell_width
-        << " cell_height " << test_params.cell_height << std::endl;
+    PrintTo(test_params, &std::cout);
 
 #ifdef RASTERIZATION_TEST_DEBUG
     Writer writer;
@@ -144,47 +152,57 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(std::vector<RasterizationTestParams>{
             // Shape contained within a single cell.
             {  // Tiny triangle inside cell (0,0).
+                "TinyTriangle",
                 {{build_shape({{0.1, 0.1}, {0.9, 0.1}, {0.5, 0.8}})}, {}},
                 1.0, 1.0,
             },
             {  // Small rectangle inside cell (2,3).
+                "SmallRectangle",
                 {{build_shape({{2.2, 3.2}, {2.8, 3.2}, {2.8, 3.8}, {2.2, 3.8}})}, {}},
                 1.0, 1.0,
             },
             // Single-column cases (col_min == col_max).
             {  // Tall thin strip spanning 3 rows.
+                "TallThinStrip3Rows",
                 {{build_shape({{0.4, 0.1}, {0.6, 0.1}, {0.6, 2.9}, {0.4, 2.9}})}, {}},
                 1.0, 1.0,
             },
             {  // Thin strip in column 1, spanning 4 rows.
+                "ThinStrip4Rows",
                 {{build_shape({{1.3, 0.5}, {1.7, 0.5}, {1.7, 3.5}, {1.3, 3.5}})}, {}},
                 1.0, 1.0,
             },
             // Multi-column rectangles.
             {  // 2x1 rectangle.
+                "Rectangle2x1",
                 {{build_shape({{0.2, 0.2}, {1.8, 0.2}, {1.8, 0.8}, {0.2, 0.8}})}, {}},
                 1.0, 1.0,
             },
             {  // 3x3 rectangle with a fully interior cell.
+                "Rectangle3x3",
                 {{build_shape({{0.1, 0.1}, {2.9, 0.1}, {2.9, 2.9}, {0.1, 2.9}})}, {}},
                 1.0, 1.0,
             },
             {  // 5x5 rectangle with many fully interior cells.
+                "Rectangle5x5",
                 {{build_shape({{0.1, 0.1}, {4.9, 0.1}, {4.9, 4.9}, {0.1, 4.9}})}, {}},
                 1.0, 1.0,
             },
             // Non-rectangular shapes.
             {  // Right triangle fitting in a 2x2 grid.
+                "RightTriangle",
                 {{build_shape({{0.1, 0.1}, {1.9, 0.1}, {0.1, 1.9}})}, {}},
                 1.0, 1.0,
             },
             {  // L-shape: 2 cells wide at bottom, 1 cell wide at top.
+                "LShape",
                 {{build_shape({{0.1, 0.1}, {1.9, 0.1}, {1.9, 0.9},
                                {0.9, 0.9}, {0.9, 1.9}, {0.1, 1.9}})}, {}},
                 1.0, 1.0,
             },
             // Shape with a hole.
             {  // Square ring: 5x5 outer with 3x3 inner hole.
+                "SquareRing",
                 {
                     build_shape({{0.1, 0.1}, {4.9, 0.1}, {4.9, 4.9}, {0.1, 4.9}}),
                     {build_shape({{1.1, 1.1}, {3.9, 1.1}, {3.9, 3.9}, {1.1, 3.9}})},
@@ -193,19 +211,25 @@ INSTANTIATE_TEST_SUITE_P(
             },
             // Large cell: entire shape fits within a single cell.
             {  // Rectangle much smaller than the cell.
+                "LargeCell",
                 {{build_shape({{1.0, 1.0}, {4.0, 1.0}, {4.0, 4.0}, {1.0, 4.0}})}, {}},
                 10.0, 10.0,
             },
             // Non-unit cell dimensions.
             {  // Rectangle with 2x3 cells.
+                "Rectangle2x3Cells",
                 {{build_shape({{0.5, 0.5}, {5.5, 0.5}, {5.5, 5.5}, {0.5, 5.5}})}, {}},
                 2.0, 3.0,
             },
             {  // Rectangle with 2x3 cells.
+                "RotatedRectangle",
                 {shape::build_rectangle(100, 50).rotate(30)},
                 10,
                 10,
             },
             RasterizationTestParams::read_json(
                     (fs::path("data") / "tests" / "rasterization" / "0.json").string()),
-        }));
+        }),
+        [](const testing::TestParamInfo<RasterizationTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
