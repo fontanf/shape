@@ -619,7 +619,7 @@ std::vector<Shape> shape::deflate(
         element_prev_pos = element_pos;
     }
 
-    auto difference_output = compute_difference({shape}, difference_input);
+    auto difference_output = compute_difference(std::vector<ShapeWithHoles>{{shape}}, difference_input);
     std::vector<Shape> output;
     for (const ShapeWithHoles& shape: difference_output)
         output.push_back(shape.shape);

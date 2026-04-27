@@ -26,11 +26,11 @@ void compute_intersection_export_inputs(
         const std::vector<ShapeWithHoles>& shapes);
 
 /**
- * Compute the difference between a given shape and a given set of shapes.
+ * Compute the difference between two multi-shapes.
  */
 std::vector<ShapeWithHoles> compute_difference(
-        const ShapeWithHoles& shape,
-        const std::vector<ShapeWithHoles>& shapes);
+        const std::vector<ShapeWithHoles>& shapes_1,
+        const std::vector<ShapeWithHoles>& shapes_2);
 
 /**
  * Compute the difference between a given shape and a given set of shapes.
