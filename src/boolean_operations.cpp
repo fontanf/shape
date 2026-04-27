@@ -924,7 +924,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         const std::vector<ShapeWithHoles>& shapes,
         ComputeSplittedElementsOutput& cse_output,
         ComponentId component_id,
-        BooleanOperation boolean_operation)
+        BooleanOperation boolean_operation,
+        ShapePos num_shapes_1 = 1)
 {
     //std::cout << "compute_boolean_operation_component" << std::endl;
     //for (const SplittedElement& splitted_element: splitted_elements)
@@ -1173,12 +1174,21 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
             break;
         } case BooleanOperation::Difference: {
-            // Fast check.
+            // Fast check: disqualify if inside any shape from shapes_2.
             bool ok = true;
             for (ShapePos shape_pos = 0;
                     shape_pos < (ShapePos)component_shapes.size();
                     ++shape_pos) {
-                if (shape_pos == cse_output.shape_component_ids.position(0))
+                bool is_in_shapes_1 = false;
+                for (ShapePos shape_1_pos = 0;
+                        shape_1_pos < num_shapes_1;
+                        ++shape_1_pos) {
+                    if (shape_pos == cse_output.shape_component_ids.position(shape_1_pos)) {
+                        is_in_shapes_1 = true;
+                        break;
+                    }
+                }
+                if (is_in_shapes_1)
                     continue;
                 if (is_inside[shape_pos]) {
                     ok = false;
@@ -1191,13 +1201,26 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
             //std::cout << face.find_point_strictly_inside().to_string() << std::endl;
 
-            // Real check.
+            // Real check: keep if inside at least one shape from shapes_1
+            // and not inside any shape from shapes_2.
             IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
                     face.find_point_strictly_inside(),
                     false);
             //std::cout << "intersection_output.shape_ids.size() " << intersection_output.shape_ids.size() << std::endl;
-            if (intersection_output.shape_ids.size() == 1
-                    && intersection_output.shape_ids[0] == cse_output.shape_component_ids.position(0)) {
+            bool inside_shapes_1 = false;
+            bool inside_shapes_2 = false;
+            for (ShapePos shape_pos: intersection_output.shape_ids) {
+                bool is_shapes_1_pos = false;
+                for (ShapePos i = 0; i < num_shapes_1; ++i) {
+                    if (shape_pos == cse_output.shape_component_ids.position(i)) {
+                        is_shapes_1_pos = true;
+                        break;
+                    }
+                }
+                if (is_shapes_1_pos) inside_shapes_1 = true;
+                else inside_shapes_2 = true;
+            }
+            if (inside_shapes_1 && !inside_shapes_2) {
                 //std::cout << "add face" << std::endl;
                 face = remove_redundant_vertices(face).second;
                 face = remove_aligned_vertices(face).second;
@@ -1242,7 +1265,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
 std::vector<ShapeWithHoles> compute_boolean_operation(
         const std::vector<ShapeWithHoles>& shapes,
-        BooleanOperation boolean_operation)
+        BooleanOperation boolean_operation,
+        ShapePos num_shapes_1 = 1)
 {
     //std::cout << "compute_boolean_operation " << (int)boolean_operation << " shapes.size() " << shapes.size() << std::endl;
     //if (boolean_operation == BooleanOperation::Difference)
@@ -1294,7 +1318,16 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
         if (cse_output.shape_component_ids.number_of_elements(component_id) == 0)
             continue;
         if (boolean_operation == BooleanOperation::Difference) {
-            if (cse_output.shape_component_ids[0] != component_id)
+            bool contains_shapes_1 = false;
+            for (ShapePos shape_1_pos = 0;
+                    shape_1_pos < num_shapes_1;
+                    ++shape_1_pos) {
+                if (cse_output.shape_component_ids[shape_1_pos] == component_id) {
+                    contains_shapes_1 = true;
+                    break;
+                }
+            }
+            if (!contains_shapes_1)
                 continue;
         }
         // Compute the union of the shapes from this component.
@@ -1305,7 +1338,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
                 shapes,
                 cse_output,
                 component_id,
-                boolean_operation);
+                boolean_operation,
+                num_shapes_1);
         for (const ShapeWithHoles& new_shape: new_shapes)
             output.push_back(new_shape);
     }
@@ -1370,17 +1404,13 @@ std::vector<ShapeWithHoles> shape::compute_difference(
         const std::vector<ShapeWithHoles>& shapes_1,
         const std::vector<ShapeWithHoles>& shapes_2)
 {
-    std::vector<ShapeWithHoles> result;
-    for (const ShapeWithHoles& shape: compute_union(shapes_1)) {
-        std::vector<ShapeWithHoles> v = {shape};
-        v.insert(v.end(), shapes_2.begin(), shapes_2.end());
-        std::vector<ShapeWithHoles> faces = compute_boolean_operation(
-                v,
-                BooleanOperation::Difference);
-        std::vector<ShapeWithHoles> diff = compute_union(faces);
-        result.insert(result.end(), diff.begin(), diff.end());
-    }
-    return result;
+    std::vector<ShapeWithHoles> v = shapes_1;
+    v.insert(v.end(), shapes_2.begin(), shapes_2.end());
+    std::vector<ShapeWithHoles> faces = compute_boolean_operation(
+            v,
+            BooleanOperation::Difference,
+            shapes_1.size());
+    return compute_union(faces);
 }
 
 std::vector<ShapeWithHoles> shape::compute_symmetric_difference(
