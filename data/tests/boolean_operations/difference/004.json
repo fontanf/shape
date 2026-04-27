@@ -1,10 +1,12 @@
 {
+  "shapes_1": [
+    {
+      "type": "rectangle",
+      "width": 10,
+      "height": 4
+    }
+  ],
   "description": "Two subtractors strictly inside base (non-intersecting components): two 2x2 squares inside a 10x4 rectangle.",
-  "shape": {
-    "type": "rectangle",
-    "width": 10,
-    "height": 4
-  },
   "shapes": [
     {
       "type": "rectangle",
@@ -25,28 +27,64 @@
     {
       "type": "polygon",
       "vertices": [
-        {"x": 0, "y": 0},
-        {"x": 10, "y": 0},
-        {"x": 10, "y": 4},
-        {"x": 0, "y": 4}
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 10,
+          "y": 0
+        },
+        {
+          "x": 10,
+          "y": 4
+        },
+        {
+          "x": 0,
+          "y": 4
+        }
       ],
       "holes": [
         {
           "type": "polygon",
           "vertices": [
-            {"x": 1, "y": 1},
-            {"x": 3, "y": 1},
-            {"x": 3, "y": 3},
-            {"x": 1, "y": 3}
+            {
+              "x": 1,
+              "y": 1
+            },
+            {
+              "x": 3,
+              "y": 1
+            },
+            {
+              "x": 3,
+              "y": 3
+            },
+            {
+              "x": 1,
+              "y": 3
+            }
           ]
         },
         {
           "type": "polygon",
           "vertices": [
-            {"x": 7, "y": 1},
-            {"x": 9, "y": 1},
-            {"x": 9, "y": 3},
-            {"x": 7, "y": 3}
+            {
+              "x": 7,
+              "y": 1
+            },
+            {
+              "x": 9,
+              "y": 1
+            },
+            {
+              "x": 9,
+              "y": 3
+            },
+            {
+              "x": 7,
+              "y": 3
+            }
           ]
         }
       ]

@@ -1367,17 +1367,20 @@ void shape::compute_intersection_export_inputs(
 }
 
 std::vector<ShapeWithHoles> shape::compute_difference(
-        const ShapeWithHoles& shape,
-        const std::vector<ShapeWithHoles>& shapes)
+        const std::vector<ShapeWithHoles>& shapes_1,
+        const std::vector<ShapeWithHoles>& shapes_2)
 {
-    std::vector<ShapeWithHoles> v;
-    v.push_back(shape);
-    for (const ShapeWithHoles& shape: shapes)
-        v.push_back(shape);
-    std::vector<ShapeWithHoles> faces = compute_boolean_operation(
-            v,
-            BooleanOperation::Difference);
-    return compute_union(faces);
+    std::vector<ShapeWithHoles> result;
+    for (const ShapeWithHoles& shape: compute_union(shapes_1)) {
+        std::vector<ShapeWithHoles> v = {shape};
+        v.insert(v.end(), shapes_2.begin(), shapes_2.end());
+        std::vector<ShapeWithHoles> faces = compute_boolean_operation(
+                v,
+                BooleanOperation::Difference);
+        std::vector<ShapeWithHoles> diff = compute_union(faces);
+        result.insert(result.end(), diff.begin(), diff.end());
+    }
+    return result;
 }
 
 std::vector<ShapeWithHoles> shape::compute_symmetric_difference(
