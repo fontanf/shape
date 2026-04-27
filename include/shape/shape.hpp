@@ -53,6 +53,24 @@ LengthDbl smallest_power_of_two_greater_or_equal(LengthDbl value);
 
 std::string to_string(double value);
 
+Angle normalize_angle(Angle angle);
+
+Angle normalize_angle_radian(Angle angle);
+
+inline Angle angular_distance(
+        Angle angle_1,
+        Angle angle_2)
+{
+    return std::abs(std::remainder(angle_2 - angle_1, 360));
+}
+
+inline Angle angular_distance_randian(
+        Angle angle_1,
+        Angle angle_2)
+{
+    return std::abs(std::remainder(angle_2 - angle_1, 2.0 * M_PI));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Point /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

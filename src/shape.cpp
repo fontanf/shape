@@ -36,6 +36,18 @@ LengthDbl shape::smallest_power_of_two_greater_or_equal(LengthDbl value)
     return res;
 }
 
+Angle shape::normalize_angle(Angle angle)
+{
+    angle = std::remainder(angle, 360);
+    return (!strictly_lesser(angle, 0))? angle: angle + 360;
+}
+
+Angle shape::normalize_angle_radian(Angle angle)
+{
+    angle = std::remainder(angle, 2.0 * M_PI);
+    return (!strictly_lesser(angle, 0))? angle: angle + 2 * M_PI;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// Point /////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
