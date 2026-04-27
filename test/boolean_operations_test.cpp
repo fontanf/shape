@@ -412,8 +412,8 @@ INSTANTIATE_TEST_SUITE_P(
 
 struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSymmetricDifferenceTestParams>
 {
-    ShapeWithHoles shape_1;
-    ShapeWithHoles shape_2;
+    std::vector<ShapeWithHoles> shapes_1;
+    std::vector<ShapeWithHoles> shapes_2;
     std::vector<ShapeWithHoles> expected_output;
 
 
@@ -421,8 +421,10 @@ struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSy
         nlohmann::basic_json<>& json_item)
     {
         ComputeBooleanSymmetricDifferenceTestParams test_params = TestParams::from_json(json_item);
-        test_params.shape_1 = ShapeWithHoles::from_json(json_item["shape_1"]);
-        test_params.shape_2 = ShapeWithHoles::from_json(json_item["shape_2"]);
+        for (auto& json_shape: json_item["shapes_1"].items())
+            test_params.shapes_1.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+        for (auto& json_shape: json_item["shapes_2"].items())
+            test_params.shapes_2.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         for (auto& json_shape: json_item["expected_output"].items())
             test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
@@ -432,10 +434,12 @@ struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSy
 void PrintTo(const ComputeBooleanSymmetricDifferenceTestParams& params, std::ostream* os)
 {
     *os << "Testing " << params.name << " (" << params.description << ")...\n";
-    *os << "shape_1\n";
-    *os << "- " << params.shape_1.to_string(2) << "\n";
-    *os << "shape_2\n";
-    *os << "- " << params.shape_2.to_string(2) << "\n";
+    *os << "shapes_1\n";
+    for (const ShapeWithHoles& shape: params.shapes_1)
+        *os << "- " << shape.to_string(2) << "\n";
+    *os << "shapes_2\n";
+    for (const ShapeWithHoles& shape: params.shapes_2)
+        *os << "- " << shape.to_string(2) << "\n";
     *os << "expected_output\n";
     for (const ShapeWithHoles& shape: params.expected_output)
         *os << "- " << shape.to_string(2) << "\n";
@@ -449,8 +453,8 @@ TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
     PrintTo(test_params, &std::cout);
 
     auto output = compute_symmetric_difference(
-            test_params.shape_1,
-            test_params.shape_2);
+            test_params.shapes_1,
+            test_params.shapes_2);
     std::cout << "output" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
@@ -459,12 +463,12 @@ TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
         std::string base_filename = "symmetric_difference_" + fs::path(test_params.name).filename().replace_extension("").string();
 
         if (test_params.write_json) {
-            Writer().add_shape_with_holes(test_params.shape_1).add_shape_with_holes(test_params.shape_2).write_json(base_filename + "_shapes.json");
+            Writer().add_shapes_with_holes(test_params.shapes_1).add_shapes_with_holes(test_params.shapes_2).write_json(base_filename + "_shapes.json");
             Writer().add_shapes_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
             Writer().add_shapes_with_holes(output).write_json(base_filename + "_output.json");
         }
         if (test_params.write_svg) {
-            Writer().add_shape_with_holes(test_params.shape_1).add_shape_with_holes(test_params.shape_2).write_svg(base_filename + "_shapes.svg");
+            Writer().add_shapes_with_holes(test_params.shapes_1).add_shapes_with_holes(test_params.shapes_2).write_svg(base_filename + "_shapes.svg");
             Writer().add_shapes_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
             Writer().add_shapes_with_holes(output).write_svg(base_filename + "_output.svg");
         }
