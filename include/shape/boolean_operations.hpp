@@ -33,11 +33,11 @@ std::vector<ShapeWithHoles> compute_difference(
         const std::vector<ShapeWithHoles>& shapes_2);
 
 /**
- * Compute the difference between a given shape and a given set of shapes.
+ * Compute the symmetric difference between two multi-shapes.
  */
 std::vector<ShapeWithHoles> compute_symmetric_difference(
-        const ShapeWithHoles& shape_1,
-        const ShapeWithHoles& shape_2);
+        const std::vector<ShapeWithHoles>& shapes_1,
+        const std::vector<ShapeWithHoles>& shapes_2);
 
 Shape extract_outline(
         const Shape& shape);
