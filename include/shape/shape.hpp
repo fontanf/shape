@@ -64,7 +64,7 @@ inline Angle angular_distance(
     return std::abs(std::remainder(angle_2 - angle_1, 360));
 }
 
-inline Angle angular_distance_randian(
+inline Angle angular_distance_radian(
         Angle angle_1,
         Angle angle_2)
 {
