@@ -6,7 +6,10 @@
 
 #include <gtest/gtest.h>
 
-#include "test_params.hpp"
+#include <boost/filesystem.hpp>
+#include <fstream>
+
+namespace fs = boost::filesystem;
 
 using namespace shape;
 
@@ -140,8 +143,9 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
-struct ComputeBooleanUnionTestParams: TestParams<ComputeBooleanUnionTestParams>
+struct ComputeBooleanUnionTestParams
 {
+    std::string name;
     std::vector<ShapeWithHoles> shapes;
     std::vector<ShapeWithHoles> expected_output;
 
@@ -160,12 +164,6 @@ struct ComputeBooleanUnionTestParams: TestParams<ComputeBooleanUnionTestParams>
         file >> json;
         ComputeBooleanUnionTestParams test_params;
         test_params.name = file_path;
-        if (json.contains("description"))
-            test_params.description = json["description"];
-        if (json.contains("write_json"))
-            test_params.write_json = json["write_json"];
-        if (json.contains("write_svg"))
-            test_params.write_svg = json["write_svg"];
         for (auto& json_shape: json["shapes"].items())
             test_params.shapes.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         if (json.contains("expected_output"))
@@ -177,7 +175,7 @@ struct ComputeBooleanUnionTestParams: TestParams<ComputeBooleanUnionTestParams>
 
 void PrintTo(const ComputeBooleanUnionTestParams& params, std::ostream* os)
 {
-    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "Testing " << params.name << "...\n";
     *os << "shapes\n";
     for (const ShapeWithHoles& shape: params.shapes)
         *os << "- " << shape.to_string(2) << "\n";
@@ -216,22 +214,6 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
     Writer().add_shapes_with_holes(output).write_json("compute_union_output.json");
 #endif
 
-    if (test_params.write_json || test_params.write_svg) {
-        std::string base_filename = "union_" + fs::path(test_params.name).filename().replace_extension("").string();
-
-        if (test_params.write_json) {
-            Writer().add_shapes_with_holes(test_params.shapes).write_json(base_filename + "_shapes.json");
-            Writer().add_shapes_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
-            Writer().add_shapes_with_holes(output).write_json(base_filename + "_output.json");
-        }
-        if (test_params.write_svg) {
-            Writer().add_shapes_with_holes(test_params.shapes).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shapes_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
-            Writer().add_shapes_with_holes(output).write_svg(base_filename + "_output.svg");
-        }
-
-    }
-
     ASSERT_EQ(output.size(), test_params.expected_output.size());
     for (const ShapeWithHoles& expected_shape: test_params.expected_output) {
         EXPECT_NE(std::find_if(
@@ -245,14 +227,68 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         ComputeBooleanUnionTest,
-        testing::ValuesIn(ComputeBooleanUnionTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "union").string())),
+        testing::ValuesIn(std::vector<ComputeBooleanUnionTestParams>{
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "000.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "001.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "002.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "003.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "004.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "005.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "006.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "007.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "008.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "009.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "010.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "011.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "012.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "013.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "014.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "015.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "016.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "017.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "018.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "019.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "020.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "021.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "022.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "023.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "024.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "025.json").string()),
+        }),
         [](const testing::TestParamInfo<ComputeBooleanUnionTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
         });
 
 
-struct ComputeBooleanIntersectionTestParams: TestParams<ComputeBooleanIntersectionTestParams>
+struct ComputeBooleanIntersectionTestParams
 {
+    std::string name;
     std::vector<ShapeWithHoles> shapes;
     std::vector<ShapeWithHoles> expected_output;
 
@@ -271,12 +307,6 @@ struct ComputeBooleanIntersectionTestParams: TestParams<ComputeBooleanIntersecti
         file >> json;
         ComputeBooleanIntersectionTestParams test_params;
         test_params.name = file_path;
-        if (json.contains("description"))
-            test_params.description = json["description"];
-        if (json.contains("write_json"))
-            test_params.write_json = json["write_json"];
-        if (json.contains("write_svg"))
-            test_params.write_svg = json["write_svg"];
         for (auto& json_shape: json["shapes"].items())
             test_params.shapes.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         for (auto& json_shape: json["expected_output"].items())
@@ -287,7 +317,7 @@ struct ComputeBooleanIntersectionTestParams: TestParams<ComputeBooleanIntersecti
 
 void PrintTo(const ComputeBooleanIntersectionTestParams& params, std::ostream* os)
 {
-    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "Testing " << params.name << "...\n";
     *os << "shapes\n";
     for (const ShapeWithHoles& shape: params.shapes)
         *os << "- " << shape.to_string(2) << "\n";
@@ -318,22 +348,6 @@ TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
     Writer().add_shapes_with_holes(output).write_json("compute_intersection_output.json");
 #endif
 
-    if (test_params.write_json || test_params.write_svg) {
-        std::string base_filename = "intersection_" + fs::path(test_params.name).filename().replace_extension("").string();
-
-        if (test_params.write_json) {
-            Writer().add_shapes_with_holes(test_params.shapes).write_json(base_filename + "_shapes.json");
-            Writer().add_shapes_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
-            Writer().add_shapes_with_holes(output).write_json(base_filename + "_output.json");
-        }
-        if (test_params.write_svg) {
-            Writer().add_shapes_with_holes(test_params.shapes).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shapes_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
-            Writer().add_shapes_with_holes(output).write_svg(base_filename + "_output.svg");
-        }
-
-    }
-
     ASSERT_EQ(output.size(), test_params.expected_output.size());
     for (const ShapeWithHoles& expected_shape: test_params.expected_output) {
         EXPECT_NE(std::find_if(
@@ -347,14 +361,46 @@ TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         ComputeBooleanIntersectionTest,
-        testing::ValuesIn(ComputeBooleanIntersectionTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "intersection").string())),
+        testing::ValuesIn(std::vector<ComputeBooleanIntersectionTestParams>{
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "000.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "001.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "002.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "003.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "004.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "005.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "006.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "007.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "008.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "009.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "010.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "011.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "012.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "013.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "014.json").string()),
+        }),
         [](const testing::TestParamInfo<ComputeBooleanIntersectionTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
         });
 
 
-struct ComputeBooleanDifferenceTestParams : TestParams<ComputeBooleanDifferenceTestParams>
+struct ComputeBooleanDifferenceTestParams
 {
+    std::string name;
     std::vector<ShapeWithHoles> shapes_1;
     std::vector<ShapeWithHoles> shapes;
     std::vector<ShapeWithHoles> expected_output;
@@ -374,12 +420,6 @@ struct ComputeBooleanDifferenceTestParams : TestParams<ComputeBooleanDifferenceT
         file >> json;
         ComputeBooleanDifferenceTestParams test_params;
         test_params.name = file_path;
-        if (json.contains("description"))
-            test_params.description = json["description"];
-        if (json.contains("write_json"))
-            test_params.write_json = json["write_json"];
-        if (json.contains("write_svg"))
-            test_params.write_svg = json["write_svg"];
         for (auto& json_shape: json["shapes_1"].items())
             test_params.shapes_1.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         for (auto& json_shape: json["shapes"].items())
@@ -392,7 +432,7 @@ struct ComputeBooleanDifferenceTestParams : TestParams<ComputeBooleanDifferenceT
 
 void PrintTo(const ComputeBooleanDifferenceTestParams& params, std::ostream* os)
 {
-    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "Testing " << params.name << "...\n";
     *os << "shapes_1\n";
     for (const ShapeWithHoles& shape: params.shapes_1)
         *os << "- " << shape.to_string(2) << "\n";
@@ -418,21 +458,6 @@ TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
-    if (test_params.write_json || test_params.write_svg) {
-        std::string base_filename = "difference_" + fs::path(test_params.name).filename().replace_extension("").string();
-
-        if (test_params.write_json) {
-            Writer().add_shapes_with_holes(test_params.shapes_1).add_shapes_with_holes(test_params.shapes).write_json(base_filename + "_shapes.json");
-            Writer().add_shapes_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
-            Writer().add_shapes_with_holes(output).write_json(base_filename + "_output.json");
-        }
-        if (test_params.write_svg) {
-            Writer().add_shapes_with_holes(test_params.shapes_1).add_shapes_with_holes(test_params.shapes).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shapes_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
-            Writer().add_shapes_with_holes(output).write_svg(base_filename + "_output.svg");
-        }
-    }
-
     ASSERT_EQ(output.size(), test_params.expected_output.size());
     for (const ShapeWithHoles& expected_shape: test_params.expected_output) {
         EXPECT_NE(std::find_if(
@@ -446,14 +471,28 @@ TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         ComputeBooleanDifferenceTest,
-        testing::ValuesIn(ComputeBooleanDifferenceTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "difference").string())),
+        testing::ValuesIn(std::vector<ComputeBooleanDifferenceTestParams>{
+            ComputeBooleanDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "difference" / "000.json").string()),
+            ComputeBooleanDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "difference" / "001.json").string()),
+            ComputeBooleanDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "difference" / "002.json").string()),
+            ComputeBooleanDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "difference" / "003.json").string()),
+            ComputeBooleanDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "difference" / "004.json").string()),
+            ComputeBooleanDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "difference" / "005.json").string()),
+        }),
         [](const testing::TestParamInfo<ComputeBooleanDifferenceTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
         });
 
 
-struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSymmetricDifferenceTestParams>
+struct ComputeBooleanSymmetricDifferenceTestParams
 {
+    std::string name;
     std::vector<ShapeWithHoles> shapes_1;
     std::vector<ShapeWithHoles> shapes_2;
     std::vector<ShapeWithHoles> expected_output;
@@ -473,12 +512,6 @@ struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSy
         file >> json;
         ComputeBooleanSymmetricDifferenceTestParams test_params;
         test_params.name = file_path;
-        if (json.contains("description"))
-            test_params.description = json["description"];
-        if (json.contains("write_json"))
-            test_params.write_json = json["write_json"];
-        if (json.contains("write_svg"))
-            test_params.write_svg = json["write_svg"];
         for (auto& json_shape: json["shapes_1"].items())
             test_params.shapes_1.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         for (auto& json_shape: json["shapes_2"].items())
@@ -491,7 +524,7 @@ struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSy
 
 void PrintTo(const ComputeBooleanSymmetricDifferenceTestParams& params, std::ostream* os)
 {
-    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "Testing " << params.name << "...\n";
     *os << "shapes_1\n";
     for (const ShapeWithHoles& shape: params.shapes_1)
         *os << "- " << shape.to_string(2) << "\n";
@@ -517,22 +550,6 @@ TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
 
-    if (test_params.write_json || test_params.write_svg) {
-        std::string base_filename = "symmetric_difference_" + fs::path(test_params.name).filename().replace_extension("").string();
-
-        if (test_params.write_json) {
-            Writer().add_shapes_with_holes(test_params.shapes_1).add_shapes_with_holes(test_params.shapes_2).write_json(base_filename + "_shapes.json");
-            Writer().add_shapes_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
-            Writer().add_shapes_with_holes(output).write_json(base_filename + "_output.json");
-        }
-        if (test_params.write_svg) {
-            Writer().add_shapes_with_holes(test_params.shapes_1).add_shapes_with_holes(test_params.shapes_2).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shapes_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
-            Writer().add_shapes_with_holes(output).write_svg(base_filename + "_output.svg");
-        }
-
-    }
-
     ASSERT_EQ(output.size(), test_params.expected_output.size());
     for (const ShapeWithHoles& expected_shape: test_params.expected_output) {
         EXPECT_NE(std::find_if(
@@ -546,7 +563,10 @@ TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         ComputeBooleanSymmetricDifferenceTest,
-        testing::ValuesIn(ComputeBooleanSymmetricDifferenceTestParams::read_dir((fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference").string())),
+        testing::ValuesIn(std::vector<ComputeBooleanSymmetricDifferenceTestParams>{
+            ComputeBooleanSymmetricDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference" / "000.json").string()),
+        }),
         [](const testing::TestParamInfo<ComputeBooleanSymmetricDifferenceTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
         });

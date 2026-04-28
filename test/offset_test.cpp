@@ -6,7 +6,10 @@
 
 #include <gtest/gtest.h>
 
-#include "test_params.hpp"
+#include <boost/filesystem.hpp>
+#include <fstream>
+
+namespace fs = boost::filesystem;
 
 using namespace shape;
 
@@ -166,8 +169,9 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
-struct InflateShapeWithHolesTestParams: TestParams<InflateShapeWithHolesTestParams>
+struct InflateShapeWithHolesTestParams
 {
+    std::string name;
     ShapeWithHoles shape;
     LengthDbl offset = 0;
     ShapeWithHoles expected_output;
@@ -187,12 +191,6 @@ struct InflateShapeWithHolesTestParams: TestParams<InflateShapeWithHolesTestPara
         file >> json;
         InflateShapeWithHolesTestParams test_params;
         test_params.name = file_path;
-        if (json.contains("description"))
-            test_params.description = json["description"];
-        if (json.contains("write_json"))
-            test_params.write_json = json["write_json"];
-        if (json.contains("write_svg"))
-            test_params.write_svg = json["write_svg"];
         test_params.shape = ShapeWithHoles::from_json(json["shape"]);
         test_params.offset = json["offset"];
         if (json.contains("expected_output"))
@@ -203,7 +201,7 @@ struct InflateShapeWithHolesTestParams: TestParams<InflateShapeWithHolesTestPara
 
 void PrintTo(const InflateShapeWithHolesTestParams& params, std::ostream* os)
 {
-    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "Testing " << params.name << "...\n";
     *os << "shape " << params.shape.to_string(0) << "\n";
     *os << "offset " << params.offset << "\n";
     *os << "expected_output " << params.expected_output.to_string(0) << "\n";
@@ -230,35 +228,66 @@ TEST_P(InflateShapeWithHolesTest, InflateShapeWithHoles)
     Writer().add_shape_with_holes(test_params.shape).add_shape_with_holes(output).write_json("inflate_output.json");
 #endif
 
-    if (test_params.write_json || test_params.write_svg) {
-        std::string base_filename = "inflate_" + fs::path(test_params.name).filename().replace_extension("").string();
-
-        if (test_params.write_json) {
-            Writer().add_shape_with_holes(test_params.shape).write_json(base_filename + "_shapes.json");
-            Writer().add_shape_with_holes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
-            Writer().add_shape_with_holes(output).write_json(base_filename + "_output.json");
-        }
-        if (test_params.write_svg) {
-            Writer().add_shape_with_holes(test_params.shape).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shape_with_holes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
-            Writer().add_shape_with_holes(output).write_svg(base_filename + "_output.svg");
-        }
-    }
-
     EXPECT_TRUE(equal(output, test_params.expected_output));
 }
 
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         InflateShapeWithHolesTest,
-        testing::ValuesIn(InflateShapeWithHolesTestParams::read_dir((fs::path("data") / "tests" / "offset" / "inflate").string())),
+        testing::ValuesIn(std::vector<InflateShapeWithHolesTestParams>{
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "000.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "001.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "002.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "003.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "004.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "005.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "006.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "007.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "008.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "009.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "010.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "011.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "012.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "013.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "014.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "015.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "016.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "017.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "018.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "019.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "020.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "021.json").string()),
+        }),
         [](const testing::TestParamInfo<InflateShapeWithHolesTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
         });
 
 
-struct DeflateTestParams: TestParams<DeflateTestParams>
+struct DeflateTestParams
 {
+    std::string name;
     Shape shape;
     LengthDbl offset = 0;
     std::vector<Shape> expected_output;
@@ -278,12 +307,6 @@ struct DeflateTestParams: TestParams<DeflateTestParams>
         file >> json;
         DeflateTestParams test_params;
         test_params.name = file_path;
-        if (json.contains("description"))
-            test_params.description = json["description"];
-        if (json.contains("write_json"))
-            test_params.write_json = json["write_json"];
-        if (json.contains("write_svg"))
-            test_params.write_svg = json["write_svg"];
         test_params.shape = Shape::from_json(json["shape"]);
         test_params.offset = json["offset"];
         if (json.contains("expected_output"))
@@ -295,7 +318,7 @@ struct DeflateTestParams: TestParams<DeflateTestParams>
 
 void PrintTo(const DeflateTestParams& params, std::ostream* os)
 {
-    *os << "Testing " << params.name << " (" << params.description << ")...\n";
+    *os << "Testing " << params.name << "...\n";
     *os << "hole " << params.shape.to_string(0) << "\n";
     *os << "offset " << params.offset << "\n";
     *os << "expected_output\n";
@@ -317,36 +340,6 @@ TEST_P(DeflateTest, Deflate)
     for (const Shape& hole: output)
         std::cout << "- " << hole.to_string(2) << std::endl;
 
-    if (test_params.write_json || test_params.write_svg) {
-        std::string base_filename = "deflate_" + fs::path(test_params.name).filename().replace_extension("").string();
-
-        if (test_params.write_json) {
-            test_params.shape.write_json(base_filename + "_shape.json");
-            for (const auto& shape: test_params.expected_output)
-                shape.write_json(base_filename + "_expected_output.json");
-            for (const auto& shape: output)
-                shape.write_json(base_filename + "_output.json");
-        }
-        if (test_params.write_svg) {
-            test_params.shape.write_svg(base_filename + "_shape.svg");
-            for (const auto& shape: test_params.expected_output)
-                shape.write_svg(base_filename + "_expected_output.svg");
-            for (const auto& shape: output)
-                shape.write_svg(base_filename + "_output.svg");
-        }
-
-        if (test_params.write_json) {
-            Writer().add_shape(test_params.shape).write_json(base_filename + "_shapes.json");
-            Writer().add_shapes(test_params.expected_output).write_json(base_filename + "_expected_output.json");
-            Writer().add_shapes(output).write_json(base_filename + "_output.json");
-        }
-        if (test_params.write_svg) {
-            Writer().add_shape(test_params.shape).write_svg(base_filename + "_shapes.svg");
-            Writer().add_shapes(test_params.expected_output).write_svg(base_filename + "_expected_output.svg");
-            Writer().add_shapes(output).write_svg(base_filename + "_output.svg");
-        }
-    }
-
     ASSERT_EQ(output.size(), test_params.expected_output.size());
     for (const Shape& expected_hole: test_params.expected_output) {
         EXPECT_NE(std::find(
@@ -360,7 +353,10 @@ TEST_P(DeflateTest, Deflate)
 INSTANTIATE_TEST_SUITE_P(
         Shape,
         DeflateTest,
-        testing::ValuesIn(DeflateTestParams::read_dir((fs::path("data") / "tests" / "offset" / "deflate").string())),
+        testing::ValuesIn(std::vector<DeflateTestParams>{
+            DeflateTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "deflate" / "000.json").string()),
+        }),
         [](const testing::TestParamInfo<DeflateTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
         });
