@@ -702,19 +702,6 @@ struct ShapeContainsTestParams
     bool expected_output;
 
 
-    template <class basic_json>
-    static ShapeContainsTestParams from_json(
-            basic_json& json_item)
-    {
-        ShapeContainsTestParams test_params;
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.point = Point::from_json(json_item["point"]);
-        test_params.strict = json_item["strict"];
-        if (json_item.contains("expected_output"))
-            test_params.expected_output = json_item["expected_output"];
-        return test_params;
-    }
-
     static ShapeContainsTestParams read_json(
             const std::string& file_path)
     {
@@ -727,7 +714,13 @@ struct ShapeContainsTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        ShapeContainsTestParams test_params;
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.point = Point::from_json(json["point"]);
+        test_params.strict = json["strict"];
+        if (json.contains("expected_output"))
+            test_params.expected_output = json["expected_output"];
+        return test_params;
     }
 };
 

@@ -60,16 +60,6 @@ struct CleanExtremeSlopesOuterTestParams
     ShapeWithHoles expected_output;
 
 
-    template <class basic_json>
-    static CleanExtremeSlopesOuterTestParams from_json(
-            basic_json& json_item)
-    {
-        CleanExtremeSlopesOuterTestParams test_params;
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
-        return test_params;
-    }
-
     static CleanExtremeSlopesOuterTestParams read_json(
             const std::string& file_path)
     {
@@ -82,8 +72,10 @@ struct CleanExtremeSlopesOuterTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        CleanExtremeSlopesOuterTestParams test_params;
         test_params.name = file_path;
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.expected_output = ShapeWithHoles::from_json(json["expected_output"]);
         return test_params;
     }
 };
