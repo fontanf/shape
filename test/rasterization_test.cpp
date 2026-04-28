@@ -27,17 +27,6 @@ struct RasterizationTestParams
     LengthDbl cell_height;
 
 
-    template <class basic_json>
-    static RasterizationTestParams from_json(
-            basic_json& json_item)
-    {
-        RasterizationTestParams test_params;
-        test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
-        test_params.cell_width = json_item["cell_width"];
-        test_params.cell_height = json_item["cell_height"];
-        return test_params;
-    }
-
     static RasterizationTestParams read_json(
             const std::string& file_path)
     {
@@ -50,8 +39,11 @@ struct RasterizationTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        RasterizationTestParams test_params;
         test_params.name = file_path;
+        test_params.shape = ShapeWithHoles::from_json(json["shape"]);
+        test_params.cell_width = json["cell_width"];
+        test_params.cell_height = json["cell_height"];
         return test_params;
     }
 };

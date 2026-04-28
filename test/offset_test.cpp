@@ -19,17 +19,6 @@ struct InflateShapeTestParams
     ShapeWithHoles expected_output;
 
 
-    static InflateShapeTestParams from_json(
-            nlohmann::basic_json<>& json_item)
-    {
-        InflateShapeTestParams test_params;
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.offset = json_item["offset"];
-        if (json_item.contains("expected_output"))
-            test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
-        return test_params;
-    }
-
     static InflateShapeTestParams read_json(
             const std::string& file_path)
     {
@@ -42,8 +31,12 @@ struct InflateShapeTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        InflateShapeTestParams test_params;
         test_params.name = file_path;
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.offset = json["offset"];
+        if (json.contains("expected_output"))
+            test_params.expected_output = ShapeWithHoles::from_json(json["expected_output"]);
         return test_params;
     }
 };
@@ -180,14 +173,30 @@ struct InflateShapeWithHolesTestParams: TestParams<InflateShapeWithHolesTestPara
     ShapeWithHoles expected_output;
 
 
-    static InflateShapeWithHolesTestParams from_json(
-            nlohmann::basic_json<>& json_item)
+    static InflateShapeWithHolesTestParams read_json(
+            const std::string& file_path)
     {
-        InflateShapeWithHolesTestParams test_params = TestParams::from_json(json_item);
-        test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
-        test_params.offset = json_item["offset"];
-        if (json_item.contains("expected_output"))
-            test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        InflateShapeWithHolesTestParams test_params;
+        test_params.name = file_path;
+        if (json.contains("description"))
+            test_params.description = json["description"];
+        if (json.contains("write_json"))
+            test_params.write_json = json["write_json"];
+        if (json.contains("write_svg"))
+            test_params.write_svg = json["write_svg"];
+        test_params.shape = ShapeWithHoles::from_json(json["shape"]);
+        test_params.offset = json["offset"];
+        if (json.contains("expected_output"))
+            test_params.expected_output = ShapeWithHoles::from_json(json["expected_output"]);
         return test_params;
     }
 };
@@ -255,15 +264,30 @@ struct DeflateTestParams: TestParams<DeflateTestParams>
     std::vector<Shape> expected_output;
 
 
-    static DeflateTestParams from_json(
-            nlohmann::basic_json<>& json_item)
+    static DeflateTestParams read_json(
+            const std::string& file_path)
     {
-        DeflateTestParams test_params = TestParams::from_json(json_item);
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.offset = json_item["offset"];
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
 
-        if (json_item.contains("expected_output"))
-            for (auto& json_shape: json_item["expected_output"].items())
+        nlohmann::json json;
+        file >> json;
+        DeflateTestParams test_params;
+        test_params.name = file_path;
+        if (json.contains("description"))
+            test_params.description = json["description"];
+        if (json.contains("write_json"))
+            test_params.write_json = json["write_json"];
+        if (json.contains("write_svg"))
+            test_params.write_svg = json["write_svg"];
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.offset = json["offset"];
+        if (json.contains("expected_output"))
+            for (auto& json_shape: json["expected_output"].items())
                 test_params.expected_output.emplace_back(Shape::from_json(json_shape.value()));
         return test_params;
     }

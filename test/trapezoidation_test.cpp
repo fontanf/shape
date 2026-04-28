@@ -12,17 +12,6 @@ struct TrapezoidationTestParams
     std::vector<GeneralizedTrapezoid> expected_output;
     std::string name;
 
-    template <class basic_json>
-    static TrapezoidationTestParams from_json(
-            basic_json& json_item)
-    {
-        TrapezoidationTestParams test_params;
-        test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
-        for (auto& json_trapezoid: json_item["expected_output"].items())
-            test_params.expected_output.emplace_back(GeneralizedTrapezoid::from_json(json_trapezoid.value()));
-        return test_params;
-    }
-
     static TrapezoidationTestParams read_json(
             const std::string& file_path)
     {
@@ -35,7 +24,12 @@ struct TrapezoidationTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        TrapezoidationTestParams test_params;
+        test_params.name = file_path;
+        test_params.shape = ShapeWithHoles::from_json(json["shape"]);
+        for (auto& json_trapezoid: json["expected_output"].items())
+            test_params.expected_output.emplace_back(GeneralizedTrapezoid::from_json(json_trapezoid.value()));
+        return test_params;
     }
 };
 

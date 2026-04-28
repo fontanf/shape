@@ -19,22 +19,6 @@ struct ComputeIntersectionsTestParams
     ShapeElement element_2;
     ShapeElementIntersectionsOutput expected_output;
 
-    template <class basic_json>
-    static ComputeIntersectionsTestParams from_json(
-            basic_json& json_item)
-    {
-        ComputeIntersectionsTestParams test_params;
-        test_params.element_1 = ShapeElement::from_json(json_item["element_1"]);
-        test_params.element_2 = ShapeElement::from_json(json_item["element_2"]);
-        for (auto& json_element: json_item["expected_output"]["overlapping_parts"].items())
-            test_params.expected_output.overlapping_parts.emplace_back(ShapeElement::from_json(json_element.value()));
-        for (auto& json_point: json_item["expected_output"]["improper_intersections"].items())
-            test_params.expected_output.improper_intersections.emplace_back(Point::from_json(json_point.value()));
-        for (auto& json_point: json_item["expected_output"]["proper_intersections"].items())
-            test_params.expected_output.proper_intersections.emplace_back(Point::from_json(json_point.value()));
-        return test_params;
-    }
-
     static ComputeIntersectionsTestParams read_json(
             const std::string& file_path)
     {
@@ -47,7 +31,16 @@ struct ComputeIntersectionsTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        ComputeIntersectionsTestParams test_params;
+        test_params.element_1 = ShapeElement::from_json(json["element_1"]);
+        test_params.element_2 = ShapeElement::from_json(json["element_2"]);
+        for (auto& json_element: json["expected_output"]["overlapping_parts"].items())
+            test_params.expected_output.overlapping_parts.emplace_back(ShapeElement::from_json(json_element.value()));
+        for (auto& json_point: json["expected_output"]["improper_intersections"].items())
+            test_params.expected_output.improper_intersections.emplace_back(Point::from_json(json_point.value()));
+        for (auto& json_point: json["expected_output"]["proper_intersections"].items())
+            test_params.expected_output.proper_intersections.emplace_back(Point::from_json(json_point.value()));
+        return test_params;
     }
 };
 

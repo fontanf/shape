@@ -112,18 +112,6 @@ struct ApproximateShapeByLineSegmentsTestParams
     ShapeWithHoles expected_output;
 
 
-    static ApproximateShapeByLineSegmentsTestParams from_json(
-            nlohmann::basic_json<>& json_item)
-    {
-        ApproximateShapeByLineSegmentsTestParams test_params;
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.segment_length = json_item["segment_length"];
-        test_params.outer = json_item["outer"];
-        if (json_item.contains("expected_output"))
-            test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
-        return test_params;
-    }
-
     static ApproximateShapeByLineSegmentsTestParams read_json(
             const std::string& file_path)
     {
@@ -136,8 +124,13 @@ struct ApproximateShapeByLineSegmentsTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        ApproximateShapeByLineSegmentsTestParams test_params;
         test_params.name = file_path;
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.segment_length = json["segment_length"];
+        test_params.outer = json["outer"];
+        if (json.contains("expected_output"))
+            test_params.expected_output = ShapeWithHoles::from_json(json["expected_output"]);
         return test_params;
     }
 };
@@ -219,17 +212,6 @@ struct ApproximateByLineSegmentsTestParams
     ShapeWithHoles expected_output;
 
 
-    static ApproximateByLineSegmentsTestParams from_json(
-            nlohmann::basic_json<>& json_item)
-    {
-        ApproximateByLineSegmentsTestParams test_params;
-        test_params.shape_with_holes = ShapeWithHoles::from_json(json_item["shape_with_holes"]);
-        test_params.segment_length = json_item["segment_length"];
-        if (json_item.contains("expected_output"))
-            test_params.expected_output = ShapeWithHoles::from_json(json_item["expected_output"]);
-        return test_params;
-    }
-
     static ApproximateByLineSegmentsTestParams read_json(
             const std::string& file_path)
     {
@@ -242,8 +224,12 @@ struct ApproximateByLineSegmentsTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        ApproximateByLineSegmentsTestParams test_params;
         test_params.name = file_path;
+        test_params.shape_with_holes = ShapeWithHoles::from_json(json["shape_with_holes"]);
+        test_params.segment_length = json["segment_length"];
+        if (json.contains("expected_output"))
+            test_params.expected_output = ShapeWithHoles::from_json(json["expected_output"]);
         return test_params;
     }
 };

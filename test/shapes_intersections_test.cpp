@@ -24,15 +24,6 @@ struct IntersectShapeTestParams
     bool expected_output;
 
 
-    template <class basic_json>
-    static IntersectShapeTestParams from_json(basic_json& json_item)
-    {
-        IntersectShapeTestParams test_params;
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.expected_output = json_item["expected_output"];
-        return test_params;
-    }
-
     static IntersectShapeTestParams read_json(
             const std::string& file_path)
     {
@@ -45,7 +36,11 @@ struct IntersectShapeTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        IntersectShapeTestParams test_params;
+        test_params.name = file_path;
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.expected_output = json["expected_output"];
+        return test_params;
     }
 };
 
@@ -143,17 +138,6 @@ struct IntersectShapeShapeElementTestParams
     bool expected_output;
 
 
-    template <class basic_json>
-    static IntersectShapeShapeElementTestParams from_json(basic_json& json_item)
-    {
-        IntersectShapeShapeElementTestParams test_params;
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.element = ShapeElement::from_json(json_item["element"]);
-        test_params.strict = json_item["strict"];
-        test_params.expected_output = json_item["expected_output"];
-        return test_params;
-    }
-
     static IntersectShapeShapeElementTestParams read_json(
             const std::string& file_path)
     {
@@ -166,8 +150,12 @@ struct IntersectShapeShapeElementTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        IntersectShapeShapeElementTestParams test_params;
         test_params.name = file_path;
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.element = ShapeElement::from_json(json["element"]);
+        test_params.strict = json["strict"];
+        test_params.expected_output = json["expected_output"];
         return test_params;
     }
 };
@@ -240,24 +228,6 @@ struct ComputeIntersectionsPathShapeTestParams
     std::vector<PathShapeIntersectionPoint> expected_output;
 
 
-    template <class basic_json>
-    static ComputeIntersectionsPathShapeTestParams from_json(
-            basic_json& json_item)
-    {
-        ComputeIntersectionsPathShapeTestParams test_params;
-        test_params.path = Shape::from_json(json_item["path"]);
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.only_min_max = json_item["only_min_max"];
-        for (auto& json_intersection: json_item["expected_output"]) {
-            PathShapeIntersectionPoint intersection;
-            intersection.path_element_pos = json_intersection["path_element_pos"];
-            intersection.shape_element_pos = json_intersection["shape_element_pos"];
-            intersection.point = Point::from_json(json_intersection["point"]);
-            test_params.expected_output.emplace_back(intersection);
-        }
-        return test_params;
-    }
-
     static ComputeIntersectionsPathShapeTestParams read_json(
             const std::string& file_path)
     {
@@ -270,8 +240,18 @@ struct ComputeIntersectionsPathShapeTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        ComputeIntersectionsPathShapeTestParams test_params;
         test_params.name = file_path;
+        test_params.path = Shape::from_json(json["path"]);
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.only_min_max = json["only_min_max"];
+        for (auto& json_intersection: json["expected_output"]) {
+            PathShapeIntersectionPoint intersection;
+            intersection.path_element_pos = json_intersection["path_element_pos"];
+            intersection.shape_element_pos = json_intersection["shape_element_pos"];
+            intersection.point = Point::from_json(json_intersection["point"]);
+            test_params.expected_output.emplace_back(intersection);
+        }
         return test_params;
     }
 };
@@ -360,24 +340,6 @@ struct ComputeStrictIntersectionsPathShapeTestParams
     std::vector<PathShapeIntersectionPoint> expected_output;
 
 
-    template <class basic_json>
-    static ComputeStrictIntersectionsPathShapeTestParams from_json(
-            basic_json& json_item)
-    {
-        ComputeStrictIntersectionsPathShapeTestParams test_params;
-        test_params.path = Shape::from_json(json_item["path"]);
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.only_first = json_item["only_first"];
-        for (auto& json_intersection: json_item["expected_output"]) {
-            PathShapeIntersectionPoint intersection;
-            intersection.path_element_pos = json_intersection["path_element_pos"];
-            intersection.shape_element_pos = json_intersection["shape_element_pos"];
-            intersection.point = Point::from_json(json_intersection["point"]);
-            test_params.expected_output.emplace_back(intersection);
-        }
-        return test_params;
-    }
-
     static ComputeStrictIntersectionsPathShapeTestParams read_json(
             const std::string& file_path)
     {
@@ -390,7 +352,19 @@ struct ComputeStrictIntersectionsPathShapeTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        ComputeStrictIntersectionsPathShapeTestParams test_params;
+        test_params.name = file_path;
+        test_params.path = Shape::from_json(json["path"]);
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.only_first = json["only_first"];
+        for (auto& json_intersection: json["expected_output"]) {
+            PathShapeIntersectionPoint intersection;
+            intersection.path_element_pos = json_intersection["path_element_pos"];
+            intersection.shape_element_pos = json_intersection["shape_element_pos"];
+            intersection.point = Point::from_json(json_intersection["point"]);
+            test_params.expected_output.emplace_back(intersection);
+        }
+        return test_params;
     }
 };
 
@@ -469,18 +443,6 @@ struct IntersectShapeShapeTestParams
     bool expected_output;
 
 
-    template <class basic_json>
-    static IntersectShapeShapeTestParams from_json(
-            basic_json& json_item)
-    {
-        IntersectShapeShapeTestParams test_params;
-        test_params.shape_1 = Shape::from_json(json_item["shape_1"]);
-        test_params.shape_2 = Shape::from_json(json_item["shape_2"]);
-        test_params.strict = json_item["strict"];
-        test_params.expected_output = json_item["expected_output"];
-        return test_params;
-    }
-
     static IntersectShapeShapeTestParams read_json(
             const std::string& file_path)
     {
@@ -493,8 +455,12 @@ struct IntersectShapeShapeTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        IntersectShapeShapeTestParams test_params;
         test_params.name = file_path;
+        test_params.shape_1 = Shape::from_json(json["shape_1"]);
+        test_params.shape_2 = Shape::from_json(json["shape_2"]);
+        test_params.strict = json["strict"];
+        test_params.expected_output = json["expected_output"];
         return test_params;
     }
 };
@@ -605,19 +571,6 @@ struct IntersectShapeWithHolesShapeTestParams
     bool expected_output;
 
 
-    template <class basic_json>
-    static IntersectShapeWithHolesShapeTestParams from_json(
-            basic_json& json_item)
-    {
-        IntersectShapeWithHolesShapeTestParams test_params;
-        test_params.shape_with_holes = ShapeWithHoles::from_json(json_item["shape_with_holes"]);
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.strict = json_item["strict"];
-        if (json_item.contains("expected_output"))
-            test_params.expected_output = json_item["expected_output"];
-        return test_params;
-    }
-
     static IntersectShapeWithHolesShapeTestParams read_json(
             const std::string& file_path)
     {
@@ -630,8 +583,13 @@ struct IntersectShapeWithHolesShapeTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        IntersectShapeWithHolesShapeTestParams test_params;
         test_params.name = file_path;
+        test_params.shape_with_holes = ShapeWithHoles::from_json(json["shape_with_holes"]);
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.strict = json["strict"];
+        if (json.contains("expected_output"))
+            test_params.expected_output = json["expected_output"];
         return test_params;
     }
 };
@@ -755,18 +713,6 @@ struct IntersectShapeWithHolesShapeWithHolesTestParams
     bool expected_output;
 
 
-    template <class basic_json>
-    static IntersectShapeWithHolesShapeWithHolesTestParams from_json(
-            basic_json& json_item)
-    {
-        IntersectShapeWithHolesShapeWithHolesTestParams test_params;
-        test_params.shape_with_holes_1 = ShapeWithHoles::from_json(json_item["shape_with_holes_1"]);
-        test_params.shape_with_holes_2 = ShapeWithHoles::from_json(json_item["shape_with_holes_2"]);
-        test_params.strict = json_item["strict"];
-        test_params.expected_output = json_item["expected_output"];
-        return test_params;
-    }
-
     static IntersectShapeWithHolesShapeWithHolesTestParams read_json(
             const std::string& file_path)
     {
@@ -779,7 +725,13 @@ struct IntersectShapeWithHolesShapeWithHolesTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        IntersectShapeWithHolesShapeWithHolesTestParams test_params;
+        test_params.name = file_path;
+        test_params.shape_with_holes_1 = ShapeWithHoles::from_json(json["shape_with_holes_1"]);
+        test_params.shape_with_holes_2 = ShapeWithHoles::from_json(json["shape_with_holes_2"]);
+        test_params.strict = json["strict"];
+        test_params.expected_output = json["expected_output"];
+        return test_params;
     }
 };
 

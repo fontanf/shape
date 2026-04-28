@@ -17,17 +17,6 @@ struct FindHolesBridgesTestParams
     ShapeWithHoles shape;
     std::vector<ShapeElement> expected_output;
 
-    template <class basic_json>
-    static FindHolesBridgesTestParams from_json(
-            basic_json& json_item)
-    {
-        FindHolesBridgesTestParams test_params;
-        test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
-        for (auto& json_element: json_item["expected_output"].items())
-            test_params.expected_output.emplace_back(ShapeElement::from_json(json_element.value()));
-        return test_params;
-    }
-
     static FindHolesBridgesTestParams read_json(
             const std::string& file_path)
     {
@@ -40,7 +29,12 @@ struct FindHolesBridgesTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        FindHolesBridgesTestParams test_params;
+        test_params.name = file_path;
+        test_params.shape = ShapeWithHoles::from_json(json["shape"]);
+        for (auto& json_element: json["expected_output"].items())
+            test_params.expected_output.emplace_back(ShapeElement::from_json(json_element.value()));
+        return test_params;
     }
 };
 
@@ -152,14 +146,30 @@ struct ComputeBooleanUnionTestParams: TestParams<ComputeBooleanUnionTestParams>
     std::vector<ShapeWithHoles> expected_output;
 
 
-    static ComputeBooleanUnionTestParams from_json(
-            nlohmann::basic_json<>& json_item)
+    static ComputeBooleanUnionTestParams read_json(
+            const std::string& file_path)
     {
-        ComputeBooleanUnionTestParams test_params = TestParams::from_json(json_item);
-        for (auto& json_shape: json_item["shapes"].items())
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        ComputeBooleanUnionTestParams test_params;
+        test_params.name = file_path;
+        if (json.contains("description"))
+            test_params.description = json["description"];
+        if (json.contains("write_json"))
+            test_params.write_json = json["write_json"];
+        if (json.contains("write_svg"))
+            test_params.write_svg = json["write_svg"];
+        for (auto& json_shape: json["shapes"].items())
             test_params.shapes.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        if (json_item.contains("expected_output"))
-            for (auto& json_shape: json_item["expected_output"].items())
+        if (json.contains("expected_output"))
+            for (auto& json_shape: json["expected_output"].items())
                 test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
     }
@@ -247,13 +257,29 @@ struct ComputeBooleanIntersectionTestParams: TestParams<ComputeBooleanIntersecti
     std::vector<ShapeWithHoles> expected_output;
 
 
-    static ComputeBooleanIntersectionTestParams from_json(
-        nlohmann::basic_json<>& json_item)
+    static ComputeBooleanIntersectionTestParams read_json(
+            const std::string& file_path)
     {
-        ComputeBooleanIntersectionTestParams test_params = TestParams::from_json(json_item);
-        for (auto& json_shape: json_item["shapes"].items())
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        ComputeBooleanIntersectionTestParams test_params;
+        test_params.name = file_path;
+        if (json.contains("description"))
+            test_params.description = json["description"];
+        if (json.contains("write_json"))
+            test_params.write_json = json["write_json"];
+        if (json.contains("write_svg"))
+            test_params.write_svg = json["write_svg"];
+        for (auto& json_shape: json["shapes"].items())
             test_params.shapes.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json_item["expected_output"].items())
+        for (auto& json_shape: json["expected_output"].items())
             test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
     }
@@ -334,15 +360,31 @@ struct ComputeBooleanDifferenceTestParams : TestParams<ComputeBooleanDifferenceT
     std::vector<ShapeWithHoles> expected_output;
 
 
-    static ComputeBooleanDifferenceTestParams from_json(
-        nlohmann::basic_json<>& json_item)
+    static ComputeBooleanDifferenceTestParams read_json(
+            const std::string& file_path)
     {
-        ComputeBooleanDifferenceTestParams test_params = TestParams::from_json(json_item);
-        for (auto& json_shape: json_item["shapes_1"].items())
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        ComputeBooleanDifferenceTestParams test_params;
+        test_params.name = file_path;
+        if (json.contains("description"))
+            test_params.description = json["description"];
+        if (json.contains("write_json"))
+            test_params.write_json = json["write_json"];
+        if (json.contains("write_svg"))
+            test_params.write_svg = json["write_svg"];
+        for (auto& json_shape: json["shapes_1"].items())
             test_params.shapes_1.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json_item["shapes"].items())
+        for (auto& json_shape: json["shapes"].items())
             test_params.shapes.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json_item["expected_output"].items())
+        for (auto& json_shape: json["expected_output"].items())
             test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
     }
@@ -417,15 +459,31 @@ struct ComputeBooleanSymmetricDifferenceTestParams : TestParams<ComputeBooleanSy
     std::vector<ShapeWithHoles> expected_output;
 
 
-    static ComputeBooleanSymmetricDifferenceTestParams from_json(
-        nlohmann::basic_json<>& json_item)
+    static ComputeBooleanSymmetricDifferenceTestParams read_json(
+            const std::string& file_path)
     {
-        ComputeBooleanSymmetricDifferenceTestParams test_params = TestParams::from_json(json_item);
-        for (auto& json_shape: json_item["shapes_1"].items())
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        ComputeBooleanSymmetricDifferenceTestParams test_params;
+        test_params.name = file_path;
+        if (json.contains("description"))
+            test_params.description = json["description"];
+        if (json.contains("write_json"))
+            test_params.write_json = json["write_json"];
+        if (json.contains("write_svg"))
+            test_params.write_svg = json["write_svg"];
+        for (auto& json_shape: json["shapes_1"].items())
             test_params.shapes_1.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json_item["shapes_2"].items())
+        for (auto& json_shape: json["shapes_2"].items())
             test_params.shapes_2.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json_item["expected_output"].items())
+        for (auto& json_shape: json["expected_output"].items())
             test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
     }
@@ -501,15 +559,6 @@ struct ExtractOutlineTestParams
     Shape expected_output;
 
 
-    static ExtractOutlineTestParams from_json(
-            nlohmann::basic_json<>& json_item)
-    {
-        ExtractOutlineTestParams test_params;
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        test_params.expected_output = Shape::from_json(json_item["expected_output"]);
-        return test_params;
-    }
-
     static ExtractOutlineTestParams read_json(
             const std::string& file_path)
     {
@@ -522,8 +571,10 @@ struct ExtractOutlineTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        ExtractOutlineTestParams test_params;
         test_params.name = file_path;
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.expected_output = Shape::from_json(json["expected_output"]);
         return test_params;
     }
 };
@@ -576,16 +627,6 @@ struct ExtractFacesTestParams
     std::vector<Shape> expected_output;
 
 
-    static ExtractFacesTestParams from_json(
-            nlohmann::basic_json<>& json_item)
-    {
-        ExtractFacesTestParams test_params;
-        test_params.shape = Shape::from_json(json_item["shape"]);
-        for (auto& json_shape: json_item["expected_output"].items())
-            test_params.expected_output.emplace_back(Shape::from_json(json_shape.value()));
-        return test_params;
-    }
-
     static ExtractFacesTestParams read_json(
             const std::string& file_path)
     {
@@ -598,7 +639,12 @@ struct ExtractFacesTestParams
 
         nlohmann::json json;
         file >> json;
-        return from_json(json);
+        ExtractFacesTestParams test_params;
+        test_params.name = file_path;
+        test_params.shape = Shape::from_json(json["shape"]);
+        for (auto& json_shape: json["expected_output"].items())
+            test_params.expected_output.emplace_back(Shape::from_json(json_shape.value()));
+        return test_params;
     }
 };
 
@@ -670,16 +716,6 @@ struct BridgeTouchingHolesTestParams
     std::vector<ShapeWithHoles> expected_output;
 
 
-    static BridgeTouchingHolesTestParams from_json(
-            nlohmann::basic_json<>& json_item)
-    {
-        BridgeTouchingHolesTestParams test_params;
-        test_params.shape = ShapeWithHoles::from_json(json_item["shape"]);
-        for (auto& json_shape: json_item["expected_output"].items())
-            test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        return test_params;
-    }
-
     static BridgeTouchingHolesTestParams read_json(
             const std::string& file_path)
     {
@@ -692,8 +728,11 @@ struct BridgeTouchingHolesTestParams
 
         nlohmann::json json;
         file >> json;
-        auto test_params = from_json(json);
+        BridgeTouchingHolesTestParams test_params;
         test_params.name = file_path;
+        test_params.shape = ShapeWithHoles::from_json(json["shape"]);
+        for (auto& json_shape: json["expected_output"].items())
+            test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
     }
 };
