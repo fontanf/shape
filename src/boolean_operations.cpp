@@ -502,6 +502,19 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             << " component_id " << component_id
             << std::endl;
 #endif
+
+        // A Full circle with exactly one intersection point cannot be split into
+        // two arcs. Add the antipodal point as a fake second split point so the
+        // existing splitting logic produces two proper anticlockwise arcs.
+        if (element.type == ShapeElementType::CircularArc
+                && element.orientation == ShapeElementOrientation::Full
+                && elements_intersections[element_pos].size() == 1) {
+            const Point& p = elements_intersections[element_pos].front();
+            elements_intersections[element_pos].push_back({
+                2 * element.center.x - p.x,
+                2 * element.center.y - p.y});
+        }
+
         // Sort intersection points of this element.
         std::sort(
                 elements_intersections[element_pos].begin(),
