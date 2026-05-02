@@ -26,6 +26,16 @@ void compute_intersection_export_inputs(
         const std::vector<ShapeWithHoles>& shapes);
 
 /**
+ * Compute the intersection of two multi-shapes.
+ *
+ * Returns what is inside at least one shape of shapes_1 and at least one shape
+ * of shapes_2, i.e. (union of shapes_1) ∩ (union of shapes_2).
+ */
+std::vector<ShapeWithHoles> compute_group_intersection(
+        const std::vector<ShapeWithHoles>& shapes_1,
+        const std::vector<ShapeWithHoles>& shapes_2);
+
+/**
  * Compute the difference between two multi-shapes.
  */
 std::vector<ShapeWithHoles> compute_difference(
