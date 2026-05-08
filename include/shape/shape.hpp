@@ -281,14 +281,38 @@ struct AxisAlignedBoundingBox
     LengthDbl y_min = +std::numeric_limits<LengthDbl>::infinity();
     LengthDbl y_max = -std::numeric_limits<LengthDbl>::infinity();
 
-    void shift(const Point& vector)
+    inline AxisAlignedBoundingBox& shift(
+            LengthDbl x,
+            LengthDbl y)
     {
-        x_min += vector.x;
-        x_max += vector.x;
-        y_min += vector.y;
-        y_max += vector.y;
+        x_min += x;
+        x_max += x;
+        y_min += y;
+        y_max += y;
+        return *this;
+    }
+
+    inline AxisAlignedBoundingBox& shift(
+            const Point& vector)
+    {
+        return this->shift(vector.x, vector.y);
     }
 };
+
+inline bool equal(
+        const AxisAlignedBoundingBox& aabb_1,
+        const AxisAlignedBoundingBox& aabb_2)
+{
+    if (!equal(aabb_1.x_min, aabb_2.x_min))
+        return false;
+    if (!equal(aabb_1.x_max, aabb_2.x_max))
+        return false;
+    if (!equal(aabb_1.y_min, aabb_2.y_min))
+        return false;
+    if (!equal(aabb_1.y_max, aabb_2.y_max))
+        return false;
+    return true;
+}
 
 inline AxisAlignedBoundingBox merge(
         const AxisAlignedBoundingBox& aabb_1,
