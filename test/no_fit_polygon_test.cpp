@@ -15,7 +15,7 @@ struct NoFitPolygonConvexTestParams
 {
     Shape fixed_shape;
     Shape orbiting_shape;
-    Shape expected_nfp;
+    std::vector<ShapeWithHoles> expected_nfp;
     std::string name;
 };
 
@@ -37,7 +37,8 @@ TEST_P(NoFitPolygonConvexTest, NoFitPolygonConvex)
 
     std::cout << "nfp " << nfp.to_string(0) << std::endl;
 
-    EXPECT_TRUE(equal(nfp, test_params.expected_nfp));
+    ASSERT_EQ((ShapePos)1, (ShapePos)test_params.expected_nfp.size());
+    EXPECT_TRUE(equal(ShapeWithHoles{nfp, {}}, test_params.expected_nfp[0]));
 
     // Oracle check: sample a grid around the NFP bounding box and verify that
     // strictly-inside positions cause overlap and strictly-outside ones do not.
@@ -73,27 +74,27 @@ INSTANTIATE_TEST_SUITE_P(
             {  // Square and smaller square: NFP is a larger square.
                 build_rectangle(0, 4, 0, 4),
                 build_rectangle(0, 2, 0, 2),
-                build_rectangle(-2, 4, -2, 4),
+                {{build_rectangle(-2, 4, -2, 4), {}}},
                 "SquareAndSmallerSquare",
             }, {  // Rectangle with itself.
                 build_shape({{0, 0}, {3, 0}, {3, 2}, {0, 2}}),
                 build_shape({{0, 0}, {3, 0}, {3, 2}, {0, 2}}),
-                build_rectangle(-3, 3, -2, 2),
+                {{build_rectangle(-3, 3, -2, 2), {}}},
                 "RectangleWithItself",
             }, {  // Square and triangle.
                 build_rectangle(0, 4, 0, 4),
                 build_shape({{0, 0}, {2, 0}, {1, 2}}),
-                build_shape({{-1, -2}, {3, -2}, {4, 0}, {4, 4}, {-2, 4}, {-2, 0}}),
+                {{build_shape({{-1, -2}, {3, -2}, {4, 0}, {4, 4}, {-2, 4}, {-2, 0}}), {}}},
                 "SquareAndTriangle",
             }, {  // Triangle and triangle.
                 build_shape({{0, 0}, {4, 0}, {2, 4}}),
                 build_shape({{0, 0}, {2, 0}, {1, 2}}),
-                build_shape({{-1, -2}, {3, -2}, {4, 0}, {2, 4}, {0, 4}, {-2, 0}}),
+                {{build_shape({{-1, -2}, {3, -2}, {4, 0}, {2, 4}, {0, 4}, {-2, 0}}), {}}},
                 "TriangleAndTriangle",
             }, {  // Convex pentagon and unit square.
                 build_shape({{0, 0}, {4, 0}, {5, 2}, {3, 4}, {1, 4}}),
                 build_rectangle(0, 1, 0, 1),
-                build_shape({{-1, -1}, {4, -1}, {5, 1}, {5, 2}, {3, 4}, {0, 4}, {-1, 0}}),
+                {{build_shape({{-1, -1}, {4, -1}, {5, 1}, {5, 2}, {3, 4}, {0, 4}, {-1, 0}}), {}}},
                 "ConvexPentagonAndUnitSquare",
             },
         }),
@@ -110,7 +111,7 @@ struct NoFitPolygonGeneralTestParams
 {
     ShapeWithHoles fixed_shape;
     ShapeWithHoles orbiting_shape;
-    ShapePos expected_num_components;
+    std::vector<ShapeWithHoles> expected_nfp;
     std::string name;
 };
 
@@ -136,7 +137,9 @@ TEST_P(NoFitPolygonGeneralTest, NoFitPolygonGeneral)
     for (const ShapeWithHoles& component: nfp)
         std::cout << "  " << component.to_string(0) << std::endl;
 
-    EXPECT_EQ((ShapePos)nfp.size(), test_params.expected_num_components);
+    ASSERT_EQ((ShapePos)nfp.size(), (ShapePos)test_params.expected_nfp.size());
+    for (ShapePos i = 0; i < (ShapePos)nfp.size(); ++i)
+        EXPECT_TRUE(equal(nfp[i], test_params.expected_nfp[i]));
 
     // Oracle check: sample a grid around the union of all NFP components.
     AxisAlignedBoundingBox aabb;
@@ -194,22 +197,22 @@ INSTANTIATE_TEST_SUITE_P(
             {  // Convex inputs: same result as the convex overload, one component.
                 {build_rectangle(0, 4, 0, 4), {}},
                 {build_rectangle(0, 2, 0, 2), {}},
-                1,
+                {{build_rectangle(-2, 4, -2, 4), {}}},
                 "ConvexSquares",
             }, {  // L-shape fixed, unit square orbiting: one connected NFP.
                 {build_shape({{0, 0}, {4, 0}, {4, 2}, {2, 2}, {2, 4}, {0, 4}}), {}},
                 {build_rectangle(0, 1, 0, 1), {}},
-                1,
+                {{build_shape({{4, 2}, {2, 2}, {2, 4}, {-1, 4}, {-1, -1}, {4, -1}}), {}}},
                 "LShapeAndUnitSquare",
             }, {  // Two L-shapes.
                 {build_shape({{0, 0}, {4, 0}, {4, 2}, {2, 2}, {2, 4}, {0, 4}}), {}},
                 {build_shape({{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 2}, {0, 2}}), {}},
-                1,
+                {{build_shape({{4, 2}, {2, 2}, {2, 4}, {-2, 4}, {-2, -1}, {-1, -1}, {-1, -2}, {4, -2}}), {}}},
                 "TwoLShapes",
             }, {  // T-shape fixed, unit square orbiting.
                 {build_shape({{0, 2}, {1, 2}, {1, 0}, {2, 0}, {2, 2}, {3, 2}, {3, 3}, {0, 3}}), {}},
                 {build_rectangle(0, 1, 0, 1), {}},
-                1,
+                {{build_shape({{3, 3}, {-1, 3}, {-1, 1}, {0, 1}, {0, -1}, {2, -1}, {2, 1}, {3, 1}}), {}}},
                 "TShapeAndUnitSquare",
             },
         }),
