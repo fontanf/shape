@@ -9,7 +9,8 @@ using namespace shape;
 namespace
 {
 
-struct SplitPositions {
+struct SplitPositions
+{
     LengthDbl values[2];
     int count = 0;
 };
@@ -126,19 +127,6 @@ IntersectionTree::IntersectionTree(
     std::vector<double> values_x_left;
     std::vector<double> values_y_bottom;
     std::vector<double> values_y_top;
-    // Fixed outer size 2: find_median returns at most 2 split positions.
-    std::vector<std::vector<ShapePos>> left_shape_ids(2);
-    std::vector<std::vector<ShapePos>> right_shape_ids(2);
-    std::vector<std::vector<ShapePos>> bottom_shape_ids(2);
-    std::vector<std::vector<ShapePos>> top_shape_ids(2);
-    std::vector<std::vector<ShapePos>> left_element_ids(2);
-    std::vector<std::vector<ShapePos>> right_element_ids(2);
-    std::vector<std::vector<ShapePos>> bottom_element_ids(2);
-    std::vector<std::vector<ShapePos>> top_element_ids(2);
-    std::vector<std::vector<ShapePos>> left_point_ids(2);
-    std::vector<std::vector<ShapePos>> right_point_ids(2);
-    std::vector<std::vector<ShapePos>> bottom_point_ids(2);
-    std::vector<std::vector<ShapePos>> top_point_ids(2);
 
     while (!stack.empty()) {
         StackElement stack_element = std::move(stack.back());
@@ -146,15 +134,6 @@ IntersectionTree::IntersectionTree(
 
         NodeId node_id = stack_element.node_id;
         Node& node = tree_[node_id];
-        //std::cout << "node_id " << node_id
-        //    << " size " << stack_element.shape_ids.size()
-        //    << " " << stack_element.element_ids.size()
-        //    << " " << stack_element.point_ids.size()
-        //    << " l " << node.l
-        //    << " r " << node.r
-        //    << " b " << node.b
-        //    << " t " << node.t
-        //    << std::endl;
 
         values_x_right.clear();
         values_x_left.clear();
@@ -181,71 +160,55 @@ IntersectionTree::IntersectionTree(
             values_y_top.push_back(point.y);
         }
 
-        // Compute x_middle / y_middle
+        // Compute split position candidates.
         SplitPositions xs = find_median(values_x_left, values_x_right, node.l, node.r);
         SplitPositions ys = find_median(values_y_bottom, values_y_top, node.b, node.t);
-        //std::cout << xs.values[0] << " " << ys.values[0] << std::endl;
 
-        // Compute left/right/bottom/top shapes.
-        for (int i = 0; i < xs.count; ++i) {
-            left_shape_ids[i].clear();
-            right_shape_ids[i].clear();
-            left_element_ids[i].clear();
-            right_element_ids[i].clear();
-            left_point_ids[i].clear();
-            right_point_ids[i].clear();
-        }
-        for (int i = 0; i < ys.count; ++i) {
-            bottom_shape_ids[i].clear();
-            top_shape_ids[i].clear();
-            bottom_element_ids[i].clear();
-            top_element_ids[i].clear();
-            bottom_point_ids[i].clear();
-            top_point_ids[i].clear();
-        }
+        // Count-only pass: determine item counts per candidate without building lists.
+        ShapePos nl[2] = {}, nr[2] = {}, nb[2] = {}, nt[2] = {};
         for (ShapePos shape_id: stack_element.shape_ids) {
-            AxisAlignedBoundingBox aabb = shapes_min_max[shape_id];
+            const AxisAlignedBoundingBox& aabb = shapes_min_max[shape_id];
             for (int i = 0; i < xs.count; ++i) {
                 if (!strictly_greater(aabb.x_min, xs.values[i]))
-                    left_shape_ids[i].push_back(shape_id);
+                    nl[i]++;
                 if (!strictly_lesser(aabb.x_max, xs.values[i]))
-                    right_shape_ids[i].push_back(shape_id);
+                    nr[i]++;
             }
             for (int i = 0; i < ys.count; ++i) {
                 if (!strictly_greater(aabb.y_min, ys.values[i]))
-                    bottom_shape_ids[i].push_back(shape_id);
+                    nb[i]++;
                 if (!strictly_lesser(aabb.y_max, ys.values[i]))
-                    top_shape_ids[i].push_back(shape_id);
+                    nt[i]++;
             }
         }
         for (ElementPos element_id: stack_element.element_ids) {
-            AxisAlignedBoundingBox aabb = elements_min_max[element_id];
+            const AxisAlignedBoundingBox& aabb = elements_min_max[element_id];
             for (int i = 0; i < xs.count; ++i) {
                 if (!strictly_greater(aabb.x_min, xs.values[i]))
-                    left_element_ids[i].push_back(element_id);
+                    nl[i]++;
                 if (!strictly_lesser(aabb.x_max, xs.values[i]))
-                    right_element_ids[i].push_back(element_id);
+                    nr[i]++;
             }
             for (int i = 0; i < ys.count; ++i) {
                 if (!strictly_greater(aabb.y_min, ys.values[i]))
-                    bottom_element_ids[i].push_back(element_id);
+                    nb[i]++;
                 if (!strictly_lesser(aabb.y_max, ys.values[i]))
-                    top_element_ids[i].push_back(element_id);
+                    nt[i]++;
             }
         }
         for (ElementPos point_id: stack_element.point_ids) {
             const Point& point = points[point_id];
             for (int i = 0; i < xs.count; ++i) {
                 if (!strictly_greater(point.x, xs.values[i]))
-                    left_point_ids[i].push_back(point_id);
+                    nl[i]++;
                 if (!strictly_lesser(point.x, xs.values[i]))
-                    right_point_ids[i].push_back(point_id);
+                    nr[i]++;
             }
             for (int i = 0; i < ys.count; ++i) {
                 if (!strictly_greater(point.y, ys.values[i]))
-                    bottom_point_ids[i].push_back(point_id);
+                    nb[i]++;
                 if (!strictly_lesser(point.y, ys.values[i]))
-                    top_point_ids[i].push_back(point_id);
+                    nt[i]++;
             }
         }
 
@@ -253,16 +216,11 @@ IntersectionTree::IntersectionTree(
         char best = 'x';
         ShapePos n = stack_element.shape_ids.size() + stack_element.element_ids.size() + stack_element.point_ids.size();
         ShapePos n_best = n * (n - 1) / 2;
-        //std::cout << "n " << n << std::endl;
-        //std::cout << "n_best " << n_best << std::endl;
         int i_best = -1;
         for (int i = 0; i < xs.count; ++i) {
-            ShapePos nl = left_shape_ids[i].size() + left_element_ids[i].size() + left_point_ids[i].size();
-            ShapePos nr = right_shape_ids[i].size() + right_element_ids[i].size() + right_point_ids[i].size();
-            if (nl == 0 || nr == 0)
+            if (nl[i] == 0 || nr[i] == 0)
                 continue;
-            ShapePos nv = nl * (nl - 1) / 2 + nr * (nr - 1) / 2;
-            //std::cout << "i " << i << " nl " << nl << " nr " << nr << " nv " << nv << std::endl;
+            ShapePos nv = nl[i] * (nl[i] - 1) / 2 + nr[i] * (nr[i] - 1) / 2;
             if (n_best > nv) {
                 n_best = nv;
                 best = 'v';
@@ -270,87 +228,110 @@ IntersectionTree::IntersectionTree(
             }
         }
         for (int i = 0; i < ys.count; ++i) {
-            ShapePos nb = bottom_shape_ids[i].size() + bottom_element_ids[i].size() + bottom_point_ids[i].size();
-            ShapePos nt = top_shape_ids[i].size() + top_element_ids[i].size() + top_point_ids[i].size();
-            if (nb == 0 || nt == 0)
+            if (nb[i] == 0 || nt[i] == 0)
                 continue;
-            ShapePos nh = nb * (nb - 1) / 2 + nt * (nt - 1) / 2;
-            //std::cout << "i " << i << " nb " << nb << " nt " << nt << " nh " << nh << std::endl;
+            ShapePos nh = nb[i] * (nb[i] - 1) / 2 + nt[i] * (nt[i] - 1) / 2;
             if (n_best > nh) {
                 n_best = nh;
                 best = 'h';
                 i_best = i;
             }
         }
-        //std::cout << "best " << best << " n_best " << n_best << " i_best " << i_best << std::endl;
 
         if (best == 'x') {
             node.direction = 'x';
             node.shape_ids = std::move(stack_element.shape_ids);
             node.element_ids = std::move(stack_element.element_ids);
             node.point_ids = std::move(stack_element.point_ids);
-        } else if (best == 'v') {
-            node.direction = 'v';
-            node.position = xs.values[i_best];
-            Node child_left;
-            child_left.l = node.l;
-            child_left.r = xs.values[i_best];
-            child_left.b = node.b;
-            child_left.t = node.t;
-            StackElement stack_element_left;
-            stack_element_left.node_id = tree_.size();
-            node.lesser_child_id = tree_.size();
-            stack_element_left.shape_ids = std::move(left_shape_ids[i_best]);
-            stack_element_left.element_ids = std::move(left_element_ids[i_best]);
-            stack_element_left.point_ids = std::move(left_point_ids[i_best]);
-
-            Node child_right;
-            child_right.l = xs.values[i_best];
-            child_right.r = node.r;
-            child_right.b = node.b;
-            child_right.t = node.t;
-            StackElement stack_element_right;
-            stack_element_right.node_id = tree_.size() + 1;
-            node.greater_child_id = tree_.size() + 1;
-            stack_element_right.shape_ids = std::move(right_shape_ids[i_best]);
-            stack_element_right.element_ids = std::move(right_element_ids[i_best]);
-            stack_element_right.point_ids = std::move(right_point_ids[i_best]);
-
-            tree_.push_back(child_left);
-            tree_.push_back(child_right);
-            stack.push_back(std::move(stack_element_right));
-            stack.push_back(std::move(stack_element_left));
         } else {
-            node.direction = 'h';
-            node.position = ys.values[i_best];
-            Node child_bottom;
-            child_bottom.l = node.l;
-            child_bottom.r = node.r;
-            child_bottom.b = node.b;
-            child_bottom.t = ys.values[i_best];
-            StackElement stack_element_bottom;
-            stack_element_bottom.node_id = tree_.size();
-            node.lesser_child_id = tree_.size();
-            stack_element_bottom.shape_ids = std::move(bottom_shape_ids[i_best]);
-            stack_element_bottom.element_ids = std::move(bottom_element_ids[i_best]);
-            stack_element_bottom.point_ids = std::move(bottom_point_ids[i_best]);
+            // Build only the winning split's two partition lists.
+            StackElement stack_element_lesser;
+            StackElement stack_element_greater;
 
-            Node child_top;
-            child_top.l = node.l;
-            child_top.r = node.r;
-            child_top.b = ys.values[i_best];
-            child_top.t = node.t;
-            StackElement stack_element_top;
-            stack_element_top.node_id = tree_.size() + 1;
-            node.greater_child_id = tree_.size() + 1;
-            stack_element_top.shape_ids = std::move(top_shape_ids[i_best]);
-            stack_element_top.element_ids = std::move(top_element_ids[i_best]);
-            stack_element_top.point_ids = std::move(top_point_ids[i_best]);
+            if (best == 'v') {
+                LengthDbl split = xs.values[i_best];
+                node.direction = 'v';
+                node.position = split;
+                for (ShapePos shape_id: stack_element.shape_ids) {
+                    const AxisAlignedBoundingBox& aabb = shapes_min_max[shape_id];
+                    if (!strictly_greater(aabb.x_min, split))
+                        stack_element_lesser.shape_ids.push_back(shape_id);
+                    if (!strictly_lesser(aabb.x_max, split))
+                        stack_element_greater.shape_ids.push_back(shape_id);
+                }
+                for (ElementPos element_id: stack_element.element_ids) {
+                    const AxisAlignedBoundingBox& aabb = elements_min_max[element_id];
+                    if (!strictly_greater(aabb.x_min, split))
+                        stack_element_lesser.element_ids.push_back(element_id);
+                    if (!strictly_lesser(aabb.x_max, split))
+                        stack_element_greater.element_ids.push_back(element_id);
+                }
+                for (ElementPos point_id: stack_element.point_ids) {
+                    const Point& point = points[point_id];
+                    if (!strictly_greater(point.x, split))
+                        stack_element_lesser.point_ids.push_back(point_id);
+                    if (!strictly_lesser(point.x, split))
+                        stack_element_greater.point_ids.push_back(point_id);
+                }
+                Node child_lesser;
+                child_lesser.l = node.l;
+                child_lesser.r = split;
+                child_lesser.b = node.b;
+                child_lesser.t = node.t;
+                Node child_greater;
+                child_greater.l = split;
+                child_greater.r = node.r;
+                child_greater.b = node.b;
+                child_greater.t = node.t;
+                node.lesser_child_id = tree_.size();
+                node.greater_child_id = tree_.size() + 1;
+                tree_.push_back(child_lesser);
+                tree_.push_back(child_greater);
+            } else {  // best == 'h'
+                LengthDbl split = ys.values[i_best];
+                node.direction = 'h';
+                node.position = split;
+                for (ShapePos shape_id: stack_element.shape_ids) {
+                    const AxisAlignedBoundingBox& aabb = shapes_min_max[shape_id];
+                    if (!strictly_greater(aabb.y_min, split))
+                        stack_element_lesser.shape_ids.push_back(shape_id);
+                    if (!strictly_lesser(aabb.y_max, split))
+                        stack_element_greater.shape_ids.push_back(shape_id);
+                }
+                for (ElementPos element_id: stack_element.element_ids) {
+                    const AxisAlignedBoundingBox& aabb = elements_min_max[element_id];
+                    if (!strictly_greater(aabb.y_min, split))
+                        stack_element_lesser.element_ids.push_back(element_id);
+                    if (!strictly_lesser(aabb.y_max, split))
+                        stack_element_greater.element_ids.push_back(element_id);
+                }
+                for (ElementPos point_id: stack_element.point_ids) {
+                    const Point& point = points[point_id];
+                    if (!strictly_greater(point.y, split))
+                        stack_element_lesser.point_ids.push_back(point_id);
+                    if (!strictly_lesser(point.y, split))
+                        stack_element_greater.point_ids.push_back(point_id);
+                }
+                Node child_lesser;
+                child_lesser.l = node.l;
+                child_lesser.r = node.r;
+                child_lesser.b = node.b;
+                child_lesser.t = split;
+                Node child_greater;
+                child_greater.l = node.l;
+                child_greater.r = node.r;
+                child_greater.b = split;
+                child_greater.t = node.t;
+                node.lesser_child_id = tree_.size();
+                node.greater_child_id = tree_.size() + 1;
+                tree_.push_back(child_lesser);
+                tree_.push_back(child_greater);
+            }
 
-            tree_.push_back(child_bottom);
-            tree_.push_back(child_top);
-            stack.push_back(std::move(stack_element_top));
-            stack.push_back(std::move(stack_element_bottom));
+            stack_element_lesser.node_id = node.lesser_child_id;
+            stack_element_greater.node_id = node.greater_child_id;
+            stack.push_back(std::move(stack_element_greater));
+            stack.push_back(std::move(stack_element_lesser));
         }
     }
     //std::cout << "IntersectionTree::IntersectionTree end" << std::endl;
