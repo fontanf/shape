@@ -78,6 +78,9 @@ IntersectionTree::IntersectionTree(
         elements_min_max[element_id] = element.min_max();
     }
 
+    ShapePos total_items = shapes.size() + elements.size() + points.size();
+    tree_.reserve(2 * total_items + 1);
+
     Node root;
     // Compute root bounds.
     for (ShapePos shape_id = 0;
@@ -117,7 +120,7 @@ IntersectionTree::IntersectionTree(
     std::iota(stack_initial_element.element_ids.begin(), stack_initial_element.element_ids.end(), 0);
     stack_initial_element.point_ids = std::vector<ElementPos>(points.size());
     std::iota(stack_initial_element.point_ids.begin(), stack_initial_element.point_ids.end(), 0);
-    stack.push_back(stack_initial_element);
+    stack.push_back(std::move(stack_initial_element));
 
     std::vector<double> values_x_right;
     std::vector<double> values_x_left;
@@ -164,7 +167,7 @@ IntersectionTree::IntersectionTree(
             values_y_top.push_back(shapes_min_max[shape_id].y_max);
         }
         for (ElementPos element_id: stack_element.element_ids) {
-            AxisAlignedBoundingBox aabb = elements[element_id].min_max();
+            const AxisAlignedBoundingBox& aabb = elements_min_max[element_id];
             values_x_left.push_back(aabb.x_min);
             values_x_right.push_back(aabb.x_max);
             values_y_bottom.push_back(aabb.y_min);
