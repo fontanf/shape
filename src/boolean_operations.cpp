@@ -655,11 +655,10 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         // Re-equalize points.
         std::vector<Point*> equalize_to_orig;
         std::vector<Point> equalize_input;
-        std::vector<SplittedElement> elements_tmp = splitted_elements;
         for (ElementPos element_pos = 0;
                 element_pos < (ElementPos)splitted_elements.size();
                 ++element_pos) {
-            ShapeElement& element = elements_tmp[element_pos].element;
+            ShapeElement& element = splitted_elements[element_pos].element;
             equalize_input.push_back(element.start);
             equalize_to_orig.push_back(&element.start);
             equalize_input.push_back(element.end);
@@ -672,7 +671,6 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         std::vector<Point> equalize_output = equalize_points(equalize_input);
         for (ElementPos pos = 0; pos < (ElementPos)equalize_output.size(); ++pos)
             *equalize_to_orig[pos] = equalize_output[pos];
-        splitted_elements = std::move(elements_tmp);
 
         // Re-recompute centers.
         for (SplittedElement& splitted_element: splitted_elements) {
@@ -1578,6 +1576,8 @@ HoleGraph compute_hole_graph(
 std::vector<ShapeElement> shape::find_holes_bridges(
         const ShapeWithHoles& shape)
 {
+    if (shape.holes.empty())
+        return {};
     HoleGraph hole_graph = compute_hole_graph(shape);
 
     std::vector<ShapeElement> bridges;
