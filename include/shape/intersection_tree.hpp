@@ -135,6 +135,8 @@ private:
 
     mutable optimizationtools::IndexedSet potentially_intersecting_points_;
 
+    mutable std::vector<NodeId> intersect_stack_;
+
     std::vector<Node> tree_;
 
 };
