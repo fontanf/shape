@@ -1072,6 +1072,12 @@ bool Shape::is_convex() const
 
 AreaDbl Shape::compute_area() const
 {
+    if (this->is_path) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "cannot compute the area of a path.");
+    }
+
     AreaDbl area = 0.0;
     for (const ShapeElement& element: elements) {
         if (element.type == ShapeElementType::CircularArc
@@ -1748,11 +1754,13 @@ bool Shape::check() const
         return false;
     }
 
-    AreaDbl area = this->compute_area();
-    if (strictly_lesser(area, 0)) {
-        std::cout << this->to_string(1) << std::endl;
-        std::cout << "negative area: " << area << "." << std::endl;
-        return false;
+    if (!this->is_path) {
+        AreaDbl area = this->compute_area();
+        if (strictly_lesser(area, 0)) {
+            std::cout << this->to_string(1) << std::endl;
+            std::cout << "negative area: " << area << "." << std::endl;
+            return false;
+        }
     }
 
     return true;
