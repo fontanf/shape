@@ -506,19 +506,28 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         // A Full circle with exactly one intersection point cannot be split into
         // two arcs. Add the antipodal point as a fake second split point so the
         // existing splitting logic produces two proper anticlockwise arcs.
+        auto& intersections = elements_intersections[element_pos];
+        const bool has_single_distinct_intersection =
+                !intersections.empty()
+                && std::all_of(
+                        intersections.begin(),
+                        intersections.end(),
+                        [&intersections](const Point& q) {
+                            return equal(q, intersections.front());
+                        });
         if (element.type == ShapeElementType::CircularArc
                 && element.orientation == ShapeElementOrientation::Full
-                && elements_intersections[element_pos].size() == 1) {
-            const Point& p = elements_intersections[element_pos].front();
-            elements_intersections[element_pos].push_back({
+                && has_single_distinct_intersection) {
+            const Point& p = intersections.front();
+            intersections.push_back({
                 2 * element.center.x - p.x,
                 2 * element.center.y - p.y});
         }
 
         // Sort intersection points of this element.
         std::sort(
-                elements_intersections[element_pos].begin(),
-                elements_intersections[element_pos].end(),
+                intersections.begin(),
+                intersections.end(),
                 [&element](
                     const Point& point_1,
                     const Point& point_2)
@@ -528,13 +537,13 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         // Create new elements.
         if (element.type == ShapeElementType::CircularArc
                 && element.orientation == ShapeElementOrientation::Full
-                && !elements_intersections[element_pos].empty()) {
-            element.start = elements_intersections[element_pos].front();
-            element.end = elements_intersections[element_pos].front();
+                && !intersections.empty()) {
+            element.start = intersections.front();
+            element.end = intersections.front();
         }
 
         bool first = true;
-        for (const Point& point_cur: elements_intersections[element_pos]) {
+        for (const Point& point_cur: intersections) {
             // Skip segment ends and duplicated intersections.
             if (point_cur == element.start
                     || point_cur == element.end) {
