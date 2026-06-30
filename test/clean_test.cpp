@@ -118,6 +118,85 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct CleanExtremeSlopesInnerTestParams
+{
+    std::string name;
+    Shape shape;
+    std::vector<Shape> expected_output;
+
+
+    static CleanExtremeSlopesInnerTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        CleanExtremeSlopesInnerTestParams test_params;
+        test_params.name = file_path;
+        test_params.shape = Shape::from_json(json["shape"]);
+        for (auto& json_shape: json["expected_output"].items())
+            test_params.expected_output.emplace_back(Shape::from_json(json_shape.value()));
+        return test_params;
+    }
+};
+
+void PrintTo(const CleanExtremeSlopesInnerTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(2) << "\n";
+    *os << "expected_output\n";
+    for (const Shape& shape: params.expected_output)
+        *os << shape.to_string(2) << "\n";
+}
+
+class CleanExtremeSlopesInnerTest: public testing::TestWithParam<CleanExtremeSlopesInnerTestParams> { };
+
+TEST_P(CleanExtremeSlopesInnerTest, CleanExtremeSlopesInner)
+{
+    CleanExtremeSlopesInnerTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+
+    std::vector<Shape> output = clean_extreme_slopes_inner(test_params.shape);
+    std::cout << "output" << std::endl;
+    for (const Shape& shape: output)
+        std::cout << shape.to_string(2) << std::endl;
+
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const Shape& expected_shape: test_params.expected_output) {
+        EXPECT_NE(std::find_if(
+                      output.begin(),
+                      output.end(),
+                      [&expected_shape](const Shape& shape) { return equal(shape, expected_shape); }),
+                  output.end());
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        CleanExtremeSlopesInnerTest,
+        testing::ValuesIn(std::vector<CleanExtremeSlopesInnerTestParams>{
+            {
+                "Square",
+                build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+                {build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}})},
+            }, {
+                "NearVerticalSpike",
+                build_shape({{0, 0}, {10, -10}, {10.1, -110}, {20, 0}}),
+                {build_shape({{0, 0}, {10.1, -110}, {20, 0}})},
+            },
+            CleanExtremeSlopesInnerTestParams::read_json(
+                    (fs::path("data") / "tests" / "clean" / "clean_extreme_slopes_inner" / "0.json").string()),
+        }),
+        [](const testing::TestParamInfo<CleanExtremeSlopesInnerTest::ParamType>& info) {
+            return fs::path(info.param.name).stem().string();
+        });
+
+
 struct FixSelfIntersectionsTestParams
 {
     std::string name;
