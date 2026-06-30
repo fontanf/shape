@@ -5,8 +5,10 @@
 #include "shape/elements_intersections.hpp"
 #include "shape/equalize.hpp"
 #include "shape/boolean_operations.hpp"
+#include "shape/shapes_intersections.hpp"
 #ifdef CLEAN_ENABLE_DEBUG
 #include "shape/writer.hpp"
+#include <fstream>
 #endif
 
 //#include <iostream>
@@ -282,7 +284,8 @@ namespace
 {
 
 Shape clean_extreme_slopes_outer_1(
-        Shape shape_orig)
+        Shape shape_orig,
+        std::vector<Shape>& triangles_added)
 {
     Shape shape = shape_orig;
 
@@ -344,9 +347,8 @@ Shape clean_extreme_slopes_outer_1(
                 shape_new.elements.push_back(element_cur);
                 start = element_cur.end;
             } else {
-                //std::cout << "remove" << std::endl;
-                //std::cout << "element_cur:  " << element_cur.to_string() << std::endl;
-                //std::cout << "element_next: " << element_next.to_string() << std::endl;
+                triangles_added.push_back(build_triangle(
+                            start, element_cur.end, element_next.end));
             }
         }
         shape_new.elements[0].start = start;
@@ -414,9 +416,8 @@ Shape clean_extreme_slopes_outer_1(
                 shape_new.elements.push_back(element_cur);
                 end = element_cur.start;
             } else {
-                //std::cout << "remove" << std::endl;
-                //std::cout << "element_cur:  " << element_cur.to_string() << std::endl;
-                //std::cout << "element_prev: " << element_prev.to_string() << std::endl;
+                triangles_added.push_back(build_triangle(
+                            element_prev.start, element_cur.start, end));
             }
         }
         shape_new.elements[0].end = end;
@@ -428,7 +429,8 @@ Shape clean_extreme_slopes_outer_1(
 }
 
 Shape clean_extreme_slopes_inner_1(
-        const Shape& shape_orig)
+        const Shape& shape_orig,
+        std::vector<Shape>& triangles_removed)
 {
     Shape shape = shape_orig;
 
@@ -489,6 +491,9 @@ Shape clean_extreme_slopes_inner_1(
             if (!remove) {
                 shape_new.elements.push_back(element_cur);
                 start = element_cur.end;
+            } else {
+                triangles_removed.push_back(build_triangle(
+                            start, element_cur.end, element_next.end));
             }
         }
         shape_new.elements[0].start = start;
@@ -552,6 +557,9 @@ Shape clean_extreme_slopes_inner_1(
             if (!remove) {
                 shape_new.elements.push_back(element_cur);
                 end = element_cur.start;
+            } else {
+                triangles_removed.push_back(build_triangle(
+                            element_prev.start, element_cur.start, end));
             }
         }
         shape_new.elements[0].end = end;
@@ -563,7 +571,8 @@ Shape clean_extreme_slopes_inner_1(
 }
 
 Shape clean_extreme_slopes_outer_2(
-        const Shape& shape_orig)
+        const Shape& shape_orig,
+        std::vector<Shape>& triangles_added)
 {
     if (!shape_orig.check()) {
         throw std::invalid_argument(
@@ -594,6 +603,8 @@ Shape clean_extreme_slopes_outer_2(
                         element_prev.start, element_prev.end,
                         {element_cur.end.x, element_cur.start.y}, element_cur.end);
                 if (p.first) {
+                    triangles_added.push_back(build_triangle(
+                                element_prev.start, element_cur.start, element_cur.end));
                     element_prev.end = p.second;
                     element_cur.start = p.second;
                 }
@@ -608,6 +619,8 @@ Shape clean_extreme_slopes_outer_2(
                         element_prev.start, element_prev.end,
                         {element_cur.start.x, element_cur.end.y}, element_cur.end);
                 if (p.first) {
+                    triangles_added.push_back(build_triangle(
+                                element_prev.start, element_cur.start, element_cur.end));
                     element_prev.end = p.second;
                     element_cur.start = p.second;
                 }
@@ -637,6 +650,8 @@ Shape clean_extreme_slopes_outer_2(
                         element_cur.start, {element_cur.start.x, element_cur.end.y},
                         element_next.start, element_next.end);
                 if (p.first) {
+                    triangles_added.push_back(build_triangle(
+                                element_cur.start, element_cur.end, element_next.end));
                     element_cur.end = p.second;
                     element_next.start = p.second;
                 }
@@ -651,6 +666,8 @@ Shape clean_extreme_slopes_outer_2(
                         element_cur.start, {element_cur.end.x, element_cur.start.y},
                         element_next.start, element_next.end);
                 if (p.first) {
+                    triangles_added.push_back(build_triangle(
+                                element_cur.start, element_cur.end, element_next.end));
                     element_cur.end = p.second;
                     element_next.start = p.second;
                 }
@@ -664,7 +681,8 @@ Shape clean_extreme_slopes_outer_2(
 }
 
 Shape clean_extreme_slopes_inner_2(
-        const Shape& shape_orig)
+        const Shape& shape_orig,
+        std::vector<Shape>& triangles_removed)
 {
     Shape shape = shape_orig;
     ElementPos element_prev_pos = shape.elements.size() - 1;
@@ -691,6 +709,8 @@ Shape clean_extreme_slopes_inner_2(
                         element_prev.start, element_prev.end,
                         {element_cur.end.x, element_cur.start.y}, element_cur.end);
                 if (p.first) {
+                    triangles_removed.push_back(build_triangle(
+                                element_prev.start, element_cur.start, element_cur.end));
                     element_prev.end = p.second;
                     element_cur.start = p.second;
                 }
@@ -705,6 +725,8 @@ Shape clean_extreme_slopes_inner_2(
                         element_prev.start, element_prev.end,
                         {element_cur.start.x, element_cur.end.y}, element_cur.end);
                 if (p.first) {
+                    triangles_removed.push_back(build_triangle(
+                                element_prev.start, element_cur.start, element_cur.end));
                     element_prev.end = p.second;
                     element_cur.start = p.second;
                 }
@@ -737,6 +759,8 @@ Shape clean_extreme_slopes_inner_2(
                         element_cur.start, {element_cur.start.x, element_cur.end.y},
                         element_next.start, element_next.end);
                 if (p.first) {
+                    triangles_removed.push_back(build_triangle(
+                                element_cur.start, element_cur.end, element_next.end));
                     element_cur.end = p.second;
                     element_next.start = p.second;
                 }
@@ -751,6 +775,8 @@ Shape clean_extreme_slopes_inner_2(
                         element_cur.start, {element_cur.end.x, element_cur.start.y},
                         element_next.start, element_next.end);
                 if (p.first) {
+                    triangles_removed.push_back(build_triangle(
+                                element_cur.start, element_cur.end, element_next.end));
                     element_cur.end = p.second;
                     element_next.start = p.second;
                 }
@@ -775,22 +801,37 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
     }
 
     Shape shape = shape_orig;
+    std::vector<Shape> triangles_added;
 
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
 
-    shape = clean_extreme_slopes_outer_1(shape);
+    shape = clean_extreme_slopes_outer_1(shape, triangles_added);
 
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
 
-    shape = clean_extreme_slopes_outer_2(shape);
+    shape = clean_extreme_slopes_outer_2(shape, triangles_added);
 
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
+
+    if (!triangles_added.empty() && intersect(shape)) {
+        // The naive in-place mutations performed by clean_extreme_slopes_outer_1
+        // and clean_extreme_slopes_outer_2 can produce a self-intersecting
+        // shape. When that happens, fall back to a robust reconstruction:
+        // union the corner triangles identified by those two passes with the
+        // original shape, the same approach used by simplify() to recover
+        // from invalid in-place simplifications.
+        std::vector<ShapeWithHoles> shapes_to_union = {{shape_orig}};
+        for (const Shape& triangle: triangles_added)
+            shapes_to_union.push_back({triangle});
+        std::vector<ShapeWithHoles> u = compute_union(shapes_to_union);
+        return u.front();
+    }
 
     if (!shape.check()) {
         throw std::invalid_argument(
@@ -810,26 +851,51 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
     }
 
     Shape shape = shape_orig;
+    std::vector<Shape> triangles_removed;
 
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
 
-    shape = clean_extreme_slopes_inner_1(shape);
+    shape = clean_extreme_slopes_inner_1(shape, triangles_removed);
 
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
 
-    shape = clean_extreme_slopes_inner_2(shape);
+    shape = clean_extreme_slopes_inner_2(shape, triangles_removed);
 
     shape = equalize_shape(shape);
     shape = remove_redundant_vertices(shape).second;
     shape = remove_aligned_vertices(shape).second;
+
+    if (!triangles_removed.empty() && intersect(shape)) {
+        // The naive in-place mutations performed by clean_extreme_slopes_inner_1
+        // and clean_extreme_slopes_inner_2 can produce a self-intersecting
+        // shape. When that happens, fall back to a robust reconstruction: cut
+        // the corner triangles identified by those two passes directly out of
+        // the original shape using a boolean difference, the same approach
+        // used by simplify() to recover from invalid in-place simplifications.
+        std::vector<ShapeWithHoles> triangles_removed_swh;
+        for (const Shape& triangle: triangles_removed)
+            triangles_removed_swh.push_back({triangle});
+        std::vector<ShapeWithHoles> difference = compute_difference(
+                {{shape_orig}},
+                triangles_removed_swh);
+
+        std::vector<Shape> output;
+        for (const ShapeWithHoles& shape_with_holes: difference)
+            output.push_back(shape_with_holes.shape);
+        return output;
+    }
 
     if (!shape.check()) {
 #ifdef CLEAN_ENABLE_DEBUG
         Writer().add_shape(shape_orig).add_shape(shape).write_json("tmp.json");
+        std::ofstream file{"clean_extreme_slopes_inner_inputs.json"};
+        nlohmann::json json;
+        json["shape"] = shape_orig.to_json();
+        file << std::setw(4) << json << std::endl;
 #endif
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
