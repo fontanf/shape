@@ -53,6 +53,53 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct FlattenArcsTestParams
+{
+    std::string name;
+    Shape shape;
+    Shape expected_shape;
+};
+
+void PrintTo(const FlattenArcsTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "expected_shape " << params.expected_shape.to_string(0) << "\n";
+}
+
+class FlattenArcsTest: public testing::TestWithParam<FlattenArcsTestParams> { };
+
+TEST_P(FlattenArcsTest, FlattenArcs)
+{
+    FlattenArcsTestParams test_params = GetParam();
+    Shape output_shape = flatten_arcs(test_params.shape);
+    std::cout << output_shape.to_string(0) << std::endl;
+    EXPECT_EQ(test_params.expected_shape, output_shape);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        ,
+        FlattenArcsTest,
+        testing::ValuesIn(std::vector<FlattenArcsTestParams>{
+            {
+                // A full circle (start == end) must not be flattened into a
+                // zero-length line segment: its chord midpoint formula
+                // degenerates to its start/end point, which trivially lies
+                // on the arc and would otherwise be misdetected as flat.
+                "Circle",
+                build_circle(1.0),
+                build_circle(1.0),
+            }, {
+                // A genuinely curved (non-flat) partial arc must not be
+                // flattened either.
+                "QuarterCircle",
+                build_shape({build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise)}),
+                build_shape({build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise)}),
+            }}),
+        [](const testing::TestParamInfo<FlattenArcsTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
 struct CleanExtremeSlopesOuterTestParams
 {
     std::string name;

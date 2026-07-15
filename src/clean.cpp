@@ -223,7 +223,12 @@ Shape shape::flatten_arcs(
 {
     Shape new_shape = shape;
     for (ShapeElement& element: new_shape.elements) {
+        // A full circle (start == end) is never flat: its chord midpoint
+        // formula degenerates to its start/end point, which trivially lies
+        // on the arc and would otherwise cause it to be misdetected as flat
+        // and collapsed into a zero-length line segment.
         if (element.type == ShapeElementType::CircularArc
+                && element.orientation != ShapeElementOrientation::Full
                 && element.contains((element.start + element.end) / 2)) {
             element.type = ShapeElementType::LineSegment;
         }
