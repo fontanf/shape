@@ -189,6 +189,79 @@ ComponentBridge find_component_bridge(
     return bridge;
 }
 
+/**
+ * Bridge inner_component_id into outer_component_id: connects the two
+ * components into a single planar graph component (as a slit with no area
+ * of its own) so the face-tracing algorithm can walk both boundaries in one
+ * pass. Every shape keeps its real boundary in the arrangement, so
+ * is_inside is computed normally for both components instead of assuming
+ * one of them is trivially satisfied.
+ */
+void bridge_components(
+        ComponentId inner_component_id,
+        ComponentId outer_component_id,
+        const std::vector<ShapeWithHoles>& shapes,
+        std::vector<ShapeElement>& elements,
+        std::vector<ElementToSplit>& elements_info,
+        std::vector<std::vector<Point>>& elements_intersections,
+        optimizationtools::DoublyIndexedMap& shape_component_ids)
+{
+    ComponentBridge bridge = find_component_bridge(
+            inner_component_id,
+            outer_component_id,
+            shapes,
+            elements,
+            elements_info,
+            shape_component_ids);
+
+    ElementPos bridge_pos = elements.size();
+    elements.push_back(bridge.element);
+    {
+        ElementToSplit element_info;
+        element_info.orig_shape_id = bridge.orig_shape_id;
+        elements_info.push_back(element_info);
+    }
+    elements_intersections.push_back({});
+
+    // Compute intersections of the bridge with all existing
+    // elements so planar graph nodes are consistent.
+    for (ElementPos element_pos = 0;
+            element_pos < bridge_pos;
+            ++element_pos) {
+        ShapeElementIntersectionsOutput bridge_intersections
+            = compute_intersections(
+                    bridge.element, elements[element_pos]);
+        for (const ShapeElement& overlapping_part:
+                bridge_intersections.overlapping_parts) {
+            elements_intersections[bridge_pos].push_back(
+                    overlapping_part.start);
+            elements_intersections[bridge_pos].push_back(
+                    overlapping_part.end);
+            elements_intersections[element_pos].push_back(
+                    overlapping_part.start);
+            elements_intersections[element_pos].push_back(
+                    overlapping_part.end);
+        }
+        for (const Point& point:
+                bridge_intersections.proper_intersections) {
+            elements_intersections[bridge_pos].push_back(point);
+            elements_intersections[element_pos].push_back(point);
+        }
+        for (const Point& point:
+                bridge_intersections.improper_intersections) {
+            elements_intersections[bridge_pos].push_back(point);
+            elements_intersections[element_pos].push_back(point);
+        }
+    }
+
+    // Merge inner_component_id into outer_component_id.
+    while (shape_component_ids.number_of_elements(inner_component_id) > 0) {
+        shape_component_ids.set(
+                *shape_component_ids.begin(inner_component_id),
+                outer_component_id);
+    }
+}
+
 
 ComputeSplittedElementsOutput compute_splitted_elements(
         const std::vector<ShapeWithHoles>& shapes,
@@ -373,72 +446,33 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 }
                 break;
             } case BooleanOperation::Intersection: {
-                while (output.shape_component_ids.number_of_elements(component_2_id) > 0) {
-                    output.shape_component_ids.set(
-                            *output.shape_component_ids.begin(component_2_id),
-                            shapes.size());
-                }
-                break;
-            } case BooleanOperation::Difference: {
-                // component_id is strictly inside component_2_id.
-                // Bridge the two components so the planar graph can represent
-                // the subtractor as a hole in the base.
-                ComponentBridge bridge = find_component_bridge(
+                // component_id is strictly inside component_2_id with no
+                // shared boundary. Bridge them into one arrangement (as for
+                // Difference below) so every shape's real boundary is still
+                // traced and is_inside is computed normally for both
+                // components, instead of assuming component_2_id is
+                // trivially satisfied and dropping it outright.
+                bridge_components(
                         component_id,
                         component_2_id,
                         shapes,
                         elements,
                         elements_info,
+                        elements_intersections,
                         output.shape_component_ids);
-
-                ElementPos bridge_pos = elements.size();
-                elements.push_back(bridge.element);
-                {
-                    ElementToSplit element_info;
-                    element_info.orig_shape_id = bridge.orig_shape_id;
-                    elements_info.push_back(element_info);
-                }
-                elements_intersections.push_back({});
-
-                // Compute intersections of the bridge with all existing
-                // elements so planar graph nodes are consistent.
-                for (ElementPos element_pos = 0;
-                        element_pos < bridge_pos;
-                        ++element_pos) {
-                    ShapeElementIntersectionsOutput bridge_intersections
-                        = compute_intersections(
-                                bridge.element, elements[element_pos]);
-                    for (const ShapeElement& overlapping_part:
-                            bridge_intersections.overlapping_parts) {
-                        elements_intersections[bridge_pos].push_back(
-                                overlapping_part.start);
-                        elements_intersections[bridge_pos].push_back(
-                                overlapping_part.end);
-                        elements_intersections[element_pos].push_back(
-                                overlapping_part.start);
-                        elements_intersections[element_pos].push_back(
-                                overlapping_part.end);
-                    }
-                    for (const Point& point:
-                            bridge_intersections.proper_intersections) {
-                        elements_intersections[bridge_pos].push_back(point);
-                        elements_intersections[element_pos].push_back(point);
-                    }
-                    for (const Point& point:
-                            bridge_intersections.improper_intersections) {
-                        elements_intersections[bridge_pos].push_back(point);
-                        elements_intersections[element_pos].push_back(point);
-                    }
-                }
-
-                // Merge component_id into component_2_id.
-                while (output.shape_component_ids.number_of_elements(
-                        component_id) > 0) {
-                    output.shape_component_ids.set(
-                            *output.shape_component_ids.begin(component_id),
-                            component_2_id);
-                }
-
+                break;
+            } case BooleanOperation::Difference: {
+                // component_id is strictly inside component_2_id.
+                // Bridge the two components so the planar graph can represent
+                // the subtractor as a hole in the base.
+                bridge_components(
+                        component_id,
+                        component_2_id,
+                        shapes,
+                        elements,
+                        elements_info,
+                        elements_intersections,
+                        output.shape_component_ids);
                 break;
             } case BooleanOperation::SymmetricDifference: {
                 throw std::logic_error(
