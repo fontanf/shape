@@ -163,7 +163,7 @@ Shape shape::no_fit_polygon(
     return remove_aligned_vertices(result).second;
 }
 
-std::vector<ShapeWithHoles> shape::no_fit_polygon(
+MultiShapeWithHoles shape::no_fit_polygon(
         const ShapeWithHoles& fixed_shape,
         const ShapeWithHoles& orbiting_shape)
 {

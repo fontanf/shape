@@ -205,7 +205,7 @@ TEST_P(ComputeBooleanUnionTest, ComputeBooleanUnion)
         }
     }
     auto output = compute_union(
-            test_params.shapes);
+            test_params.shapes).shapes_with_holes;
     std::cout << "output" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
@@ -341,7 +341,7 @@ TEST_P(ComputeBooleanIntersectionTest, ComputeBooleanIntersection)
 #endif
 
     auto output = compute_intersection(
-            test_params.shapes);
+            test_params.shapes).shapes_with_holes;
     std::cout << "output" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
@@ -405,7 +405,7 @@ INSTANTIATE_TEST_SUITE_P(
 struct ComputeBooleanIntersectionMultiShapeTestParams
 {
     std::string name;
-    std::vector<std::vector<ShapeWithHoles>> multi_shapes;
+    std::vector<MultiShapeWithHoles> multi_shapes;
     std::vector<ShapeWithHoles> expected_output;
 };
 
@@ -417,7 +417,7 @@ void PrintTo(const ComputeBooleanIntersectionMultiShapeTestParams& params, std::
             group_pos < (Counter)params.multi_shapes.size();
             ++group_pos) {
         *os << "group " << group_pos << "\n";
-        for (const ShapeWithHoles& shape: params.multi_shapes[group_pos])
+        for (const ShapeWithHoles& shape: params.multi_shapes[group_pos].shapes_with_holes)
             *os << "- " << shape.to_string(2) << "\n";
     }
     *os << "expected_output\n";
@@ -433,7 +433,7 @@ TEST_P(ComputeBooleanIntersectionMultiShapeTest, ComputeBooleanIntersectionMulti
     PrintTo(test_params, &std::cout);
 
     auto output = compute_intersection(
-            test_params.multi_shapes);
+            test_params.multi_shapes).shapes_with_holes;
     std::cout << "output" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
@@ -456,12 +456,12 @@ INSTANTIATE_TEST_SUITE_P(
                // which overlap the other group.
                 "TwoGroupsWithDisjointPieces",
                 {
-                    {
+                    MultiShapeWithHoles{{
                         {build_rectangle(0, 2, 0, 1)},
                         {build_rectangle(10, 12, 0, 1)},
-                    }, {
+                    }}, MultiShapeWithHoles{{
                         {build_rectangle(1, 11, -1, 2)},
-                    },
+                    }},
                 },
                 {
                     {build_rectangle(1, 2, 0, 1)},
@@ -470,9 +470,9 @@ INSTANTIATE_TEST_SUITE_P(
             }, {  // Three groups, each a single shape.
                 "ThreeGroupsIntersection",
                 {
-                    {{build_rectangle(0, 10, 0, 10)}},
-                    {{build_rectangle(5, 15, -5, 5)}},
-                    {{build_rectangle(-5, 8, 2, 8)}},
+                    MultiShapeWithHoles{{{build_rectangle(0, 10, 0, 10)}}},
+                    MultiShapeWithHoles{{{build_rectangle(5, 15, -5, 5)}}},
+                    MultiShapeWithHoles{{{build_rectangle(-5, 8, 2, 8)}}},
                 },
                 {
                     {build_rectangle(5, 8, 2, 5)},
@@ -481,15 +481,15 @@ INSTANTIATE_TEST_SUITE_P(
                // the intersection must be empty.
                 "EmptyGroupYieldsEmptyResult",
                 {
-                    {{build_rectangle(0, 10, 0, 10)}},
-                    {},
+                    MultiShapeWithHoles{{{build_rectangle(0, 10, 0, 10)}}},
+                    MultiShapeWithHoles{},
                 },
                 {},
             }, {  // Groups whose unions don't overlap at all.
                 "NonOverlappingGroupsYieldEmptyResult",
                 {
-                    {{build_rectangle(0, 5, 0, 5)}},
-                    {{build_rectangle(10, 15, 10, 15)}},
+                    MultiShapeWithHoles{{{build_rectangle(0, 5, 0, 5)}}},
+                    MultiShapeWithHoles{{{build_rectangle(10, 15, 10, 15)}}},
                 },
                 {},
             }, {  // One group has two pieces that overlap each other,
@@ -497,12 +497,12 @@ INSTANTIATE_TEST_SUITE_P(
                // straddling both pieces.
                 "OverlappingPiecesWithinGroup",
                 {
-                    {
+                    MultiShapeWithHoles{{
                         {build_rectangle(0, 2, 0, 2)},
                         {build_rectangle(1, 2, 0, 4)},
-                    }, {
+                    }}, MultiShapeWithHoles{{
                         {build_rectangle(0.5, 1.5, 1, 3)},
-                    },
+                    }},
                 },
                 {
                     {build_shape({
@@ -519,8 +519,8 @@ INSTANTIATE_TEST_SUITE_P(
 struct ComputeBooleanDifferenceTestParams
 {
     std::string name;
-    std::vector<ShapeWithHoles> shapes_1;
-    std::vector<ShapeWithHoles> shapes;
+    MultiShapeWithHoles shapes_1;
+    MultiShapeWithHoles shapes;
     std::vector<ShapeWithHoles> expected_output;
 
 
@@ -538,10 +538,8 @@ struct ComputeBooleanDifferenceTestParams
         file >> json;
         ComputeBooleanDifferenceTestParams test_params;
         test_params.name = file_path;
-        for (auto& json_shape: json["shapes_1"].items())
-            test_params.shapes_1.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json["shapes"].items())
-            test_params.shapes.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+        test_params.shapes_1 = MultiShapeWithHoles::from_json(json["shapes_1"]);
+        test_params.shapes = MultiShapeWithHoles::from_json(json["shapes"]);
         for (auto& json_shape: json["expected_output"].items())
             test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
@@ -552,10 +550,10 @@ void PrintTo(const ComputeBooleanDifferenceTestParams& params, std::ostream* os)
 {
     *os << "Testing " << params.name << "...\n";
     *os << "shapes_1\n";
-    for (const ShapeWithHoles& shape: params.shapes_1)
+    for (const ShapeWithHoles& shape: params.shapes_1.shapes_with_holes)
         *os << "- " << shape.to_string(2) << "\n";
     *os << "shapes\n";
-    for (const ShapeWithHoles& shape: params.shapes)
+    for (const ShapeWithHoles& shape: params.shapes.shapes_with_holes)
         *os << "- " << shape.to_string(2) << "\n";
     *os << "expected_output\n";
     for (const ShapeWithHoles& shape: params.expected_output)
@@ -571,7 +569,7 @@ TEST_P(ComputeBooleanDifferenceTest, ComputeBooleanDifference)
 
     auto output = compute_difference(
             test_params.shapes_1,
-            test_params.shapes);
+            test_params.shapes).shapes_with_holes;
     std::cout << "output" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
@@ -611,8 +609,8 @@ INSTANTIATE_TEST_SUITE_P(
 struct ComputeBooleanSymmetricDifferenceTestParams
 {
     std::string name;
-    std::vector<ShapeWithHoles> shapes_1;
-    std::vector<ShapeWithHoles> shapes_2;
+    MultiShapeWithHoles shapes_1;
+    MultiShapeWithHoles shapes_2;
     std::vector<ShapeWithHoles> expected_output;
 
 
@@ -630,10 +628,8 @@ struct ComputeBooleanSymmetricDifferenceTestParams
         file >> json;
         ComputeBooleanSymmetricDifferenceTestParams test_params;
         test_params.name = file_path;
-        for (auto& json_shape: json["shapes_1"].items())
-            test_params.shapes_1.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
-        for (auto& json_shape: json["shapes_2"].items())
-            test_params.shapes_2.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+        test_params.shapes_1 = MultiShapeWithHoles::from_json(json["shapes_1"]);
+        test_params.shapes_2 = MultiShapeWithHoles::from_json(json["shapes_2"]);
         for (auto& json_shape: json["expected_output"].items())
             test_params.expected_output.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
         return test_params;
@@ -644,10 +640,10 @@ void PrintTo(const ComputeBooleanSymmetricDifferenceTestParams& params, std::ost
 {
     *os << "Testing " << params.name << "...\n";
     *os << "shapes_1\n";
-    for (const ShapeWithHoles& shape: params.shapes_1)
+    for (const ShapeWithHoles& shape: params.shapes_1.shapes_with_holes)
         *os << "- " << shape.to_string(2) << "\n";
     *os << "shapes_2\n";
-    for (const ShapeWithHoles& shape: params.shapes_2)
+    for (const ShapeWithHoles& shape: params.shapes_2.shapes_with_holes)
         *os << "- " << shape.to_string(2) << "\n";
     *os << "expected_output\n";
     for (const ShapeWithHoles& shape: params.expected_output)
@@ -663,7 +659,7 @@ TEST_P(ComputeBooleanSymmetricDifferenceTest, ComputeBooleanSymetricDifference)
 
     auto output = compute_symmetric_difference(
             test_params.shapes_1,
-            test_params.shapes_2);
+            test_params.shapes_2).shapes_with_holes;
     std::cout << "output" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << "- " << shape.to_string(2) << std::endl;
@@ -890,7 +886,7 @@ TEST_P(BridgeTouchingHolesTest, BridgeTouchingHoles)
     BridgeTouchingHolesTestParams test_params = GetParam();
     PrintTo(test_params, &std::cout);
 
-    std::vector<ShapeWithHoles> output = bridge_touching_holes(test_params.shape);
+    std::vector<ShapeWithHoles> output = bridge_touching_holes(test_params.shape).shapes_with_holes;
     std::cout << "output" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << shape.to_string(2) << std::endl;

@@ -385,7 +385,7 @@ ShapeWithHoles shape::approximate_shape_by_line_segments(
     }
 
     //Writer().add_shapes_with_holes(union_input).write_json("union_input.json");
-    std::vector<ShapeWithHoles> union_output = compute_union(union_input);
+    std::vector<ShapeWithHoles> union_output = compute_union(union_input).shapes_with_holes;
     return union_output.front();
 }
 
@@ -555,7 +555,7 @@ ShapeWithHoles shape::approximate_by_line_segments(
         shape_new.holes.push_back(hole_new);
     }
 
-    std::vector<ShapeWithHoles> union_output = compute_union(union_input);
+    std::vector<ShapeWithHoles> union_output = compute_union(union_input).shapes_with_holes;
 #ifdef APPROXIMATE_ENABLE_DEBUG
     Writer()
         .add_shape_with_holes(shape_orig, "Input shape")

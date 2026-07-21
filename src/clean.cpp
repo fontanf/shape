@@ -834,7 +834,7 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
         std::vector<ShapeWithHoles> shapes_to_union = {{shape_orig}};
         for (const Shape& triangle: triangles_added)
             shapes_to_union.push_back({triangle});
-        std::vector<ShapeWithHoles> u = compute_union(shapes_to_union);
+        std::vector<ShapeWithHoles> u = compute_union(shapes_to_union).shapes_with_holes;
         return u.front();
     }
 
@@ -885,8 +885,8 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
         for (const Shape& triangle: triangles_removed)
             triangles_removed_swh.push_back({triangle});
         std::vector<ShapeWithHoles> difference = compute_difference(
-                {{shape_orig}},
-                triangles_removed_swh);
+                MultiShapeWithHoles{{{shape_orig}}},
+                MultiShapeWithHoles{triangles_removed_swh}).shapes_with_holes;
 
         std::vector<Shape> output;
         for (const ShapeWithHoles& shape_with_holes: difference)
@@ -910,19 +910,20 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
     return {shape};
 }
 
-std::vector<ShapeWithHoles> shape::fix_self_intersections(
+MultiShapeWithHoles shape::fix_self_intersections(
         const ShapeWithHoles& shape)
 {
     //std::cout << "fix_self_intersections" << std::endl;
     //Writer().add_shape_with_holes(shape).write_json("fix_self_intersections_input.json");
-    std::vector<ShapeWithHoles> shapes = bridge_touching_holes(shape);
+    std::vector<ShapeWithHoles> shapes = bridge_touching_holes(shape).shapes_with_holes;
     if (shapes.size() == 1)
-        return {shape};
-    std::vector<ShapeWithHoles> output(shapes.size());
+        return {{shape}};
+    MultiShapeWithHoles output;
+    output.shapes_with_holes.resize(shapes.size());
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
             ++shape_pos) {
-        output[shape_pos] = compute_union({shapes[shape_pos]}).front();
+        output.shapes_with_holes[shape_pos] = compute_union({shapes[shape_pos]}).shapes_with_holes.front();
     }
     return output;
 }

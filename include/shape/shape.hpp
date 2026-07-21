@@ -783,17 +783,42 @@ ShapeWithHoles operator*(
         LengthDbl scalar,
         const ShapeWithHoles& shape);
 
-void shift(
-        std::vector<ShapeWithHoles>& shapes_with_holes,
-        LengthDbl x,
-        LengthDbl y);
-
-inline void shift(
-        std::vector<ShapeWithHoles>& shapes_with_holes,
-        const Point& vector)
+/**
+ * Structure for a set of possibly disjoint shapes with holes, i.e. a
+ * multi-shape, the union of several `ShapeWithHoles`.
+ */
+struct MultiShapeWithHoles
 {
-    shift(shapes_with_holes, vector.x, vector.y);
-}
+    std::vector<ShapeWithHoles> shapes_with_holes;
+
+    MultiShapeWithHoles& shift(
+            LengthDbl x,
+            LengthDbl y);
+
+    MultiShapeWithHoles& shift(
+            const Point& vector)
+    {
+        return this->shift(vector.x, vector.y);
+    }
+
+    /*
+     * Export
+     */
+
+    template <class basic_json>
+    static MultiShapeWithHoles from_json(basic_json& json_shape);
+
+    static MultiShapeWithHoles read_json(
+            const std::string& file_path);
+
+    nlohmann::json to_json() const;
+
+    void write_json(
+            const std::string& file_path) const;
+
+    std::string to_svg(
+            const std::string& fill_color = "blue") const;
+};
 
 struct BuildShapeElement
 {
@@ -969,6 +994,16 @@ ShapeWithHoles ShapeWithHoles::from_json(basic_json& json_shape)
     }
 
     return shape;
+}
+
+template <class basic_json>
+MultiShapeWithHoles MultiShapeWithHoles::from_json(basic_json& json_shape)
+{
+    MultiShapeWithHoles multi_shape;
+    for (auto& json_shape_with_holes: json_shape.items())
+        multi_shape.shapes_with_holes.push_back(
+                ShapeWithHoles::from_json(json_shape_with_holes.value()));
+    return multi_shape;
 }
 
 }

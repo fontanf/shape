@@ -949,7 +949,7 @@ std::vector<ShapeWithHoles> shape::simplify(
             }
         }
         if (fix || intersect(shapes_new[shape_pos]))
-            shapes_new[shape_pos] = compute_union(union_inputs[shape_pos]).front();
+            shapes_new[shape_pos] = compute_union(union_inputs[shape_pos]).shapes_with_holes.front();
     }
 
     // Check output.

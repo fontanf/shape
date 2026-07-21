@@ -8,7 +8,7 @@ namespace shape
 /**
  * Compute the union of a given set of shapes.
  */
-std::vector<ShapeWithHoles> compute_union(
+MultiShapeWithHoles compute_union(
         const std::vector<ShapeWithHoles>& shapes);
 
 void compute_union_export_inputs(
@@ -18,7 +18,7 @@ void compute_union_export_inputs(
 /**
  * Compute the intersection of a given set of shapes.
  */
-std::vector<ShapeWithHoles> compute_intersection(
+MultiShapeWithHoles compute_intersection(
         const std::vector<ShapeWithHoles>& shapes);
 
 void compute_intersection_export_inputs(
@@ -32,22 +32,22 @@ void compute_intersection_export_inputs(
  * the result if it belongs to at least one `ShapeWithHoles` of every
  * multi-shape.
  */
-std::vector<ShapeWithHoles> compute_intersection(
-        const std::vector<std::vector<ShapeWithHoles>>& multi_shapes);
+MultiShapeWithHoles compute_intersection(
+        const std::vector<MultiShapeWithHoles>& multi_shapes);
 
 /**
  * Compute the difference between two multi-shapes.
  */
-std::vector<ShapeWithHoles> compute_difference(
-        const std::vector<ShapeWithHoles>& shapes_1,
-        const std::vector<ShapeWithHoles>& shapes_2);
+MultiShapeWithHoles compute_difference(
+        const MultiShapeWithHoles& shapes_1,
+        const MultiShapeWithHoles& shapes_2);
 
 /**
  * Compute the symmetric difference between two multi-shapes.
  */
-std::vector<ShapeWithHoles> compute_symmetric_difference(
-        const std::vector<ShapeWithHoles>& shapes_1,
-        const std::vector<ShapeWithHoles>& shapes_2);
+MultiShapeWithHoles compute_symmetric_difference(
+        const MultiShapeWithHoles& shapes_1,
+        const MultiShapeWithHoles& shapes_2);
 
 Shape extract_outline(
         const Shape& shape);
@@ -67,7 +67,7 @@ std::vector<ShapeElement> find_holes_bridges(
  * This creates an invalid shape but is a necessary preprocess for the
  * trapezoidation algorithm.
  */
-std::vector<ShapeWithHoles> bridge_touching_holes(
+MultiShapeWithHoles bridge_touching_holes(
         const ShapeWithHoles& shape);
 
 }

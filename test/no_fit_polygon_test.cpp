@@ -131,7 +131,7 @@ TEST_P(NoFitPolygonGeneralTest, NoFitPolygonGeneral)
 
     std::vector<ShapeWithHoles> nfp = no_fit_polygon(
             test_params.fixed_shape,
-            test_params.orbiting_shape);
+            test_params.orbiting_shape).shapes_with_holes;
 
     std::cout << "nfp (" << nfp.size() << " component(s))" << std::endl;
     for (const ShapeWithHoles& component: nfp)

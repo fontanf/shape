@@ -1367,7 +1367,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     }
 
     if (boolean_operation == BooleanOperation::Union)
-        new_shapes = fix_self_intersections(new_shapes[0]);
+        new_shapes = fix_self_intersections(new_shapes[0]).shapes_with_holes;
 
     return new_shapes;
 }
@@ -1494,7 +1494,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
 
 }
 
-std::vector<ShapeWithHoles> shape::compute_union(
+MultiShapeWithHoles shape::compute_union(
         const std::vector<ShapeWithHoles>& shapes)
 {
     //std::cout << "compute_union " << shapes.size() << std::endl;
@@ -1502,9 +1502,9 @@ std::vector<ShapeWithHoles> shape::compute_union(
     //        "compute_union_inputs.json",
     //        shapes);
 
-    return compute_boolean_operation(
+    return {compute_boolean_operation(
             shapes,
-            BooleanOperation::Union);
+            BooleanOperation::Union)};
 }
 
 void shape::compute_union_export_inputs(
@@ -1521,7 +1521,7 @@ void shape::compute_union_export_inputs(
     file << std::setw(4) << json << std::endl;
 }
 
-std::vector<ShapeWithHoles> shape::compute_intersection(
+MultiShapeWithHoles shape::compute_intersection(
         const std::vector<ShapeWithHoles>& shapes)
 {
     std::vector<ShapeWithHoles> faces = compute_boolean_operation(
@@ -1544,13 +1544,13 @@ void shape::compute_intersection_export_inputs(
     file << std::setw(4) << json << std::endl;
 }
 
-std::vector<ShapeWithHoles> shape::compute_intersection(
-        const std::vector<std::vector<ShapeWithHoles>>& multi_shapes)
+MultiShapeWithHoles shape::compute_intersection(
+        const std::vector<MultiShapeWithHoles>& multi_shapes)
 {
     // An empty multi-shape represents an empty region: intersecting with it
     // always yields an empty result.
-    for (const std::vector<ShapeWithHoles>& multi_shape: multi_shapes)
-        if (multi_shape.empty())
+    for (const MultiShapeWithHoles& multi_shape: multi_shapes)
+        if (multi_shape.shapes_with_holes.empty())
             return {};
 
     std::vector<ShapeWithHoles> shapes;
@@ -1558,7 +1558,7 @@ std::vector<ShapeWithHoles> shape::compute_intersection(
     for (ShapePos group_id = 0;
             group_id < (ShapePos)multi_shapes.size();
             ++group_id) {
-        for (const ShapeWithHoles& shape: multi_shapes[group_id]) {
+        for (const ShapeWithHoles& shape: multi_shapes[group_id].shapes_with_holes) {
             shapes.push_back(shape);
             group_ids.push_back(group_id);
         }
@@ -1572,29 +1572,29 @@ std::vector<ShapeWithHoles> shape::compute_intersection(
     return compute_union(faces);
 }
 
-std::vector<ShapeWithHoles> shape::compute_difference(
-        const std::vector<ShapeWithHoles>& shapes_1,
-        const std::vector<ShapeWithHoles>& shapes_2)
+MultiShapeWithHoles shape::compute_difference(
+        const MultiShapeWithHoles& shapes_1,
+        const MultiShapeWithHoles& shapes_2)
 {
-    std::vector<ShapeWithHoles> v = shapes_1;
-    v.insert(v.end(), shapes_2.begin(), shapes_2.end());
+    std::vector<ShapeWithHoles> v = shapes_1.shapes_with_holes;
+    v.insert(v.end(), shapes_2.shapes_with_holes.begin(), shapes_2.shapes_with_holes.end());
     std::vector<ShapeWithHoles> faces = compute_boolean_operation(
             v,
             BooleanOperation::Difference,
-            shapes_1.size());
+            shapes_1.shapes_with_holes.size());
     return compute_union(faces);
 }
 
-std::vector<ShapeWithHoles> shape::compute_symmetric_difference(
-        const std::vector<ShapeWithHoles>& shapes_1,
-        const std::vector<ShapeWithHoles>& shapes_2)
+MultiShapeWithHoles shape::compute_symmetric_difference(
+        const MultiShapeWithHoles& shapes_1,
+        const MultiShapeWithHoles& shapes_2)
 {
-    std::vector<ShapeWithHoles> v = shapes_1;
-    v.insert(v.end(), shapes_2.begin(), shapes_2.end());
+    std::vector<ShapeWithHoles> v = shapes_1.shapes_with_holes;
+    v.insert(v.end(), shapes_2.shapes_with_holes.begin(), shapes_2.shapes_with_holes.end());
     std::vector<ShapeWithHoles> faces = compute_boolean_operation(
             v,
             BooleanOperation::SymmetricDifference,
-            shapes_1.size());
+            shapes_1.shapes_with_holes.size());
     return compute_union(faces);
 }
 
@@ -1773,7 +1773,7 @@ std::vector<ShapeElement> shape::find_holes_bridges(
     return bridges;
 }
 
-std::vector<ShapeWithHoles> shape::bridge_touching_holes(
+MultiShapeWithHoles shape::bridge_touching_holes(
         const ShapeWithHoles& shape)
 {
     HoleGraph hole_graph = compute_hole_graph(shape);
@@ -1788,7 +1788,7 @@ std::vector<ShapeWithHoles> shape::bridge_touching_holes(
     std::vector<ShapeWithHoles> faces = compute_boolean_operation(
             v,
             BooleanOperation::Difference);
-    std::vector<ShapeWithHoles> output;
+    MultiShapeWithHoles output;
     for (const ShapeWithHoles& face: faces) {
         ShapeWithHoles shape_with_holes = face;
         for (ShapePos hole_pos = 0;
@@ -1800,7 +1800,7 @@ std::vector<ShapeWithHoles> shape::bridge_touching_holes(
             if (face.contains(hole.find_point_strictly_inside(), true))
                 shape_with_holes.holes.push_back(hole);
         }
-        output.push_back(shape_with_holes);
+        output.shapes_with_holes.push_back(shape_with_holes);
     }
     return output;
 }

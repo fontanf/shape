@@ -57,7 +57,7 @@ TEST_P(ConvexPartitionTest, ConvexPartition)
 
     // Check 3: the union of all parts equals the input shape.
     std::vector<ShapeWithHoles> union_output =
-        compute_union(parts_as_shapes_with_holes);
+        compute_union(parts_as_shapes_with_holes).shapes_with_holes;
     std::cout << "union contains " << union_output.size() << " shape(s)" << std::endl;
     if (!union_output.empty())
         std::cout << "union: " << union_output[0].to_string(0) << std::endl;

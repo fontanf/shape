@@ -265,7 +265,7 @@ TEST_P(FixSelfIntersectionsTest, FixSelfIntersections)
 {
     FixSelfIntersectionsTestParams test_params = GetParam();
     PrintTo(test_params, &std::cout);
-    std::vector<ShapeWithHoles> output = fix_self_intersections(test_params.shape);
+    std::vector<ShapeWithHoles> output = fix_self_intersections(test_params.shape).shapes_with_holes;
     std::cout << "output:" << std::endl;
     for (const ShapeWithHoles& shape: output)
         std::cout << shape.to_string(2) << std::endl;
