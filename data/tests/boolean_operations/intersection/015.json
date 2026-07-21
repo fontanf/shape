@@ -1,0 +1,35 @@
+{
+  "description": "Two overlapping rectangles A, B (one connected component) plus a third rectangle D nested with no boundary contact strictly inside both. Expected: D itself, since D is fully inside A and B. Currently fails: the nested-component-drop optimization in compute_splitted_elements discards A/B's boundary once D is found nested inside their merged component, without verifying D is really inside every shape of that component, not just one.",
+  "shapes": [
+    {
+      "type": "rectangle",
+      "x": 0,
+      "y": 0,
+      "width": 10,
+      "height": 10
+    },
+    {
+      "type": "rectangle",
+      "x": 5,
+      "y": 0,
+      "width": 10,
+      "height": 10
+    },
+    {
+      "type": "rectangle",
+      "x": 6,
+      "y": 1,
+      "width": 2,
+      "height": 2
+    }
+  ],
+  "expected_output": [
+    {
+      "type": "rectangle",
+      "x": 6,
+      "y": 1,
+      "width": 2,
+      "height": 2
+    }
+  ]
+}
