@@ -354,7 +354,9 @@ ShapeWithHoles shape::approximate_shape_by_line_segments(
     //std::cout << "shape_new " << shape_new.to_string(0) << std::endl;
     if (!intersect(shape_new)) {
         if (!shape_new.is_polygon()) {
-            throw std::logic_error(FUNC_SIGNATURE);
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": "
+                    "shape still contains elements that are not line segments.");
         }
         return shape_new;
     }
@@ -496,7 +498,9 @@ ShapeWithHoles shape::approximate_by_line_segments(
 
     if (!intersect(shape_new)) {
         if (!shape_new.is_polygon()) {
-            throw std::logic_error(FUNC_SIGNATURE);
+            throw std::logic_error(
+                    FUNC_SIGNATURE + ": "
+                    "shape still contains elements that are not line segments after approximation.");
         }
         return shape_new;
     }
@@ -508,9 +512,18 @@ ShapeWithHoles shape::approximate_by_line_segments(
         case ShapeElementType::LineSegment: {
             break;
         } case ShapeElementType::CircularArc: {
-            std::vector<Shape> extras = compute_circular_arc_extras_outer(
-                    element,
-                    segment_length);
+            // Matches approximate_shape_by_line_segments's dispatch: which
+            // extras function actually matches the real chord approximation's
+            // vertex placement depends on both `outer` and the arc's own
+            // orientation, not on `outer` alone.
+            bool b = (element.orientation != ShapeElementOrientation::Clockwise);
+            std::vector<Shape> extras = (b)?
+                compute_circular_arc_extras_outer(
+                        element,
+                        segment_length):
+                compute_circular_arc_extras_inner(
+                        element,
+                        segment_length);
             for (const Shape& extra: extras)
                 union_input.push_back({extra});
             break;
@@ -525,9 +538,14 @@ ShapeWithHoles shape::approximate_by_line_segments(
             case ShapeElementType::LineSegment: {
                 break;
             } case ShapeElementType::CircularArc: {
-                std::vector<Shape> extras = compute_circular_arc_extras_inner(
-                        element,
-                        segment_length);
+                bool b = (element.orientation == ShapeElementOrientation::Clockwise);
+                std::vector<Shape> extras = (b)?
+                    compute_circular_arc_extras_outer(
+                            element,
+                            segment_length):
+                    compute_circular_arc_extras_inner(
+                            element,
+                            segment_length);
                 for (const Shape& extra: extras)
                     union_input.push_back({extra});
                 break;
@@ -546,7 +564,9 @@ ShapeWithHoles shape::approximate_by_line_segments(
         .write_json("union_input.json");
 #endif
     if (!union_output.front().is_polygon()) {
-        throw std::logic_error(FUNC_SIGNATURE);
+        throw std::logic_error(
+                FUNC_SIGNATURE + ": "
+                "shape still contains elements that are not line segments after union.");
     }
     return union_output.front();
 }
