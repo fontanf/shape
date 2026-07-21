@@ -402,6 +402,120 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct ComputeBooleanIntersectionMultiShapeTestParams
+{
+    std::string name;
+    std::vector<std::vector<ShapeWithHoles>> multi_shapes;
+    std::vector<ShapeWithHoles> expected_output;
+};
+
+void PrintTo(const ComputeBooleanIntersectionMultiShapeTestParams& params, std::ostream* os)
+{
+    *os << "Testing " << params.name << "...\n";
+    *os << "multi_shapes\n";
+    for (Counter group_pos = 0;
+            group_pos < (Counter)params.multi_shapes.size();
+            ++group_pos) {
+        *os << "group " << group_pos << "\n";
+        for (const ShapeWithHoles& shape: params.multi_shapes[group_pos])
+            *os << "- " << shape.to_string(2) << "\n";
+    }
+    *os << "expected_output\n";
+    for (const ShapeWithHoles& shape: params.expected_output)
+        *os << "- " << shape.to_string(2) << "\n";
+}
+
+class ComputeBooleanIntersectionMultiShapeTest: public testing::TestWithParam<ComputeBooleanIntersectionMultiShapeTestParams> { };
+
+TEST_P(ComputeBooleanIntersectionMultiShapeTest, ComputeBooleanIntersectionMultiShape)
+{
+    ComputeBooleanIntersectionMultiShapeTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+
+    auto output = compute_intersection(
+            test_params.multi_shapes);
+    std::cout << "output" << std::endl;
+    for (const ShapeWithHoles& shape: output)
+        std::cout << "- " << shape.to_string(2) << std::endl;
+
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (const ShapeWithHoles& expected_shape: test_params.expected_output) {
+        EXPECT_NE(std::find_if(
+                      output.begin(),
+                      output.end(),
+                      [&expected_shape](const ShapeWithHoles& shape) { return equal(shape, expected_shape); }),
+                  output.end());
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ComputeBooleanIntersectionMultiShapeTest,
+        testing::ValuesIn(std::vector<ComputeBooleanIntersectionMultiShapeTestParams>{
+            {  // Two groups; one group has two disjoint pieces, only parts of
+               // which overlap the other group.
+                "TwoGroupsWithDisjointPieces",
+                {
+                    {
+                        {build_rectangle(0, 2, 0, 1)},
+                        {build_rectangle(10, 12, 0, 1)},
+                    }, {
+                        {build_rectangle(1, 11, -1, 2)},
+                    },
+                },
+                {
+                    {build_rectangle(1, 2, 0, 1)},
+                    {build_rectangle(10, 11, 0, 1)},
+                },
+            }, {  // Three groups, each a single shape.
+                "ThreeGroupsIntersection",
+                {
+                    {{build_rectangle(0, 10, 0, 10)}},
+                    {{build_rectangle(5, 15, -5, 5)}},
+                    {{build_rectangle(-5, 8, 2, 8)}},
+                },
+                {
+                    {build_rectangle(5, 8, 2, 5)},
+                },
+            }, {  // A group with no shape at all represents an empty region:
+               // the intersection must be empty.
+                "EmptyGroupYieldsEmptyResult",
+                {
+                    {{build_rectangle(0, 10, 0, 10)}},
+                    {},
+                },
+                {},
+            }, {  // Groups whose unions don't overlap at all.
+                "NonOverlappingGroupsYieldEmptyResult",
+                {
+                    {{build_rectangle(0, 5, 0, 5)}},
+                    {{build_rectangle(10, 15, 10, 15)}},
+                },
+                {},
+            }, {  // One group has two pieces that overlap each other,
+               // forming a step/L-shaped union, intersected with a rectangle
+               // straddling both pieces.
+                "OverlappingPiecesWithinGroup",
+                {
+                    {
+                        {build_rectangle(0, 2, 0, 2)},
+                        {build_rectangle(1, 2, 0, 4)},
+                    }, {
+                        {build_rectangle(0.5, 1.5, 1, 3)},
+                    },
+                },
+                {
+                    {build_shape({
+                        {0.5, 1}, {1.5, 1}, {1.5, 3}, {1, 3}, {1, 2}, {0.5, 2},
+                    })},
+                },
+            },
+        }),
+        [](const testing::TestParamInfo<ComputeBooleanIntersectionMultiShapeTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
 struct ComputeBooleanDifferenceTestParams
 {
     std::string name;
