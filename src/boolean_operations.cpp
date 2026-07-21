@@ -979,7 +979,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
         ComputeSplittedElementsOutput& cse_output,
         ComponentId component_id,
         BooleanOperation boolean_operation,
-        ShapePos num_shapes_1 = 1)
+        ShapePos num_shapes_1 = 1,
+        const std::vector<ShapePos>& group_ids = {},
+        ShapePos num_groups = 0)
 {
     //std::cout << "compute_boolean_operation_component" << std::endl;
     //for (const SplittedElement& splitted_element: splitted_elements)
@@ -1008,11 +1010,14 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
     //}
 
     std::vector<ShapeWithHoles> component_shapes;
+    std::vector<ShapePos> component_group_ids;
     for (auto it = cse_output.shape_component_ids.begin(component_id);
             it != cse_output.shape_component_ids.end(component_id);
             ++it) {
         component_shapes.push_back(shapes[*it]);
+        component_group_ids.push_back(group_ids.empty()? *it: group_ids[*it]);
     }
+    ShapePos component_num_groups = group_ids.empty()? (ShapePos)shapes.size(): num_groups;
     IntersectionTree intersection_tree(component_shapes, {}, {});
 
     // Find an element from the outline.
@@ -1197,12 +1202,20 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
             break;
         } case BooleanOperation::Intersection: {
-            // Fast check.
-            bool ok = true;
+            // Fast check: the face must be inside at least one shape of
+            // every group.
+            std::vector<uint8_t> is_inside_group(component_num_groups, 0);
             for (ShapePos shape_pos = 0;
                     shape_pos < (ShapePos)component_shapes.size();
                     ++shape_pos) {
-                if (!is_inside[shape_pos]) {
+                if (is_inside[shape_pos])
+                    is_inside_group[component_group_ids[shape_pos]] = 1;
+            }
+            bool ok = true;
+            for (ShapePos group_pos = 0;
+                    group_pos < component_num_groups;
+                    ++group_pos) {
+                if (!is_inside_group[group_pos]) {
                     ok = false;
                     break;
                 }
@@ -1219,7 +1232,19 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             IntersectionTree::IntersectOutput intersection_output = intersection_tree.intersect(
                     face.find_point_strictly_inside(),
                     false);
-            if (intersection_output.shape_ids.size() == shapes.size()) {
+            std::vector<uint8_t> real_inside_group(component_num_groups, 0);
+            for (ShapePos shape_pos: intersection_output.shape_ids)
+                real_inside_group[component_group_ids[shape_pos]] = 1;
+            bool real_ok = true;
+            for (ShapePos group_pos = 0;
+                    group_pos < component_num_groups;
+                    ++group_pos) {
+                if (!real_inside_group[group_pos]) {
+                    real_ok = false;
+                    break;
+                }
+            }
+            if (real_ok) {
                 //std::cout << "add face" << std::endl;
                 face = remove_redundant_vertices(face).second;
                 face = remove_aligned_vertices(face).second;
@@ -1350,7 +1375,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 std::vector<ShapeWithHoles> compute_boolean_operation(
         const std::vector<ShapeWithHoles>& shapes,
         BooleanOperation boolean_operation,
-        ShapePos num_shapes_1 = 1)
+        ShapePos num_shapes_1 = 1,
+        const std::vector<ShapePos>& group_ids = {})
 {
     //std::cout << "compute_boolean_operation " << (int)boolean_operation << " shapes.size() " << shapes.size() << std::endl;
     //if (boolean_operation == BooleanOperation::Difference)
@@ -1389,10 +1415,17 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
     // shape.
     ComputeSplittedElementsOutput cse_output = compute_splitted_elements(shapes, boolean_operation);
 
-    if (boolean_operation == BooleanOperation::Intersection) {
-        if (cse_output.shape_component_ids.number_of_values() > 1)
-            return output;
+    // Number of groups for the Intersection operation: with no explicit
+    // grouping, each shape is its own group (identical to the previous,
+    // non-grouped behavior).
+    ShapePos num_groups = (ShapePos)shapes.size();
+    if (!group_ids.empty()) {
+        num_groups = 0;
+        for (ShapePos group_id: group_ids)
+            if (group_id + 1 > num_groups)
+                num_groups = group_id + 1;
     }
+
     if (boolean_operation == BooleanOperation::SymmetricDifference
             && num_shapes_1 == 1) {
         if (cse_output.shape_component_ids.number_of_values() > 1)
@@ -1418,6 +1451,27 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
             if (!contains_shapes_1)
                 continue;
         }
+        if (boolean_operation == BooleanOperation::Intersection) {
+            // Skip this component unless it contains at least one shape
+            // from every group; otherwise no face of this component can be
+            // inside every group.
+            std::vector<uint8_t> component_has_group(num_groups, 0);
+            for (auto it = cse_output.shape_component_ids.begin(component_id);
+                    it != cse_output.shape_component_ids.end(component_id);
+                    ++it) {
+                ShapePos group_id = group_ids.empty()? *it: group_ids[*it];
+                component_has_group[group_id] = 1;
+            }
+            bool contains_all_groups = true;
+            for (ShapePos group_id = 0; group_id < num_groups; ++group_id) {
+                if (!component_has_group[group_id]) {
+                    contains_all_groups = false;
+                    break;
+                }
+            }
+            if (!contains_all_groups)
+                continue;
+        }
         // Compute the union of the shapes from this component.
         //std::cout << "component_id " << component_id
         //    << " " << cse_output.shape_component_ids.number_of_elements(component_id)
@@ -1427,7 +1481,9 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
                 cse_output,
                 component_id,
                 boolean_operation,
-                num_shapes_1);
+                num_shapes_1,
+                group_ids,
+                num_groups);
         for (const ShapeWithHoles& new_shape: new_shapes)
             output.push_back(new_shape);
     }
@@ -1486,6 +1542,34 @@ void shape::compute_intersection_export_inputs(
         json["shapes"][shape_pos] = shapes[shape_pos].to_json();
     }
     file << std::setw(4) << json << std::endl;
+}
+
+std::vector<ShapeWithHoles> shape::compute_intersection(
+        const std::vector<std::vector<ShapeWithHoles>>& multi_shapes)
+{
+    // An empty multi-shape represents an empty region: intersecting with it
+    // always yields an empty result.
+    for (const std::vector<ShapeWithHoles>& multi_shape: multi_shapes)
+        if (multi_shape.empty())
+            return {};
+
+    std::vector<ShapeWithHoles> shapes;
+    std::vector<ShapePos> group_ids;
+    for (ShapePos group_id = 0;
+            group_id < (ShapePos)multi_shapes.size();
+            ++group_id) {
+        for (const ShapeWithHoles& shape: multi_shapes[group_id]) {
+            shapes.push_back(shape);
+            group_ids.push_back(group_id);
+        }
+    }
+
+    std::vector<ShapeWithHoles> faces = compute_boolean_operation(
+            shapes,
+            BooleanOperation::Intersection,
+            1,
+            group_ids);
+    return compute_union(faces);
 }
 
 std::vector<ShapeWithHoles> shape::compute_difference(

@@ -26,6 +26,16 @@ void compute_intersection_export_inputs(
         const std::vector<ShapeWithHoles>& shapes);
 
 /**
+ * Compute the intersection of a given set of multi-shapes.
+ *
+ * Each multi-shape is the union of its `ShapeWithHoles`; a point belongs to
+ * the result if it belongs to at least one `ShapeWithHoles` of every
+ * multi-shape.
+ */
+std::vector<ShapeWithHoles> compute_intersection(
+        const std::vector<std::vector<ShapeWithHoles>>& multi_shapes);
+
+/**
  * Compute the difference between two multi-shapes.
  */
 std::vector<ShapeWithHoles> compute_difference(
