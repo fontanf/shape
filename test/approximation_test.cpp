@@ -277,6 +277,8 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "0.json").string()),
             ApproximateByLineSegmentsTestParams::read_json(
                     (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "1.json").string()),
+            ApproximateByLineSegmentsTestParams::read_json(
+                    (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "2.json").string()),
         }),
         [](const testing::TestParamInfo<ApproximateByLineSegmentsTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
