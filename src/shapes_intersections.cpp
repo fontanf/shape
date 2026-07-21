@@ -1057,7 +1057,7 @@ bool shape::intersect(
         return false;
     }
 
-    return !compute_intersection({shape_with_holes_1, shape_with_holes_2}).empty();
+    return !compute_intersection({shape_with_holes_1, shape_with_holes_2}).shapes_with_holes.empty();
 }
 
 void shape::intersect_export_inputs(

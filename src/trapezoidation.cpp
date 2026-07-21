@@ -181,7 +181,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
     //std::cout << "polygon_trapezoidation" << std::endl;
     //std::cout << shape.to_string(0) << std::endl;
     //write_json({shape}, {}, "trapezoidation_input.json");
-    ShapeWithHoles shape = bridge_touching_holes(shape_orig).front();
+    ShapeWithHoles shape = bridge_touching_holes(shape_orig).shapes_with_holes.front();
     //std::cout << shape.to_string(0) << std::endl;
 
     std::vector<GeneralizedTrapezoid> trapezoids;

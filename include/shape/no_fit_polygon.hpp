@@ -36,9 +36,9 @@ Shape no_fit_polygon(
  * then returns the union of all those convex NFPs.
  *
  * The result may consist of several disconnected components or contain holes,
- * hence the return type is a vector of ShapeWithHoles.
+ * hence the return type is a MultiShapeWithHoles.
  */
-std::vector<ShapeWithHoles> no_fit_polygon(
+MultiShapeWithHoles no_fit_polygon(
         const ShapeWithHoles& fixed_shape,
         const ShapeWithHoles& orbiting_shape);
 

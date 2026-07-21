@@ -308,7 +308,7 @@ Shape shape::cell_to_shape(
             {(cell.column + 1) * cell_width, (cell.row + 1) * cell_height});
 }
 
-std::vector<ShapeWithHoles> shape::cells_to_shapes(
+MultiShapeWithHoles shape::cells_to_shapes(
         const std::vector<Cell>& cells,
         LengthDbl cell_width,
         LengthDbl cell_height)
@@ -319,7 +319,7 @@ std::vector<ShapeWithHoles> shape::cells_to_shapes(
     return compute_union(union_input);
 }
 
-std::vector<ShapeWithHoles> shape::cells_to_shapes(
+MultiShapeWithHoles shape::cells_to_shapes(
         const std::vector<IntersectedCell>& cells,
         LengthDbl cell_width,
         LengthDbl cell_height,

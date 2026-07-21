@@ -48,7 +48,7 @@ Shape cell_to_shape(
 /**
  * Convert a list of cells into shapes with holes.
  */
-std::vector<ShapeWithHoles> cells_to_shapes(
+MultiShapeWithHoles cells_to_shapes(
         const std::vector<Cell>& cells,
         LengthDbl cell_width,
         LengthDbl cell_height);
@@ -56,7 +56,7 @@ std::vector<ShapeWithHoles> cells_to_shapes(
 /**
  * Convert a list of intersected cells into shapes with holes.
  */
-std::vector<ShapeWithHoles> cells_to_shapes(
+MultiShapeWithHoles cells_to_shapes(
         const std::vector<IntersectedCell>& cells,
         LengthDbl cell_width,
         LengthDbl cell_height,

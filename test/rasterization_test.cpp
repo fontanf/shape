@@ -132,8 +132,8 @@ TEST_P(RasterizationTest, Rasterization)
     std::vector<Cell> all_cells;
     for (const IntersectedCell& cell: cells)
         all_cells.push_back(cell.cell);
-    ShapeWithHoles cells_union = cells_to_shapes(all_cells, test_params.cell_width, test_params.cell_height).front();
-    std::vector<ShapeWithHoles> union_output = compute_union({cells_union, test_params.shape});
+    ShapeWithHoles cells_union = cells_to_shapes(all_cells, test_params.cell_width, test_params.cell_height).shapes_with_holes.front();
+    std::vector<ShapeWithHoles> union_output = compute_union({cells_union, test_params.shape}).shapes_with_holes;
     EXPECT_EQ(union_output.size(), 1);
     EXPECT_TRUE(equal(union_output.front(), cells_union));
 }

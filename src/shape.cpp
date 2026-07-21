@@ -2353,13 +2353,62 @@ ShapeWithHoles shape::operator*(
     return shape_new;
 }
 
-void shift(
-        std::vector<ShapeWithHoles>& shapes_with_holes,
+MultiShapeWithHoles& MultiShapeWithHoles::shift(
         LengthDbl x,
         LengthDbl y)
 {
-    for (ShapeWithHoles& shape_with_holes: shapes_with_holes)
+    for (ShapeWithHoles& shape_with_holes: this->shapes_with_holes)
         shape_with_holes.shift(x, y);
+    return *this;
+}
+
+MultiShapeWithHoles MultiShapeWithHoles::read_json(
+        const std::string& file_path)
+{
+    std::ifstream file(file_path);
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
+    }
+    nlohmann::json j;
+    file >> j;
+    return from_json(j);
+}
+
+nlohmann::json MultiShapeWithHoles::to_json() const
+{
+    nlohmann::json json;
+    for (Counter shape_pos = 0;
+            shape_pos < (Counter)this->shapes_with_holes.size();
+            ++shape_pos) {
+        json[shape_pos] = this->shapes_with_holes[shape_pos].to_json();
+    }
+    return json;
+}
+
+void MultiShapeWithHoles::write_json(
+        const std::string& file_path) const
+{
+    if (file_path.empty())
+        return;
+    std::ofstream file{file_path};
+    if (!file.good()) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "unable to open file \"" + file_path + "\".");
+    }
+    nlohmann::json json = this->to_json();
+    file << std::setw(4) << json << std::endl;
+}
+
+std::string MultiShapeWithHoles::to_svg(
+        const std::string& fill_color) const
+{
+    std::string s;
+    for (const ShapeWithHoles& shape_with_holes: this->shapes_with_holes)
+        s += shape_with_holes.to_svg(fill_color);
+    return s;
 }
 
 bool shape::operator==(

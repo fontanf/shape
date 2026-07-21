@@ -343,7 +343,7 @@ ShapeWithHoles shape::inflate(
     compute_union_export_inputs("compute_union_input.json", union_input);
     Writer().add_shapes_with_holes(union_input).write_json("shapes.json");
 #endif
-    return compute_union(union_input).front();
+    return compute_union(union_input).shapes_with_holes.front();
 }
 
 ShapeWithHoles shape::inflate(
@@ -533,7 +533,7 @@ ShapeWithHoles shape::inflate(
     compute_union_export_inputs("union_input.json", union_input);
     Writer().add_shape(shape_orig).add_shapes_with_holes(union_input).write_json("shapes.json");
 #endif
-    return compute_union(union_input).front();
+    return compute_union(union_input).shapes_with_holes.front();
 }
 
 std::vector<Shape> shape::deflate(
@@ -619,9 +619,11 @@ std::vector<Shape> shape::deflate(
         element_prev_pos = element_pos;
     }
 
-    auto difference_output = compute_difference(std::vector<ShapeWithHoles>{{shape}}, difference_input);
+    auto difference_output = compute_difference(
+            MultiShapeWithHoles{{{shape}}},
+            MultiShapeWithHoles{difference_input});
     std::vector<Shape> output;
-    for (const ShapeWithHoles& shape: difference_output)
+    for (const ShapeWithHoles& shape: difference_output.shapes_with_holes)
         output.push_back(shape.shape);
     return output;
 }
