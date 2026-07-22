@@ -1577,6 +1577,13 @@ MultiShapeWithHoles shape::compute_intersection(
     return compute_union(compute_intersection_faces(multi_shapes));
 }
 
+MultiShapeWithHoles shape::compute_intersection(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2)
+{
+    return compute_intersection(std::vector<ShapeWithHoles>{shape_1, shape_2});
+}
+
 MultiShapeWithHoles shape::compute_difference(
         const MultiShapeWithHoles& shapes_1,
         const MultiShapeWithHoles& shapes_2)
@@ -1590,6 +1597,15 @@ MultiShapeWithHoles shape::compute_difference(
     return compute_union(faces);
 }
 
+MultiShapeWithHoles shape::compute_difference(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2)
+{
+    return compute_difference(
+            MultiShapeWithHoles{{shape_1}},
+            MultiShapeWithHoles{{shape_2}});
+}
+
 MultiShapeWithHoles shape::compute_symmetric_difference(
         const MultiShapeWithHoles& shapes_1,
         const MultiShapeWithHoles& shapes_2)
@@ -1601,6 +1617,15 @@ MultiShapeWithHoles shape::compute_symmetric_difference(
             BooleanOperation::SymmetricDifference,
             shapes_1.shapes_with_holes.size());
     return compute_union(faces);
+}
+
+MultiShapeWithHoles shape::compute_symmetric_difference(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2)
+{
+    return compute_symmetric_difference(
+            MultiShapeWithHoles{{shape_1}},
+            MultiShapeWithHoles{{shape_2}});
 }
 
 Shape shape::extract_outline(
