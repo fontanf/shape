@@ -47,6 +47,13 @@ std::vector<ShapeWithHoles> compute_intersection_faces(
         const std::vector<MultiShapeWithHoles>& multi_shapes);
 
 /**
+ * Convenience overload of compute_intersection for two single shapes.
+ */
+MultiShapeWithHoles compute_intersection(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2);
+
+/**
  * Compute the difference between two multi-shapes.
  */
 MultiShapeWithHoles compute_difference(
@@ -54,11 +61,26 @@ MultiShapeWithHoles compute_difference(
         const MultiShapeWithHoles& shapes_2);
 
 /**
+ * Convenience overload of compute_difference for two single shapes.
+ */
+MultiShapeWithHoles compute_difference(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2);
+
+/**
  * Compute the symmetric difference between two multi-shapes.
  */
 MultiShapeWithHoles compute_symmetric_difference(
         const MultiShapeWithHoles& shapes_1,
         const MultiShapeWithHoles& shapes_2);
+
+/**
+ * Convenience overload of compute_symmetric_difference for two single
+ * shapes.
+ */
+MultiShapeWithHoles compute_symmetric_difference(
+        const ShapeWithHoles& shape_1,
+        const ShapeWithHoles& shape_2);
 
 Shape extract_outline(
         const Shape& shape);
