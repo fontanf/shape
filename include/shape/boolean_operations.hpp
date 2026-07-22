@@ -36,6 +36,17 @@ MultiShapeWithHoles compute_intersection(
         const std::vector<MultiShapeWithHoles>& multi_shapes);
 
 /**
+ * Same as compute_intersection, but return the individual faces of the
+ * intersection instead of merging them into a single MultiShapeWithHoles.
+ *
+ * Faces of touching/adjacent regions are not unioned together, so each
+ * face's provenance (e.g. which grid cell it came from) can still be
+ * recovered afterwards, typically via find_point_strictly_inside().
+ */
+std::vector<ShapeWithHoles> compute_intersection_faces(
+        const std::vector<MultiShapeWithHoles>& multi_shapes);
+
+/**
  * Compute the difference between two multi-shapes.
  */
 MultiShapeWithHoles compute_difference(
