@@ -55,11 +55,6 @@ void PrintTo(const RasterizationTestParams& params, std::ostream* os)
         << " cell_height " << params.cell_height << "\n";
 }
 
-bool operator==(const Cell& a, const Cell& b)
-{
-    return a.column == b.column && a.row == b.row;
-}
-
 class RasterizationTest: public testing::TestWithParam<RasterizationTestParams> { };
 
 TEST_P(RasterizationTest, Rasterization)
@@ -71,68 +66,81 @@ TEST_P(RasterizationTest, Rasterization)
     Writer writer;
     writer.add_shape_with_holes(test_params.shape).write_json("rasterization_input.json");
 #endif
-    std::vector<IntersectedCell> cells = rasterization(
+    RasterizedGrid grid = rasterization(
             test_params.shape,
             test_params.cell_width,
             test_params.cell_height);
 #ifdef RASTERIZATION_TEST_DEBUG
-    for (const IntersectedCell& cell: cells)
-        writer.add_shape(cell_to_shape(cell.cell, test_params.cell_width, test_params.cell_height));
+    for (ColumnId column = grid.column_offset;
+            column < grid.column_offset + grid.number_of_columns;
+            ++column) {
+        for (RowId row = grid.row_offset;
+                row < grid.row_offset + grid.number_of_rows;
+                ++row) {
+            if (grid.at(column, row) != CellState::Empty)
+                writer.add_shape(cell_to_shape({column, row}, test_params.cell_width, test_params.cell_height));
+        }
+    }
     writer.write_json("rasterization_output.json");
 #endif
 
-    std::cout << "cells (" << cells.size() << ")" << std::endl;
-    for (const IntersectedCell& ic: cells) {
-        std::cout << "  col=" << ic.cell.column
-            << " row=" << ic.cell.row
-            << " full=" << ic.full << std::endl;
+    std::cout << "grid " << grid.number_of_columns << "x" << grid.number_of_rows
+        << " offset (" << grid.column_offset << "," << grid.row_offset << ")" << std::endl;
+    for (ColumnId column = grid.column_offset;
+            column < grid.column_offset + grid.number_of_columns;
+            ++column) {
+        for (RowId row = grid.row_offset;
+                row < grid.row_offset + grid.number_of_rows;
+                ++row) {
+            CellState state = grid.at(column, row);
+            if (state == CellState::Empty)
+                continue;
+            std::cout << "  col=" << column
+                << " row=" << row
+                << " state=" << (state == CellState::Full? "Full": "Border") << std::endl;
+        }
     }
 
-    // Property 1: no duplicate cells.
-    std::vector<Cell> cell_keys;
-    for (const IntersectedCell& ic: cells)
-        cell_keys.push_back(ic.cell);
-    std::sort(
-            cell_keys.begin(),
-            cell_keys.end(),
-            [](const Cell& a, const Cell& b) {
-                if (a.column != b.column)
-                    return a.column < b.column;
-                return a.row < b.row;
-            });
-    for (size_t i = 1; i < cell_keys.size(); ++i) {
-        EXPECT_FALSE(cell_keys[i] == cell_keys[i - 1])
-            << "duplicate cell col=" << cell_keys[i].column
-            << " row=" << cell_keys[i].row;
+    for (ColumnId column = grid.column_offset;
+            column < grid.column_offset + grid.number_of_columns;
+            ++column) {
+        for (RowId row = grid.row_offset;
+                row < grid.row_offset + grid.number_of_rows;
+                ++row) {
+            CellState state = grid.at(column, row);
+
+            // Property 1: Full cells have their center strictly inside the shape.
+            if (state == CellState::Full) {
+                Point center = {
+                    (column + 0.5) * test_params.cell_width,
+                    (row + 0.5) * test_params.cell_height};
+                EXPECT_TRUE(test_params.shape.contains(center, true))
+                    << "full cell col=" << column
+                    << " row=" << row
+                    << " center (" << center.x << "," << center.y << ")"
+                    << " is not strictly inside the shape";
+            }
+
+            Shape cell_shape = cell_to_shape({column, row}, test_params.cell_width, test_params.cell_height);
+            bool cell_intersects = intersect(test_params.shape, cell_shape, true);
+
+            // Property 2: Full and Border cells intersect the original shape.
+            // Property 3: Empty cells do not intersect the original shape.
+            if (state != CellState::Empty) {
+                EXPECT_TRUE(cell_intersects)
+                    << "cell col=" << column
+                    << " row=" << row
+                    << " does not intersect the shape";
+            } else {
+                EXPECT_FALSE(cell_intersects)
+                    << "empty cell col=" << column
+                    << " row=" << row
+                    << " intersects the shape";
+            }
+        }
     }
 
-    // Property 2: all full=true cells have their center strictly inside the shape.
-    for (const IntersectedCell& ic: cells) {
-        if (!ic.full)
-            continue;
-        Point center = {
-            (ic.cell.column + 0.5) * test_params.cell_width,
-            (ic.cell.row + 0.5) * test_params.cell_height};
-        EXPECT_TRUE(test_params.shape.contains(center, true))
-            << "full cell col=" << ic.cell.column
-            << " row=" << ic.cell.row
-            << " center (" << center.x << "," << center.y << ")"
-            << " is not strictly inside the shape";
-    }
-
-    // Property 3: all returned cells intersect the original shape.
-    for (const IntersectedCell& cell: cells) {
-        Shape cell_shape = cell_to_shape({cell.cell}, test_params.cell_width, test_params.cell_height);
-        EXPECT_TRUE(intersect(test_params.shape, cell_shape, true))
-            << "cell col=" << cell.cell.column
-            << " row=" << cell.cell.row
-            << " does not intersect the shape";
-    }
-
-    std::vector<Cell> all_cells;
-    for (const IntersectedCell& cell: cells)
-        all_cells.push_back(cell.cell);
-    ShapeWithHoles cells_union = cells_to_shapes(all_cells, test_params.cell_width, test_params.cell_height).shapes_with_holes.front();
+    ShapeWithHoles cells_union = cells_to_shapes(grid, test_params.cell_width, test_params.cell_height).shapes_with_holes.front();
     std::vector<ShapeWithHoles> union_output = compute_union({cells_union, test_params.shape}).shapes_with_holes;
     EXPECT_EQ(union_output.size(), 1);
     EXPECT_TRUE(equal(union_output.front(), cells_union));
