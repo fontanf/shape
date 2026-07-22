@@ -1544,7 +1544,7 @@ void shape::compute_intersection_export_inputs(
     file << std::setw(4) << json << std::endl;
 }
 
-MultiShapeWithHoles shape::compute_intersection(
+std::vector<ShapeWithHoles> shape::compute_intersection_faces(
         const std::vector<MultiShapeWithHoles>& multi_shapes)
 {
     // An empty multi-shape represents an empty region: intersecting with it
@@ -1564,12 +1564,17 @@ MultiShapeWithHoles shape::compute_intersection(
         }
     }
 
-    std::vector<ShapeWithHoles> faces = compute_boolean_operation(
+    return compute_boolean_operation(
             shapes,
             BooleanOperation::Intersection,
             1,
             group_ids);
-    return compute_union(faces);
+}
+
+MultiShapeWithHoles shape::compute_intersection(
+        const std::vector<MultiShapeWithHoles>& multi_shapes)
+{
+    return compute_union(compute_intersection_faces(multi_shapes));
 }
 
 MultiShapeWithHoles shape::compute_difference(

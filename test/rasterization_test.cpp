@@ -77,7 +77,7 @@ TEST_P(RasterizationTest, Rasterization)
         for (RowId row = grid.row_offset;
                 row < grid.row_offset + grid.number_of_rows;
                 ++row) {
-            if (grid.at(column, row) != CellState::Empty)
+            if (grid.at(column, row).coverage > 0.0)
                 writer.add_shape(cell_to_shape({column, row}, test_params.cell_width, test_params.cell_height));
         }
     }
@@ -92,25 +92,33 @@ TEST_P(RasterizationTest, Rasterization)
         for (RowId row = grid.row_offset;
                 row < grid.row_offset + grid.number_of_rows;
                 ++row) {
-            CellState state = grid.at(column, row);
-            if (state == CellState::Empty)
+            const Cell& cell = grid.at(column, row);
+            if (cell.coverage <= 0.0)
                 continue;
             std::cout << "  col=" << column
                 << " row=" << row
-                << " state=" << (state == CellState::Full? "Full": "Border") << std::endl;
+                << " coverage=" << cell.coverage << std::endl;
         }
     }
 
+    LengthDbl cell_area = test_params.cell_width * test_params.cell_height;
     for (ColumnId column = grid.column_offset;
             column < grid.column_offset + grid.number_of_columns;
             ++column) {
         for (RowId row = grid.row_offset;
                 row < grid.row_offset + grid.number_of_rows;
                 ++row) {
-            CellState state = grid.at(column, row);
+            const Cell& cell = grid.at(column, row);
 
-            // Property 1: Full cells have their center strictly inside the shape.
-            if (state == CellState::Full) {
+            // Property 1: coverage stays within [0, 1].
+            EXPECT_GE(cell.coverage, 0.0)
+                << "col=" << column << " row=" << row;
+            EXPECT_LE(cell.coverage, 1.0 + 1e-9)
+                << "col=" << column << " row=" << row;
+
+            // Property 2: fully covered cells have their center strictly
+            // inside the shape.
+            if (equal(cell.coverage, 1.0)) {
                 Point center = {
                     (column + 0.5) * test_params.cell_width,
                     (row + 0.5) * test_params.cell_height};
@@ -124,9 +132,9 @@ TEST_P(RasterizationTest, Rasterization)
             Shape cell_shape = cell_to_shape({column, row}, test_params.cell_width, test_params.cell_height);
             bool cell_intersects = intersect(test_params.shape, cell_shape, true);
 
-            // Property 2: Full and Border cells intersect the original shape.
-            // Property 3: Empty cells do not intersect the original shape.
-            if (state != CellState::Empty) {
+            // Property 3: covered cells (coverage > 0) intersect the shape;
+            // uncovered cells (coverage == 0) do not.
+            if (cell.coverage > 0.0) {
                 EXPECT_TRUE(cell_intersects)
                     << "cell col=" << column
                     << " row=" << row
@@ -137,13 +145,28 @@ TEST_P(RasterizationTest, Rasterization)
                     << " row=" << row
                     << " intersects the shape";
             }
+
+            // Property 4: a partially covered cell's stored shape area
+            // matches its coverage ratio.
+            if (cell.coverage > 0.0 && !equal(cell.coverage, 1.0)) {
+                AreaDbl shape_area = 0.0;
+                for (const ShapeWithHoles& part: cell.shape.shapes_with_holes)
+                    shape_area += part.compute_area();
+                EXPECT_TRUE(equal(shape_area / cell_area, cell.coverage))
+                    << "cell col=" << column
+                    << " row=" << row
+                    << " stored shape area / cell area (" << (shape_area / cell_area) << ")"
+                    << " does not match coverage (" << cell.coverage << ")";
+            }
         }
     }
 
-    ShapeWithHoles cells_union = cells_to_shapes(grid, test_params.cell_width, test_params.cell_height).shapes_with_holes.front();
-    std::vector<ShapeWithHoles> union_output = compute_union({cells_union, test_params.shape}).shapes_with_holes;
-    EXPECT_EQ(union_output.size(), 1);
-    EXPECT_TRUE(equal(union_output.front(), cells_union));
+    // The union of all cells' exact shape parts must reconstruct the
+    // original shape.
+    MultiShapeWithHoles cells_union = cells_to_shapes(
+            grid, test_params.cell_width, test_params.cell_height);
+    ASSERT_EQ(cells_union.shapes_with_holes.size(), 1);
+    EXPECT_TRUE(equal(cells_union.shapes_with_holes.front(), test_params.shape));
 }
 
 INSTANTIATE_TEST_SUITE_P(
