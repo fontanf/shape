@@ -170,13 +170,11 @@ void fill_columns_intersections(
     }
 }
 
-std::vector<IntersectedCell> shape::rasterization(
+RasterizedGrid shape::rasterization(
         const ShapeWithHoles& shape,
         LengthDbl cell_width,
         LengthDbl cell_height)
 {
-    std::vector<IntersectedCell> cells;
-
     AxisAlignedBoundingBox aabb = shape.compute_min_max();
     ColumnId column_min = find_cell(cell_width, cell_height, {aabb.x_min, aabb.y_min}).column;
     ColumnId column_max = find_cell(cell_width, cell_height, {aabb.x_max, aabb.y_max}).column;
@@ -186,6 +184,15 @@ std::vector<IntersectedCell> shape::rasterization(
     std::cout << "column min " << column_min << " max " << column_max << std::endl;
     std::cout << "row min " << row_min << " max " << row_max << std::endl;
 #endif
+
+    RasterizedGrid grid;
+    grid.column_offset = column_min;
+    grid.row_offset = row_min;
+    grid.number_of_columns = column_max - column_min + 1;
+    grid.number_of_rows = row_max - row_min + 1;
+    grid.cells = std::vector<CellState>(
+            grid.number_of_columns * grid.number_of_rows,
+            CellState::Empty);
 
     // General case: column_inters is guaranteed non-empty for each column.
     std::vector<std::vector<ColumnIntersection>> column_intersections(column_max - column_min + 1);
@@ -217,16 +224,13 @@ std::vector<IntersectedCell> shape::rasterization(
     if (number_of_intersections == 0) {
         for (ColumnId column = column_min; column <= column_max; ++column) {
             for (RowId row = row_min; row <= row_max; ++row) {
-                IntersectedCell cell;
-                cell.cell = {column, row};
-                cell.full = false;
-                cells.push_back(cell);
+                grid.at(column, row) = CellState::Border;
             }
         }
 #ifdef RASTERIZATION_ENABLE_DEBUG
-        std::cout << "cells.size() " << cells.size() << std::endl;
+        std::cout << "grid.cells.size() " << grid.cells.size() << std::endl;
 #endif
-        return cells;
+        return grid;
     }
 
     for (ColumnId column = column_min; column <= column_max; ++column) {
@@ -272,19 +276,11 @@ std::vector<IntersectedCell> shape::rasterization(
                 << std::endl;
 #endif
             if (is_above_inside_prev) {
-                for (RowId row = row_hi_prev + 1; row < row_lo; ++row) {
-                    IntersectedCell cell;
-                    cell.cell = {column, row};
-                    cell.full = true;
-                    cells.push_back(cell);
-                }
+                for (RowId row = row_hi_prev + 1; row < row_lo; ++row)
+                    grid.at(column, row) = CellState::Full;
             }
-            for (RowId row = (std::max)(row_lo, row_hi_prev + 1); row <= row_hi; ++row) {
-                IntersectedCell cell;
-                cell.cell = {column, row};
-                cell.full = false;
-                cells.push_back(cell);
-            }
+            for (RowId row = (std::max)(row_lo, row_hi_prev + 1); row <= row_hi; ++row)
+                grid.at(column, row) = CellState::Border;
             row_hi_prev = row_hi;
             if (column_intersection.y_max > y_max_prev) {
                 is_above_inside_prev = column_intersection.is_above_inside;
@@ -295,7 +291,7 @@ std::vector<IntersectedCell> shape::rasterization(
         }
     }
 
-    return cells;
+    return grid;
 }
 
 Shape shape::cell_to_shape(
@@ -320,15 +316,25 @@ MultiShapeWithHoles shape::cells_to_shapes(
 }
 
 MultiShapeWithHoles shape::cells_to_shapes(
-        const std::vector<IntersectedCell>& cells,
+        const RasterizedGrid& grid,
         LengthDbl cell_width,
         LengthDbl cell_height,
         bool only_full)
 {
     std::vector<ShapeWithHoles> union_input;
-    for (const IntersectedCell& cell: cells)
-        if (cell.full || !only_full)
-            union_input.push_back({cell_to_shape(cell.cell, cell_width, cell_height)});
+    for (ColumnId column = grid.column_offset;
+            column < grid.column_offset + grid.number_of_columns;
+            ++column) {
+        for (RowId row = grid.row_offset;
+                row < grid.row_offset + grid.number_of_rows;
+                ++row) {
+            CellState state = grid.at(column, row);
+            if (state == CellState::Full
+                    || (state == CellState::Border && !only_full)) {
+                union_input.push_back({cell_to_shape({column, row}, cell_width, cell_height)});
+            }
+        }
+    }
     return compute_union(union_input);
 }
 
