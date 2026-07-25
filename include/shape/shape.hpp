@@ -184,22 +184,34 @@ LengthDbl squared_distance(
         const Point& point_1,
         const Point& point_2);
 
+/**
+ * Ratio t such that line_point_1 + t * (line_point_2 - line_point_1) is the
+ * projection of 'point' onto the (infinite) line through line_point_1 and
+ * line_point_2. t is unclamped: 0 at line_point_1, 1 at line_point_2, and
+ * outside [0, 1] if the projection falls beyond either point.
+ */
+inline LengthDbl project_point_on_line_ratio(
+        const Point& line_point_1,
+        const Point& line_point_2,
+        const Point& point)
+{
+    LengthDbl bx = line_point_2.x - line_point_1.x;
+    LengthDbl by = line_point_2.y - line_point_1.y;
+    LengthDbl px = point.x - line_point_1.x;
+    LengthDbl py = point.y - line_point_1.y;
+    LengthDbl denom = std::fma(bx, bx, by * by);
+    return std::fma(px, bx, py * by) / denom;
+}
+
 inline Point project_point_on_line(
         const Point& line_point_1,
         const Point& line_point_2,
         const Point& point)
 {
-    LengthDbl ax = line_point_1.x;
-    LengthDbl ay = line_point_1.y;
-    LengthDbl bx = line_point_2.x - ax;
-    LengthDbl by = line_point_2.y - ay;
-    LengthDbl px = point.x - ax;
-    LengthDbl py = point.y - ay;
-    LengthDbl denom = std::fma(bx, bx, by * by);
-    LengthDbl t = std::fma(px, bx, py * by) / denom;
+    LengthDbl t = project_point_on_line_ratio(line_point_1, line_point_2, point);
     Point q;
-    q.x = ax + t * bx;
-    q.y = ay + t * by;
+    q.x = line_point_1.x + t * (line_point_2.x - line_point_1.x);
+    q.y = line_point_1.y + t * (line_point_2.y - line_point_1.y);
     return q;
 }
 
@@ -382,8 +394,6 @@ struct ShapeElement
 
     /** If the element is a CircularArc, direction of the rotation. */
     ShapeElementOrientation orientation = ShapeElementOrientation::Anticlockwise;
-
-    bool in_circular_arc_cone(const Point& point) const;
 
     /** Check if a point is on the element. */
     bool contains(const Point& point) const;
