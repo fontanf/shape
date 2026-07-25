@@ -533,6 +533,16 @@ bool ShapeElement::in_circular_arc_cone(const Point& point) const
 
 bool ShapeElement::contains(const Point& point) const
 {
+    // A point matching an endpoint is trivially contained, regardless of
+    // element type, even if it narrowly fails the stricter checks below: for
+    // a LineSegment, near an endpoint, the betweenness check's distance-sum
+    // excess grows about twice as fast as the endpoint distance itself, so it
+    // can exceed the tolerance while the point is still `equal` to the
+    // endpoint; for a CircularArc, the stored endpoint isn't always perfectly
+    // consistent with its own center and radius, so the same kind of gap can
+    // arise in the on-circle / angular-cone checks.
+    if (equal(point, this->start) || equal(point, this->end))
+        return true;
     switch (type) {
     case ShapeElementType::LineSegment: {
         if (!line_contains(this->start, this->end, point))

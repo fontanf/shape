@@ -449,6 +449,22 @@ INSTANTIATE_TEST_SUITE_P(
                 {174.91570697722955, 709.95140487030301},
                 false,
             },
+            // Point equal (within tolerance) to the segment's end point, but
+            // narrowly failing the betweenness check.
+            {
+                build_line_segment({136.32056802281824, -8.3472129636816392e-07}, {136.32058090281825, 94.48824084527871}),
+                {136.32058090281831, 94.488241703944908},
+                true,
+            },
+            // The arc's own end point, stored slightly off the circle
+            // defined by its center and start point (radially off by
+            // ~1.27e-6, i.e. more than the on-circle tolerance, even though
+            // each coordinate is within tolerance of the true point).
+            {
+                build_circular_arc({10, 0}, {7.0710687118654755, 7.0710687118654755}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {7.0710687118654755, 7.0710687118654755},
+                true,
+            },
         }),
         [](const testing::TestParamInfo<ShapeElementContainsTest::ParamType>& info) {
             return std::to_string(info.index);
