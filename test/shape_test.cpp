@@ -465,6 +465,26 @@ INSTANTIATE_TEST_SUITE_P(
                 {7.0710687118654755, 7.0710687118654755},
                 true,
             },
+            // General guarantee: a point equal (within tolerance) to
+            // element.point(l) for some interior l (not an endpoint) must be
+            // contained.
+            {
+                build_line_segment({0, 0}, {10, 0}),
+                {5.0000009, 0.0000009},
+                true,
+            },
+            {
+                build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {9.238796225112868, 3.826833423650898},
+                true,
+            },
+            // Negative control: same arc, but off the circle (radius off by
+            // ~1e-3) by far more than tolerance.
+            {
+                build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {9.239719204645379, 3.827217007083263},
+                false,
+            },
         }),
         [](const testing::TestParamInfo<ShapeElementContainsTest::ParamType>& info) {
             return std::to_string(info.index);

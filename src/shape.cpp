@@ -3,6 +3,7 @@
 #include "shape/elements_intersections.hpp"
 #include "shape/shapes_intersections.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -506,61 +507,45 @@ bool shape::strictly_greater_angle(
 ///////////////////////////////// ShapeElement /////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-bool ShapeElement::in_circular_arc_cone(const Point& point) const
-{
-    LengthDbl radius = distance(center, start);
-    if (this->orientation == ShapeElementOrientation::Full) {
-        return true;
-    } else if (this->orientation == ShapeElementOrientation::Anticlockwise) {
-        LengthDbl a0 = radius * angle_radian(
-                this->start - this->center,
-                this->end - this->center);
-        LengthDbl a = radius * angle_radian(
-                this->start - this->center,
-                point - this->center);
-        return !strictly_greater(a, a0);
-    } else {
-        LengthDbl a0 = radius * angle_radian(
-                this->end - this->center,
-                this->start - this->center);
-        LengthDbl a = radius * angle_radian(
-                this->end - this->center,
-                point - this->center);
-        return !strictly_greater(a, a0);
-    }
-    return false;
-}
-
 bool ShapeElement::contains(const Point& point) const
 {
-    // A point matching an endpoint is trivially contained, regardless of
-    // element type, even if it narrowly fails the stricter checks below: for
-    // a LineSegment, near an endpoint, the betweenness check's distance-sum
-    // excess grows about twice as fast as the endpoint distance itself, so it
-    // can exceed the tolerance while the point is still `equal` to the
-    // endpoint; for a CircularArc, the stored endpoint isn't always perfectly
-    // consistent with its own center and radius, so the same kind of gap can
-    // arise in the on-circle / angular-cone checks.
-    if (equal(point, this->start) || equal(point, this->end))
-        return true;
+    // An element must contain any point 'equal' (within tolerance) to
+    // this->point(l) for some l in [0, this->length()]. To check this
+    // robustly, find the closest point of the element to 'point' (clamped to
+    // the element's valid range) and check that it really is (within
+    // tolerance) the given point, rather than checking element-type-specific
+    // geometric properties (on-line, on-circle, angular cone, ...) whose
+    // tolerance behavior is inconsistent close to the element's endpoints.
+    LengthDbl l;
     switch (type) {
     case ShapeElementType::LineSegment: {
-        if (!line_contains(this->start, this->end, point))
-            return false;
-        return !strictly_greater(
-                distance(this->start, point) + distance(point, this->end),
-                distance(this->start, this->end));
-    } case ShapeElementType::CircularArc: {
-        // Check if point lies on circle
-        if (!equal(
-                    distance(point, this->center),
-                    distance(this->start, this->center))) {
-            return false;
+        if (this->start == this->end) {
+            l = 0.0;
+            break;
         }
-        return this->in_circular_arc_cone(point);
+        // Project along the segment's own direction (the same fma-based
+        // computation as project_point_on_line): this isolates the
+        // along-segment component of 'point' from any perpendicular
+        // deviation, unlike using distance(start, point) (an unsigned,
+        // direction-agnostic estimate) as a stand-in for the parameter,
+        // which would conflate the two and could push the estimate off by
+        // as much as the perpendicular deviation itself.
+        LengthDbl t = project_point_on_line_ratio(this->start, this->end, point);
+        l = t * this->length();
+        break;
+    } case ShapeElementType::CircularArc: {
+        // this->length(point) only depends on the direction of
+        // (point - center) (via an angle), not on its magnitude, so unlike
+        // the LineSegment case, it is already unaffected by any radial
+        // deviation of 'point' from the circle.
+        l = this->length(point);
+        break;
+    } default: {
+        return false;
     }
     }
-    return false;
+    l = (std::max)(0.0, (std::min)(this->length(), l));
+    return equal(point, this->point(l));
 }
 
 LengthDbl ShapeElement::length() const
