@@ -129,6 +129,20 @@ std::vector<Shape> shape::compute_convex_partition(
                 parts[candidate.part_pos_2],
                 candidate.element_pos_1,
                 candidate.element_pos_2);
+
+        // Trapezoidation can emit degenerate sliver trapezoids: two sweep
+        // events landing at almost (but not exactly) the same coordinate due
+        // to floating-point rounding produce a near-zero-length edge rather
+        // than a real geometric feature. Computing an edge's tangent
+        // direction across such a vanishingly short edge is numerically
+        // unstable, so is_convex() can report a large, spurious "reflex"
+        // angle at its endpoints. Clean those out before checking convexity,
+        // the same way the final output is cleaned below, so degenerate
+        // edges don't cause a valid merge to be wrongly rejected (and don't
+        // propagate into later merge candidates involving this shape).
+        merged = remove_redundant_vertices(merged).second;
+        merged = remove_aligned_vertices(merged).second;
+
         if (!merged.is_convex())
             continue;
 
