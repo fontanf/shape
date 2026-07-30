@@ -491,6 +491,126 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct ShapeElementInCircularArcConeTestParams
+{
+    ShapeElement element;
+    Point point;
+    bool expected_output;
+};
+
+void PrintTo(const ShapeElementInCircularArcConeTestParams& params, std::ostream* os)
+{
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "point " << params.point.to_string() << "\n";
+    *os << "expceted output " << params.expected_output << "\n";
+}
+
+class ShapeElementInCircularArcConeTest: public testing::TestWithParam<ShapeElementInCircularArcConeTestParams> { };
+
+TEST_P(ShapeElementInCircularArcConeTest, ShapeElementInCircularArcCone)
+{
+    ShapeElementInCircularArcConeTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    bool output = test_params.element.in_circular_arc_cone(test_params.point);
+    std::cout << "output " << output << std::endl;
+    EXPECT_EQ(output, test_params.expected_output);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        ShapeElement,
+        ShapeElementInCircularArcConeTest,
+        testing::ValuesIn(std::vector<ShapeElementInCircularArcConeTestParams>{
+            // The arc's own start point.
+            {
+                build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {10, 0},
+                true,
+            },
+            // The arc's own end point.
+            {
+                build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {0, 10},
+                true,
+            },
+            // On-circle point strictly inside the cone (45 degrees, mid-arc).
+            {
+                build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {7.0710678118654755, 7.071067811865475},
+                true,
+            },
+            // On-circle point strictly outside the cone (135 degrees, past the end).
+            {
+                build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {-7.071067811865475, 7.0710678118654755},
+                false,
+            },
+            // Clockwise arc: on-circle point inside the cone.
+            {
+                build_circular_arc({10, 0}, {0, -10}, {0, 0}, ShapeElementOrientation::Clockwise),
+                {8.660254037844387, -4.999999999999999},
+                true,
+            },
+            // Clockwise arc: on-circle point outside the cone.
+            {
+                build_circular_arc({10, 0}, {0, -10}, {0, 0}, ShapeElementOrientation::Clockwise),
+                {-4.999999999999998, -8.660254037844387},
+                false,
+            },
+            // Full circle: every on-circle point is in the cone.
+            {
+                build_circular_arc({5, 0}, {5, 0}, {0, 0}, ShapeElementOrientation::Full),
+                {-4.698463103929543, -1.7101007166283433},
+                true,
+            },
+            // Tolerance: a point ~5e-6 degrees past the end, off the true
+            // end point by less than the 'equal' tolerance, must still be
+            // considered in the cone (clamped l lands on 'end', which is
+            // 'equal' to this point).
+            {
+                build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {-8.726646266149131e-07, 9.999999999999963},
+                true,
+            },
+            // Negative control: a point ~1e-5 degrees past the end, off the
+            // true end point by more than tolerance.
+            {
+                build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {-1.7453292516216967e-06, 9.999999999999847},
+                false,
+            },
+            // The cone test is direction-only, unlike contains(): a point at
+            // the same angle as the inside-cone case (45 degrees), but off
+            // the circle (radius off by ~1e-3), is still in the cone.
+            {
+                build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {7.071774918646662, 7.0717749186466605},
+                true,
+            },
+            // Same, with a much larger radius deviation (5x): quarter-arc
+            // from (1, 0) to (0, 1), point at 45 degrees but radius 5.
+            {
+                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {3.5355339059327378, 3.5355339059327373},
+                true,
+            },
+            // Same quarter-arc, point at the correct radius (1x), 45 degrees.
+            {
+                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {0.7071067811865476, 0.7071067811865475},
+                true,
+            },
+            // Same quarter-arc, on-circle point outside the cone (135 degrees).
+            {
+                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {-0.7071067811865475, 0.7071067811865476},
+                false,
+            },
+        }),
+        [](const testing::TestParamInfo<ShapeElementInCircularArcConeTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
+
+
 struct ShapeElementRecomputeCenterTestParams
 {
     ShapeElement element;
