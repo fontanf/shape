@@ -507,6 +507,27 @@ bool shape::strictly_greater_angle(
 ///////////////////////////////// ShapeElement /////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+bool ShapeElement::in_circular_arc_cone(const Point& point) const
+{
+    // Like contains(), work in terms of the length parametrization l along
+    // the element: this->length(point) is the arc length (angle * radius)
+    // swept from start to point in the element's own direction; it depends
+    // only on the direction of (point - center), not on its magnitude. A
+    // cone test must be equally magnitude-independent (it does not imply
+    // 'point' is on the circle, only that its direction from the center
+    // falls within the arc's angular sweep), so before the final point
+    // equality check, radially project 'point' onto the arc's own circle:
+    // that projection is exactly this->point(l) for the unclamped l, so it
+    // still matches this->point(l) once clamped iff 'point''s direction was
+    // already within [0, this->length()]; if it wasn't, clamping moves
+    // this->point(l) away from it, landing on start or end instead.
+    LengthDbl l = (std::max)(0.0, (std::min)(this->length(), this->length(point)));
+    LengthDbl radius = distance(this->center, this->start);
+    LengthDbl point_distance = distance(this->center, point);
+    Point point_on_circle = this->center + (radius / point_distance) * (point - this->center);
+    return equal(point_on_circle, this->point(l));
+}
+
 bool ShapeElement::contains(const Point& point) const
 {
     // An element must contain any point 'equal' (within tolerance) to
