@@ -19,6 +19,7 @@ target_sources(Shape_shape_test PRIVATE
     approximation_test.cpp
     simplification_test.cpp
     convex_partition_test.cpp
+    basic_shapes_test.cpp
     rasterization_test.cpp
     no_fit_polygon_test.cpp)
 target_include_directories(Shape_shape_test PRIVATE

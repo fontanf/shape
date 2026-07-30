@@ -7,6 +7,7 @@ target_sources(Shape_shape PRIVATE
     boolean_operations.cpp
     convex_hull.cpp
     convex_partition.cpp
+    basic_shapes.cpp
     clean.cpp
     extract_borders.cpp
     trapezoidation.cpp
