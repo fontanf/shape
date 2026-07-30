@@ -170,15 +170,24 @@ MultiShapeWithHoles shape::no_fit_polygon(
     std::vector<Shape> fixed_parts = compute_convex_partition(fixed_shape);
     std::vector<Shape> orbiting_parts = compute_convex_partition(orbiting_shape);
 
-    std::vector<ShapeWithHoles> nfp_parts;
-    nfp_parts.reserve(fixed_parts.size() * orbiting_parts.size());
-
+    // Union per fixed_part group first, instead of unioning all
+    // fixed_parts.size() * orbiting_parts.size() convex-convex NFP pieces in
+    // one shot: the pieces from a single fixed_part are the ones most likely
+    // to overlap/be adjacent (they all come from NFPs against the same
+    // fixed_part), so this collapses most of the overlap within small
+    // groups before the final union only has to merge the (typically far
+    // fewer) per-group results.
+    std::vector<ShapeWithHoles> group_unions;
     for (const Shape& fixed_part: fixed_parts) {
+        std::vector<ShapeWithHoles> nfp_parts;
+        nfp_parts.reserve(orbiting_parts.size());
         for (const Shape& orbiting_part: orbiting_parts) {
             Shape convex_nfp = no_fit_polygon(fixed_part, orbiting_part);
             nfp_parts.push_back({convex_nfp, {}});
         }
+        for (const ShapeWithHoles& swh: compute_union(nfp_parts).shapes_with_holes)
+            group_unions.push_back(swh);
     }
 
-    return compute_union(nfp_parts);
+    return compute_union(group_unions);
 }
