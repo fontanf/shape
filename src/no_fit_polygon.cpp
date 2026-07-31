@@ -5,11 +5,38 @@
 #include "shape/basic_shapes.hpp"
 
 #include <algorithm>
+#include <string>
 
 using namespace shape;
 
 namespace
 {
+
+/**
+ * Same total order as shape::strictly_lesser_angle, but tolerant of the tiny
+ * floating-point noise (on the order of 1e-16) that sqrt/trig-derived
+ * CircularArc tangent directions carry relative to tangents computed
+ * directly from stored points (e.g. a plain edge's direction, or another
+ * arc's tangent obtained through a different center/radius). By
+ * construction, an edge's direction is exactly equal to the tangent of the
+ * arc it leads into (both are the external tangent to that arc's circle),
+ * so the two *should* compare equal -- but shape::strictly_lesser_angle's
+ * own cross-product test has no tolerance at all (a bare "> 0"), so any
+ * nonzero noise gets treated as a strict order instead of a tie. For plain
+ * polygons this never bites (both directions are typically bit-identical,
+ * being derived from the same stored points via the same arithmetic), but
+ * once arcs are involved -- especially for a self-NFP, or any pair of
+ * shapes sharing rounded-corner structure -- such near-ties are frequent,
+ * and silently corrupt the tie-handling logic below every time one occurs.
+ */
+bool direction_strictly_lesser(
+        const Point& direction_1,
+        const Point& direction_2)
+{
+    if (equal(direction_1.x, direction_2.x) && equal(direction_1.y, direction_2.y))
+        return false;
+    return strictly_lesser_angle(direction_1, direction_2);
+}
 
 /**
  * Point on a circle (given center, radius, orientation) whose tangent
@@ -46,12 +73,12 @@ Point point_at_tangent_direction(
  * True if 'direction' lies strictly between arc's start and end tangent
  * directions (i.e. strictly inside the open span, not at either endpoint).
  *
- * Since every arc handled here comes from decompose_into_basic_shapes'
- * CircularSegment (span < 180°), a direction is strictly inside iff turning
- * CCW from the start tangent to 'direction' is a positive turn, and turning
- * CCW from 'direction' to the end tangent is also a positive turn -- two
- * plain cross-product sign tests, no wraparound handling needed precisely
- * because the span cannot reach 180°.
+ * no_fit_polygon requires every arc to span < 180° (see its precondition
+ * check), so a direction is strictly inside iff turning CCW from the start
+ * tangent to 'direction' is a positive turn, and turning CCW from
+ * 'direction' to the end tangent is also a positive turn -- two plain
+ * cross-product sign tests, no wraparound handling needed precisely because
+ * the span cannot reach 180°.
  */
 bool direction_strictly_inside_arc(
         const ShapeElement& arc,
@@ -109,26 +136,29 @@ std::vector<ShapeElement> split_arc_into_pieces(
 
 /**
  * Build the final ordered element list for one side of the merge (fixed or
- * orbiting): identical to 'elements' unless it contains a CircularArc, in
- * which case that arc is replaced in place by pieces pre-split at every
- * critical direction contributed by the *other* side -- each of its plain
- * edges' own tangent direction, plus (if it has one) its own arc's start and
- * end tangents.
+ * orbiting): identical to 'elements' except that every CircularArc element
+ * is replaced in place by pieces pre-split at every critical direction
+ * contributed by the *other* side -- each of its plain edges' own tangent
+ * direction, plus (for each arc it has) that arc's start and end tangents.
+ * A shape may contain any number of arcs (each still required to span
+ * < 180°); each one is split independently against the same set of
+ * other-side critical directions.
  *
  * This has to happen up front, before the main merge loop runs, rather than
  * relying purely on reactively splitting an arc against whichever direction
  * the loop happens to be comparing it to at the time: the loop only ever
- * looks at each side's *current* element, so if the arc is not the first
- * element of its shape (e.g. decompose_into_basic_shapes' circular segment
- * starts with its chord instead, depending on which point ends up
- * bottom/top-most), some of the other side's edges can be fully consumed
- * against something else entirely before the arc ever becomes current --
- * permanently missing a split their direction should have triggered.
+ * looks at each side's *current* element, so if an arc is not the first
+ * element of its shape (e.g. a circular segment cut off by
+ * decompose_into_basic_shapes starts with its chord instead, depending on
+ * which point ends up bottom/top-most), some of the other side's edges can
+ * be fully consumed against something else entirely before that arc ever
+ * becomes current -- permanently missing a split their direction should
+ * have triggered.
  *
  * 'negate_self'/'negate_other' select which of 'elements'/'other_elements'
  * is the orbiting side, whose directions get negated for output space (see
- * EdgeCursor below); both direction sets need to end up expressed in the
- * *arc's own local frame* to be tested/split against it.
+ * EdgeCursor below); both direction sets need to end up expressed in each
+ * arc's own local frame to be tested/split against it.
  */
 std::vector<ShapeElement> presplit_elements(
         const std::vector<ShapeElement>& elements,
@@ -136,16 +166,20 @@ std::vector<ShapeElement> presplit_elements(
         const std::vector<ShapeElement>& other_elements,
         bool negate_other)
 {
-    ElementPos arc_pos = -1;
-    for (ElementPos i = 0; i < (ElementPos)elements.size(); ++i) {
-        if (elements[i].type == ShapeElementType::CircularArc) {
-            arc_pos = i;
+    bool has_arc = false;
+    for (const ShapeElement& element: elements) {
+        if (element.type == ShapeElementType::CircularArc) {
+            has_arc = true;
             break;
         }
     }
-    if (arc_pos == -1)
+    if (!has_arc)
         return elements;
 
+    // Critical directions depend only on other_elements (and the negation
+    // flags), never on which or how many arcs 'elements' itself has, so
+    // they only need computing once and are then reused for every arc
+    // found below.
     std::vector<Point> critical_directions;
     for (const ShapeElement& other: other_elements) {
         Point d_start = other.tangent(other.start);
@@ -166,7 +200,7 @@ std::vector<ShapeElement> presplit_elements(
 
     // Also always split at the global tangent-order minimum direction (1,0)
     // [negated to (-1,0) in local frame if this is the orbiting side]: if
-    // the arc's span straddles it, the piece starting exactly there needs
+    // an arc's span straddles it, the piece starting exactly there needs
     // to exist so the start-position selection below can find it. Without
     // this, an arc whose span straddles that direction can undercut every
     // other candidate's own start direction (its tangent dips below all of
@@ -174,17 +208,15 @@ std::vector<ShapeElement> presplit_elements(
     // any element actually starting there for the selection to pick.
     critical_directions.push_back(negate_self? Point{-1.0, 0.0}: Point{1.0, 0.0});
 
-    std::vector<ShapeElement> pieces = split_arc_into_pieces(elements[arc_pos], critical_directions);
-
     std::vector<ShapeElement> result;
-    result.reserve(elements.size() - 1 + pieces.size());
-    for (ElementPos i = 0; i < (ElementPos)elements.size(); ++i) {
-        if (i != arc_pos) {
-            result.push_back(elements[i]);
-        } else {
-            for (const ShapeElement& piece: pieces)
-                result.push_back(piece);
+    result.reserve(elements.size());
+    for (const ShapeElement& element: elements) {
+        if (element.type != ShapeElementType::CircularArc) {
+            result.push_back(element);
+            continue;
         }
+        for (const ShapeElement& piece: split_arc_into_pieces(element, critical_directions))
+            result.push_back(piece);
     }
     return result;
 }
@@ -336,14 +368,16 @@ void consume_up_to(
 
 /**
  * Handle the case where both cursors currently point at a CircularArc
- * element (only possible when both input shapes are CircularSegment basic
- * shapes). If their tangent-direction spans don't overlap, the earlier one
- * is consumed alone as usual. If they do overlap, the two circles are summed
- * over the overlapping direction range -- for two circular arcs sharing a
- * range of tangent (equivalently: normal) directions, their Minkowski sum
- * over that range is itself a circular arc: center = sum of centers, radius
- * = sum of radii, same direction range. Any non-overlapping prefix/suffix on
- * either side is emitted separately as a lone arc contribution.
+ * element (possible whenever both shapes have at least one arc; with
+ * several arcs per shape this can trigger more than once over the course of
+ * the merge, once per pair of arcs that end up concurrently current). If
+ * their tangent-direction spans don't overlap, the earlier one is consumed
+ * alone as usual. If they do overlap, the two circles are summed over the
+ * overlapping direction range -- for two circular arcs sharing a range of
+ * tangent (equivalently: normal) directions, their Minkowski sum over that
+ * range is itself a circular arc: center = sum of centers, radius = sum of
+ * radii, same direction range. Any non-overlapping prefix/suffix on either
+ * side is emitted separately as a lone arc contribution.
  */
 void handle_arc_arc(
         EdgeCursor& fixed,
@@ -357,8 +391,8 @@ void handle_arc_arc(
     Point o_end = orbiting.end_direction();
 
     // f_span/o_span: each side's own tangent span, in (0, pi) -- guaranteed
-    // small since decompose_into_basic_shapes never produces an arc spanning
-    // >= 180 degrees, and that guarantee survives negation (a uniform shift
+    // small by no_fit_polygon's precondition that no arc spans >= 180
+    // degrees, and that guarantee survives negation (a uniform shift
     // changes where the pair sits, not their relative separation).
     //
     // strictly_lesser_angle (used elsewhere in this file) is NOT safe here:
@@ -458,32 +492,36 @@ Shape shape::no_fit_polygon(
                 FUNC_SIGNATURE + "; "
                 "orbiting_shape is not convex.");
     }
-    // The algorithm below merges each shape's own element sequence with the
-    // other's, splitting an arc reactively whenever the other side's current
-    // direction falls inside it; with more than one arc per shape the
-    // "at most one arc in progress per side" assumption breaks down.
-    // decompose_into_basic_shapes' CircularSegment (the intended source of
-    // arc-containing input here) always has exactly one.
-    auto count_arcs = [](const Shape& s) {
-        ElementPos n = 0;
-        for (const ShapeElement& e: s.elements)
-            if (e.type == ShapeElementType::CircularArc)
-                ++n;
-        return n;
+    // Every arc must span < 180°: direction_strictly_inside_arc's
+    // two-cross-product membership test and handle_arc_arc's overlap
+    // detection both rely on an arc's own start and end tangent directions
+    // determining a unique "short way" between them, which stops being true
+    // at or past a half turn (see direction_strictly_inside_arc's and
+    // handle_arc_arc's comments). There is no limit on how many such arcs a
+    // shape may contain -- e.g. every corner of an inflated convex polygon
+    // rounds into its own arc, and all of those are individually well under
+    // 180° since a single polygon vertex's exterior turning angle can never
+    // reach a half turn.
+    auto check_arc_spans = [](const Shape& s, const char* shape_name) {
+        for (const ShapeElement& element: s.elements) {
+            if (element.type != ShapeElementType::CircularArc)
+                continue;
+            Angle span = angle_radian(
+                    element.tangent(element.start),
+                    element.tangent(element.end));
+            if (!strictly_lesser(span, M_PI)) {
+                throw std::runtime_error(
+                        FUNC_SIGNATURE + "; "
+                        + std::string(shape_name) + " has a circular arc "
+                        "spanning >= 180 degrees.");
+            }
+        }
     };
-    if (count_arcs(fixed_shape) > 1) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + "; "
-                "fixed_shape has more than one circular arc.");
-    }
-    if (count_arcs(orbiting_shape) > 1) {
-        throw std::runtime_error(
-                FUNC_SIGNATURE + "; "
-                "orbiting_shape has more than one circular arc.");
-    }
+    check_arc_spans(fixed_shape, "fixed_shape");
+    check_arc_spans(orbiting_shape, "orbiting_shape");
 
-    // Pre-split each side's arc (if any), in its original (unrotated) index
-    // order, against the other side's critical directions -- see
+    // Pre-split each side's arcs (if any), in their original (unrotated)
+    // index order, against the other side's critical directions -- see
     // presplit_elements' comment for why this can't be done reactively
     // during the merge below, and for why it also always splits at the
     // global tangent-order minimum direction. Both calls read from the
@@ -511,7 +549,7 @@ Shape shape::no_fit_polygon(
     // continuously across its span and could dip below every other
     // element's own start direction partway through without any element
     // actually starting there -- which is exactly why presplit_elements
-    // above always splits an arc at the global minimum direction (1, 0)
+    // above always splits every arc at the global minimum direction (1, 0)
     // too, guaranteeing there is always an element that starts exactly
     // there for this search to find.
     ElementPos fixed_start_pos = 0;
@@ -520,7 +558,7 @@ Shape shape::no_fit_polygon(
             ++fixed_pos) {
         const ShapeElement& element = fixed_elements[fixed_pos];
         const ShapeElement& best = fixed_elements[fixed_start_pos];
-        if (strictly_lesser_angle(
+        if (direction_strictly_lesser(
                 element.tangent(element.start),
                 best.tangent(best.start))) {
             fixed_start_pos = fixed_pos;
@@ -535,7 +573,7 @@ Shape shape::no_fit_polygon(
         const ShapeElement& best = orbiting_elements[orbiting_start_pos];
         Point element_dir = element.tangent(element.start);
         Point best_dir = best.tangent(best.start);
-        if (strictly_lesser_angle(
+        if (direction_strictly_lesser(
                 Point{-element_dir.x, -element_dir.y},
                 Point{-best_dir.x, -best_dir.y})) {
             orbiting_start_pos = orbiting_pos;
@@ -579,8 +617,8 @@ Shape shape::no_fit_polygon(
     // one; whenever the other side's current direction falls strictly
     // inside that range, the arc is split there so only the relevant prefix
     // is merged in, leaving the remainder for later iterations. Two arcs
-    // active on both sides at once (only possible when both original shapes
-    // are circular segments) are summed over their overlapping range -- see
+    // active on both sides at once (possible whenever both shapes have at
+    // least one arc) are summed over their overlapping range -- see
     // handle_arc_arc.
     //
     // When two edges have the same direction (parallel) they are both added
@@ -611,9 +649,9 @@ Shape shape::no_fit_polygon(
         Point fixed_dir = fixed_cursor.start_direction();
         Point orbiting_dir = orbiting_cursor.start_direction();
 
-        if (strictly_lesser_angle(fixed_dir, orbiting_dir)) {
+        if (direction_strictly_lesser(fixed_dir, orbiting_dir)) {
             consume_up_to(fixed_cursor, orbiting_dir, result, current_vertex);
-        } else if (strictly_lesser_angle(orbiting_dir, fixed_dir)) {
+        } else if (direction_strictly_lesser(orbiting_dir, fixed_dir)) {
             consume_up_to(orbiting_cursor, fixed_dir, result, current_vertex);
         } else if (!fixed_is_arc && !orbiting_is_arc) {
             // Tied plain edges: fixed first, then orbiting (matches the
