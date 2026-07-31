@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
+
 using namespace shape;
 
 
@@ -219,3 +221,186 @@ INSTANTIATE_TEST_SUITE_P(
         [](const testing::TestParamInfo<NoFitPolygonGeneralTest::ParamType>& info) {
             return info.param.name;
         });
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Convex overload with circular arcs (decompose_into_basic_shapes' circular
+// segments: one CircularArc element closed by its chord).
+//
+// No hand-derived expected shape here (impractical for arc geometry); these
+// are verified purely via the oracle grid-sampling check, same technique as
+// above: every point strictly inside the NFP must cause overlap when used to
+// translate orbiting_shape, and every point strictly outside must not.
+////////////////////////////////////////////////////////////////////////////////
+
+namespace
+{
+
+// A circular segment: arc from angle_1_deg to angle_2_deg (< 180 degrees
+// apart) around 'center' with 'radius', anticlockwise, closed by the chord
+// back to the arc's start -- exactly the shape decompose_into_basic_shapes
+// produces for a BasicShapeType::CircularSegment.
+Shape build_circular_segment(
+        Point center,
+        LengthDbl radius,
+        Angle angle_1_deg,
+        Angle angle_2_deg)
+{
+    Angle a1 = angle_1_deg * M_PI / 180.0;
+    Angle a2 = angle_2_deg * M_PI / 180.0;
+    Point p1 = {center.x + radius * std::cos(a1), center.y + radius * std::sin(a1)};
+    Point p2 = {center.x + radius * std::cos(a2), center.y + radius * std::sin(a2)};
+    Shape s;
+    s.elements.push_back(build_circular_arc(p1, p2, center, ShapeElementOrientation::Anticlockwise));
+    s.elements.push_back(build_line_segment(p2, p1));
+    return s;
+}
+
+}  // namespace
+
+struct NoFitPolygonArcOracleTestParams
+{
+    Shape fixed_shape;
+    Shape orbiting_shape;
+    std::string name;
+};
+
+std::ostream& operator<<(std::ostream& os, const NoFitPolygonArcOracleTestParams& params)
+{
+    os << params.name;
+    return os;
+}
+
+class NoFitPolygonArcOracleTest:
+    public testing::TestWithParam<NoFitPolygonArcOracleTestParams> { };
+
+TEST_P(NoFitPolygonArcOracleTest, NoFitPolygonArcOracle)
+{
+    NoFitPolygonArcOracleTestParams test_params = GetParam();
+    std::cout << "fixed_shape " << test_params.fixed_shape.to_string(0) << std::endl;
+    std::cout << "orbiting_shape " << test_params.orbiting_shape.to_string(0) << std::endl;
+
+    Shape nfp = no_fit_polygon(test_params.fixed_shape, test_params.orbiting_shape);
+    std::cout << "nfp " << nfp.to_string(0) << std::endl;
+
+    AxisAlignedBoundingBox aabb = nfp.compute_min_max();
+    const double margin = 0.5;
+    const double step = 0.2;
+    // Offset the grid off exact fractions of a degree / nice coordinates:
+    // sampling exactly on a shape boundary (e.g. at an arc's own extremal
+    // point) is a degenerate case for point-in-polygon ray casting that is
+    // not what this test is trying to exercise.
+    for (double px = aabb.x_min - margin + 0.0137; px <= aabb.x_max + margin; px += step) {
+        for (double py = aabb.y_min - margin + 0.0211; py <= aabb.y_max + margin; py += step) {
+            Point position = {px, py};
+
+            if (nfp.contains(position, /*strict=*/true)) {
+                Shape translated_orbiting = test_params.orbiting_shape;
+                translated_orbiting.shift(position.x, position.y);
+                EXPECT_TRUE(intersect(test_params.fixed_shape, translated_orbiting))
+                    << "Position (" << px << ", " << py << ") is inside the NFP "
+                    << "but the translated orbiting shape does not intersect the fixed shape.";
+            }
+            if (!nfp.contains(position, /*strict=*/false)) {
+                Shape translated_orbiting = test_params.orbiting_shape;
+                translated_orbiting.shift(position.x, position.y);
+                EXPECT_FALSE(intersect(test_params.fixed_shape, translated_orbiting))
+                    << "Position (" << px << ", " << py << ") is outside the NFP "
+                    << "but the translated orbiting shape intersects the fixed shape.";
+            }
+        }
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        NoFitPolygonArcOracleTest,
+        testing::ValuesIn(std::vector<NoFitPolygonArcOracleTestParams>{
+            {  // Circular segment (no interaction needed with the square's edges).
+                build_circular_segment({0, 0}, 2.0, 10, 80),
+                build_rectangle(0, 1, 0, 1),
+                "SegmentAndSquare",
+            }, {  // A circular segment against itself: full arc-arc overlap
+                  // (the arc-arc "sum" path, both arcs identical).
+                build_circular_segment({0, 0}, 1.5, 20, 100),
+                build_circular_segment({0, 0}, 1.5, 20, 100),
+                "SegmentSelf",
+            }, {  // Two different-radius segments with partially overlapping
+                  // arc ranges: exercises peeling a lone prefix/suffix around
+                  // a summed middle range.
+                build_circular_segment({0, 0}, 1.0, 0, 90),
+                build_circular_segment({0, 0}, 2.0, 45, 135),
+                "SegmentsPartialOverlap",
+            }, {  // Two segments with disjoint (non-overlapping) arc ranges.
+                build_circular_segment({0, 0}, 1.0, 0, 60),
+                build_circular_segment({0, 0}, 1.0, 120, 170),
+                "SegmentsDisjointRanges",
+            }, {  // A wide (170 degree) segment against a triangle: one of
+                  // the triangle's edges falls squarely inside the arc's
+                  // span, forcing a reactive mid-arc split.
+                build_circular_segment({0, 0}, 1.5, 0, 170),
+                build_shape({{0, 0}, {2, 0}, {1, 2}}),
+                "WideSegmentAndTriangle",
+            }, {  // Segment as the orbiting shape instead of fixed (exercises
+                  // the negation path independently of which side has the arc).
+                build_shape({{0, 0}, {2, 0}, {1, 2}}),
+                build_circular_segment({0, 0}, 1.5, 0, 170),
+                "TriangleAndWideSegment",
+            },
+        }),
+        [](const testing::TestParamInfo<NoFitPolygonArcOracleTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
+////////////////////////////////////////////////////////////////////////////////
+// General overload with a rounded-corner shape, exercising
+// decompose_into_basic_shapes end-to-end (not just the convex-convex core).
+////////////////////////////////////////////////////////////////////////////////
+
+TEST(NoFitPolygonGeneralArcTest, RoundedCornerSquare)
+{
+    // A 4x4 square with its top-right corner replaced by a quarter-circle
+    // fillet of radius 1.
+    Shape rounded;
+    rounded.elements.push_back(build_line_segment({0, 0}, {4, 0}));
+    rounded.elements.push_back(build_line_segment({4, 0}, {4, 3}));
+    rounded.elements.push_back(build_circular_arc(
+            {4, 3}, {3, 4}, {3, 3}, ShapeElementOrientation::Anticlockwise));
+    rounded.elements.push_back(build_line_segment({3, 4}, {0, 4}));
+    rounded.elements.push_back(build_line_segment({0, 4}, {0, 0}));
+    ShapeWithHoles fixed_shape{rounded, {}};
+    ShapeWithHoles orbiting_shape{build_rectangle(0, 1, 0, 1), {}};
+
+    MultiShapeWithHoles nfp = no_fit_polygon(fixed_shape, orbiting_shape);
+    std::cout << "nfp (" << nfp.shapes_with_holes.size() << " component(s))" << std::endl;
+    for (const ShapeWithHoles& component: nfp.shapes_with_holes)
+        std::cout << "  " << component.to_string(0) << std::endl;
+
+    ASSERT_EQ((ShapePos)nfp.shapes_with_holes.size(), (ShapePos)1);
+
+    AxisAlignedBoundingBox aabb = nfp.shapes_with_holes[0].compute_min_max();
+    const double margin = 0.5;
+    const double step = 0.2;
+    for (double px = aabb.x_min - margin + 0.0137; px <= aabb.x_max + margin; px += step) {
+        for (double py = aabb.y_min - margin + 0.0211; py <= aabb.y_max + margin; py += step) {
+            Point position = {px, py};
+            const ShapeWithHoles& component = nfp.shapes_with_holes[0];
+
+            if (component.contains(position, /*strict=*/true)) {
+                ShapeWithHoles translated_orbiting = orbiting_shape;
+                translated_orbiting.shift(position.x, position.y);
+                EXPECT_TRUE(intersect(fixed_shape.shape, translated_orbiting.shape))
+                    << "Position (" << px << ", " << py << ") is inside the NFP "
+                    << "but the translated orbiting shape does not intersect the fixed shape.";
+            }
+            if (!component.contains(position, /*strict=*/false)) {
+                ShapeWithHoles translated_orbiting = orbiting_shape;
+                translated_orbiting.shift(position.x, position.y);
+                EXPECT_FALSE(intersect(fixed_shape.shape, translated_orbiting.shape))
+                    << "Position (" << px << ", " << py << ") is outside the NFP "
+                    << "but the translated orbiting shape intersects the fixed shape.";
+            }
+        }
+    }
+}
