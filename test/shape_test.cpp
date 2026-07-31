@@ -913,6 +913,29 @@ INSTANTIATE_TEST_SUITE_P(
             },
             ShapeContainsTestParams::read_json(
                     (fs::path("data") / "tests" / "shape" / "shape_contains" / "0.json").string()),
+            {
+                // A CircularArc whose *end* is exactly its own circle's
+                // topmost point (its tangent there is exactly horizontal),
+                // closed by a chord back to the arc's start. The horizontal
+                // ray used by the ray-casting algorithm for this query point
+                // is tangent to the arc exactly at that endpoint. The point
+                // queried here (-3, 1) is well outside this small shape
+                // (whose points all satisfy x in [0, 1], y in [0, 1]) but is
+                // currently reported as contained regardless of 'strict':
+                // CircularArc elements only exclude an intersection at their
+                // own start/end via a proper vs. improper distinction,
+                // unlike LineSegment elements (see the "Horizontal edges are
+                // excluded" special case in Shape::contains), so a ray
+                // tangent to an arc at exactly its topmost/bottommost point
+                // is miscounted.
+                build_shape({
+                        build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                        build_line_segment({0, 1}, {1, 0}),
+                    }),
+                {-3, 1},
+                true,
+                false,
+            },
         }),
         [](const testing::TestParamInfo<ShapeContainsTest::ParamType>& info) {
             return std::to_string(info.index);

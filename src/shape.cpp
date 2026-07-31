@@ -1307,23 +1307,49 @@ bool Shape::contains(
                 //std::cout << "intersection " << intersection.to_string() << std::endl;
                 if (intersection == element.start) {
                     Angle start_angle = angle_radian(element.start - element.center);
-                    //std::cout << "start_angle " << start_angle
-                    //    << " M_PI / 2 " << M_PI / 2
-                    //    << " 3 * M_PI / 2 " << 3 * M_PI / 2
-                    //    << std::endl;
-                    bool start_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
-                        (strictly_lesser(start_angle, M_PI / 2) || !strictly_lesser(start_angle, 3 * M_PI / 2)):
-                        (strictly_greater(start_angle, M_PI / 2) && !strictly_greater(start_angle, 3 * M_PI / 2));
-                    //std::cout << "start_upward " << start_upward << std::endl;
+                    bool start_upward;
+                    if (equal(start_angle, M_PI / 2)) {
+                        // element.start is exactly the circle's own topmost
+                        // point: y has a strict local maximum there, so
+                        // moving away along the arc -- whichever direction,
+                        // regardless of orientation or how far the arc
+                        // continues -- always decreases y. The angle-based
+                        // formula below is undefined here (it only makes
+                        // sense when the tangent has a definite non-zero
+                        // vertical component), so this case is handled
+                        // directly instead of through it.
+                        start_upward = false;
+                    } else if (equal(start_angle, 3 * M_PI / 2)) {
+                        // Symmetric case at the circle's bottommost point (a
+                        // strict local minimum): moving away always
+                        // increases y.
+                        start_upward = true;
+                    } else {
+                        start_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
+                            (strictly_lesser(start_angle, M_PI / 2) || !strictly_lesser(start_angle, 3 * M_PI / 2)):
+                            (strictly_greater(start_angle, M_PI / 2) && !strictly_greater(start_angle, 3 * M_PI / 2));
+                    }
                     if (start_upward)
                         intersection_count++;
                 }
                 if (intersection == element.end) {
                     Angle end_angle = angle_radian(element.end - element.center);
-                    bool end_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
-                        (strictly_lesser(end_angle, M_PI / 2) || !strictly_lesser(end_angle, 3 * M_PI / 2)):
-                        (!strictly_lesser(end_angle, M_PI / 2) && strictly_lesser(end_angle, 3 * M_PI / 2));
-                    //std::cout << "end_upward " << end_upward << std::endl;
+                    bool end_upward;
+                    if (equal(end_angle, M_PI / 2)) {
+                        // element.end is exactly the circle's own topmost
+                        // point (a strict local maximum): approaching it
+                        // along the arc, from whichever side, is always
+                        // ascending right up to it.
+                        end_upward = true;
+                    } else if (equal(end_angle, 3 * M_PI / 2)) {
+                        // Symmetric case at the bottommost point: always
+                        // descending right up to it.
+                        end_upward = false;
+                    } else {
+                        end_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
+                            (strictly_lesser(end_angle, M_PI / 2) || !strictly_lesser(end_angle, 3 * M_PI / 2)):
+                            (!strictly_lesser(end_angle, M_PI / 2) && strictly_lesser(end_angle, 3 * M_PI / 2));
+                    }
                     if (!end_upward)
                         intersection_count++;
                 }
