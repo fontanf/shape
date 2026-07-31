@@ -15,13 +15,21 @@ namespace shape
  * A point p lies inside the NFP iff placing B's origin at p causes B and A
  * to overlap. A point on the boundary means they just touch.
  *
- * Both shapes must be convex polygons (only line-segment elements, CCW
- * winding). An exception is thrown otherwise.
+ * Both shapes must be convex (CCW winding); an exception is thrown
+ * otherwise. Elements may be a mix of LineSegment and CircularArc, with any
+ * number of arcs, as long as each individual arc spans < 180° (an exception
+ * is thrown otherwise) -- e.g. the result of inflating a convex polygon,
+ * which rounds every corner into its own arc, always satisfies this, since
+ * a single polygon vertex's exterior turning angle can never reach a half
+ * turn.
  *
  * The returned shape is CCW and free of collinear (aligned) vertices.
  *
- * Algorithm: rotating-calipers Minkowski sum on convex polygons.
- * Complexity: O(m + n) where m, n are the vertex counts of A and B.
+ * Algorithm: rotating-calipers Minkowski sum, generalized from convex
+ * polygons to convex shapes with (multiple, < 180°) circular arcs by
+ * treating an arc as a continuous range of tangent directions instead of a
+ * single one, splitting/summing as needed against the other shape.
+ * Complexity: O(m + n) where m, n are the element counts of A and B.
  */
 Shape no_fit_polygon(
         const Shape& fixed_shape,
@@ -31,9 +39,9 @@ Shape no_fit_polygon(
  * Compute the No-Fit Polygon (NFP) of two general (possibly non-convex)
  * shapes.
  *
- * The algorithm decomposes each shape into convex parts via
- * compute_convex_partition, computes the convex NFP for every pair of parts,
- * then returns the union of all those convex NFPs.
+ * The algorithm decomposes each shape into convex polygons and circular
+ * segments via decompose_into_basic_shapes, computes the convex NFP for
+ * every pair of parts, then returns the union of all those convex NFPs.
  *
  * The result may consist of several disconnected components or contain holes,
  * hence the return type is a MultiShapeWithHoles.
