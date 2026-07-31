@@ -307,7 +307,7 @@ AxisAlignedBoundingBox ShapeElement::min_max() const
     output.y_max = (std::max)(this->start.y, this->end.y);
 
     if (this->type == ShapeElementType::CircularArc) {
-        LengthDbl radius = distance(this->center, this->start);
+        LengthDbl radius = this->radius();
         Angle starting_angle = shape::angle_radian(this->start - this->center);
         Angle ending_angle = shape::angle_radian(this->end - this->center);
         if (this->orientation != ShapeElementOrientation::Anticlockwise)
@@ -368,7 +368,7 @@ std::pair<Point, Point> ShapeElement::furthest_points(Angle angle) const
         }
 
         if (this->type == ShapeElementType::CircularArc) {
-            LengthDbl radius = distance(this->center, this->start);
+            LengthDbl radius = this->radius();
             if (this->orientation == ShapeElementOrientation::Full) {
                 point_min.y = this->center.y - radius;
                 point_min.x = this->center.x;
@@ -522,9 +522,8 @@ bool ShapeElement::in_circular_arc_cone(const Point& point) const
     // already within [0, this->length()]; if it wasn't, clamping moves
     // this->point(l) away from it, landing on start or end instead.
     LengthDbl l = (std::max)(0.0, (std::min)(this->length(), this->length(point)));
-    LengthDbl radius = distance(this->center, this->start);
     LengthDbl point_distance = distance(this->center, point);
-    Point point_on_circle = this->center + (radius / point_distance) * (point - this->center);
+    Point point_on_circle = this->center + (this->radius() / point_distance) * (point - this->center);
     return equal(point_on_circle, this->point(l));
 }
 
@@ -575,7 +574,7 @@ LengthDbl ShapeElement::length() const
     case ShapeElementType::LineSegment:
         return distance(this->start, this->end);
     case ShapeElementType::CircularArc:
-        LengthDbl r = distance(this->center, this->start);
+        LengthDbl r = this->radius();
         if (this->orientation == ShapeElementOrientation::Full) {
             return 2 * M_PI * r;
         } if (this->orientation == ShapeElementOrientation::Anticlockwise) {
@@ -595,7 +594,7 @@ LengthDbl ShapeElement::length(const Point& point) const
     case ShapeElementType::LineSegment:
         return distance(this->start, point);
     case ShapeElementType::CircularArc:
-        LengthDbl r = distance(this->center, this->start);
+        LengthDbl r = this->radius();
         if (this->orientation == ShapeElementOrientation::Anticlockwise
                 || this->orientation == ShapeElementOrientation::Full) {
             return angle_radian(this->start - this->center, point - this->center) * r;
@@ -612,7 +611,7 @@ Point ShapeElement::point(LengthDbl length) const
     case ShapeElementType::LineSegment: {
         return this->start + length / this->length() * (this->end - this->start);
     } case ShapeElementType::CircularArc: {
-        LengthDbl r = distance(this->start, this->center);
+        LengthDbl r = this->radius();
         if (this->orientation != ShapeElementOrientation::Clockwise) {
             return this->start.rotate_radians(
                     this->center,
@@ -686,7 +685,7 @@ std::string ShapeElement::to_svg() const
             && this->orientation == ShapeElementOrientation::Full) {
         Point center = {this->center.x, -(this->center.y)};
         Point start = {this->start.x, -(this->start.y)};
-        LengthDbl radius = distance(center, start);
+        LengthDbl radius = this->radius();
         s += std::to_string(center.x - radius) + "," + std::to_string(center.y);
         s += "a" + std::to_string(radius) + ","
             + std::to_string(radius) + ",0,1,0,"
@@ -702,7 +701,7 @@ std::string ShapeElement::to_svg() const
         if (this->type == ShapeElementType::LineSegment) {
             s += "L";
         } else {
-            LengthDbl radius = distance(center, start);
+            LengthDbl radius = this->radius();
             Angle theta = angle_radian(start - center, end - center);
             int large_arc_flag = (theta > M_PI)? 0: 1;
             int sweep_flag = (this->orientation == ShapeElementOrientation::Anticlockwise)? 0: 1;
@@ -1098,14 +1097,14 @@ AreaDbl Shape::compute_area() const
     for (const ShapeElement& element: elements) {
         if (element.type == ShapeElementType::CircularArc
                 && element.orientation == ShapeElementOrientation::Full) {
-            LengthDbl radius = distance(element.center, element.start);
+            LengthDbl radius = element.radius();
             return radius * radius * M_PI;
         }
 
         area += cross_product(element.start, element.end);
         // Handle circular arcs.
         if (element.type == ShapeElementType::CircularArc) {
-            LengthDbl radius = distance(element.center, element.start);
+            LengthDbl radius = element.radius();
             if (element.orientation == ShapeElementOrientation::Anticlockwise) {
                 Angle theta = angle_radian(element.center - element.start, element.center - element.end);
                 area += radius * radius * (theta - std::sin(theta));
@@ -1286,12 +1285,11 @@ bool Shape::contains(
                 intersection_count++;
             }
         } else if (element.type == ShapeElementType::CircularArc) {
-            LengthDbl radius = distance(element.center, element.start);
             ShapeElement ray;
             ray.type = ShapeElementType::LineSegment;
             ray.start.x = point.x;
             ray.start.y = point.y;
-            ray.end.x = (std::max)(point.x, element.center.x) + 2 * radius;
+            ray.end.x = (std::max)(point.x, element.center.x) + 2 * element.radius();
             ray.end.y = point.y;
 
             ShapeElementIntersectionsOutput intersections = compute_intersections(ray, element);
@@ -1891,7 +1889,7 @@ std::string Shape::to_svg_path() const
         const ShapeElement& element = elements.front();
         Point center = {element.center.x, -(element.center.y)};
         Point start = {element.start.x, -(element.start.y)};
-        LengthDbl radius = distance(center, start);
+        LengthDbl radius = element.radius();
         s += std::to_string(center.x - radius) + "," + std::to_string(center.y);
         s += "a" + std::to_string(radius) + ","
             + std::to_string(radius) + ",0,1,0,"
@@ -1908,7 +1906,7 @@ std::string Shape::to_svg_path() const
             if (element.type == ShapeElementType::LineSegment) {
                 s += "L";
             } else {
-                LengthDbl radius = distance(center, start);
+                LengthDbl radius = element.radius();
                 Angle theta = angle_radian(start - center, end - center);
                 int large_arc_flag = (theta > M_PI)? 0: 1;
                 int sweep_flag = (element.orientation == ShapeElementOrientation::Anticlockwise)? 0: 1;
@@ -2484,9 +2482,7 @@ bool shape::equal(
         if (!equal(element_1.center, element_2.center))
             return false;
         if (element_1.orientation == ShapeElementOrientation::Full) {
-            LengthDbl radius_1 = distance(element_1.center, element_1.start);
-            LengthDbl radius_2 = distance(element_2.center, element_2.start);
-            return equal(radius_1, radius_2);
+            return equal(element_1.radius(), element_2.radius());
         }
     }
     if (!equal(element_1.start, element_2.start))

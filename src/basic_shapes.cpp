@@ -10,11 +10,6 @@ using namespace shape;
 namespace
 {
 
-LengthDbl arc_radius(const ShapeElement& arc)
-{
-    return distance(arc.start, arc.center);
-}
-
 std::pair<ShapeElement, ShapeElement> split_arc_at_midpoint(const ShapeElement& arc)
 {
     Point midpoint = arc.middle();
@@ -117,7 +112,7 @@ void cut_circular_segments(
 
             // Check whether the arc subtends >= 180°; if so the tangent lines
             // at the endpoints are parallel and no finite apex exists.
-            LengthDbl radius = arc_radius(element);
+            LengthDbl radius = element.radius();
             LengthDbl arc_angle = element.length() / radius;
 
             bool needs_subdivision = (arc_angle >= M_PI - 1e-6)

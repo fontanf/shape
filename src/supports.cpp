@@ -21,7 +21,7 @@ ShapeSupports shape::compute_shape_supports(
 
         LengthDbl x_min_cur = element.start.x;
         if (element.type == ShapeElementType::CircularArc) {
-            LengthDbl radius = distance(element.center, element.start);
+            LengthDbl radius = element.radius();
             Angle starting_angle = angle_radian(element.start - element.center);
             Angle ending_angle = angle_radian(element.end - element.center);
             if (element.orientation == ShapeElementOrientation::Clockwise)
