@@ -65,8 +65,7 @@ Point point_at_tangent_direction(
         const ShapeElement& arc,
         const Point& target_direction)
 {
-    LengthDbl radius = distance(arc.center, arc.start);
-    return point_at_tangent_direction(arc.center, radius, arc.orientation, target_direction);
+    return point_at_tangent_direction(arc.center, arc.radius(), arc.orientation, target_direction);
 }
 
 /**
@@ -454,14 +453,12 @@ void handle_arc_arc(
         orbiting_local_piece = orbiting.split_current_at(overlap_end);
 
     // Sum the two (local, unplaced) overlap pieces into a single arc.
-    LengthDbl fixed_radius = distance(fixed_local_piece.center, fixed_local_piece.start);
-    LengthDbl orbiting_radius = distance(orbiting_local_piece.center, orbiting_local_piece.start);
     Point orbiting_neg_center = {-orbiting_local_piece.center.x, -orbiting_local_piece.center.y};
     Point orbiting_neg_start = {-orbiting_local_piece.start.x, -orbiting_local_piece.start.y};
     Point combined_center = current_vertex
         + (fixed_local_piece.center - fixed_local_piece.start)
         + (orbiting_neg_center - orbiting_neg_start);
-    LengthDbl combined_radius = fixed_radius + orbiting_radius;
+    LengthDbl combined_radius = fixed_local_piece.radius() + orbiting_local_piece.radius();
     Point combined_end = point_at_tangent_direction(
             combined_center, combined_radius, ShapeElementOrientation::Anticlockwise, overlap_end);
     ShapeElement combined = build_circular_arc(

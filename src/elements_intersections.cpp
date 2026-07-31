@@ -378,7 +378,7 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
     //std::cout << "line " << line.to_string() << std::endl;
     //std::cout << "arc " << arc.to_string() << std::endl;
 
-    LengthDbl radius = distance(arc.start, arc.center);
+    LengthDbl radius = arc.radius();
 
     std::vector<Point> computed_points = shape::compute_line_circle_intersections(
             line.start, line.end, arc.center, radius);
@@ -545,8 +545,8 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
         }
     }
 
-    LengthDbl radius_1 = distance(arc.start, arc.center);
-    LengthDbl radius_2 = distance(arc_2.start, arc_2.center);
+    LengthDbl radius_1 = arc.radius();
+    LengthDbl radius_2 = arc_2.radius();
 
     std::vector<Point> computed_points = shape::compute_circle_circle_intersections(
             arc.center, radius_1, arc_2.center, radius_2);

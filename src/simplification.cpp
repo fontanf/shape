@@ -403,7 +403,7 @@ bool is_forward_extension(const ShapeElement& element, const Point& point)
                 0.0);
     }
     case ShapeElementType::CircularArc: {
-        LengthDbl radius = distance(element.start, element.center);
+        LengthDbl radius = element.radius();
         switch (element.orientation) {
         case ShapeElementOrientation::Full:
             return false;
@@ -529,12 +529,11 @@ ExtendToIntersectionOutput shape::try_extend_to_intersection(
             break;
         }
         case ShapeElementType::CircularArc: {
-            LengthDbl radius_next = distance(element_next.start, element_next.center);
             candidates = compute_line_circle_intersections(
                     element_prev.start,
                     element_prev.end,
                     element_next.center,
-                    radius_next);
+                    element_next.radius());
             break;
         }
         }
@@ -543,22 +542,19 @@ ExtendToIntersectionOutput shape::try_extend_to_intersection(
     case ShapeElementType::CircularArc: {
         switch (element_next.type) {
         case ShapeElementType::LineSegment: {
-            LengthDbl radius_prev = distance(element_prev.start, element_prev.center);
             candidates = compute_line_circle_intersections(
                     element_next.start,
                     element_next.end,
                     element_prev.center,
-                    radius_prev);
+                    element_prev.radius());
             break;
         }
         case ShapeElementType::CircularArc: {
-            LengthDbl radius_prev = distance(element_prev.start, element_prev.center);
-            LengthDbl radius_next = distance(element_next.start, element_next.center);
             candidates = compute_circle_circle_intersections(
                     element_prev.center,
-                    radius_prev,
+                    element_prev.radius(),
                     element_next.center,
-                    radius_next);
+                    element_next.radius());
             break;
         }
         }
@@ -629,7 +625,7 @@ SmoothArcToLineOutput shape::try_smooth_arc_to_line(
     if (element_prev.orientation == ShapeElementOrientation::Full)
         return {};
 
-    LengthDbl radius = distance(element_prev.start, element_prev.center);
+    LengthDbl radius = element_prev.radius();
     Point center_to_end = element_next.end - element_prev.center;
     LengthDbl distance_to_end = distance(element_next.end, element_prev.center);
 

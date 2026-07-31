@@ -401,6 +401,14 @@ struct ShapeElement
     /** Check if a point is on the element. */
     bool contains(const Point& point) const;
 
+    /** Radius of the element. The element must be a CircularArc. */
+    LengthDbl radius() const
+    {
+        if (this->type != ShapeElementType::CircularArc)
+            throw std::invalid_argument(FUNC_SIGNATURE);
+        return distance(this->center, this->start);
+    }
+
     /** Length of the element. */
     LengthDbl length() const;
 

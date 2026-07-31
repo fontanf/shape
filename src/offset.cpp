@@ -71,8 +71,7 @@ Shape inflate_element(
     } case shape::ShapeElementType::CircularArc: {
         if (element.orientation == shape::ShapeElementOrientation::Clockwise)
             return inflate_element(element.reverse(), deflate, inflate);
-        LengthDbl radius = distance(element.center, element.start);
-        if (equal(deflate, radius)) {
+        if (equal(deflate, element.radius())) {
             Point normal_start = (element.orientation == shape::ShapeElementOrientation::Anticlockwise)?
                 element.start - element.center:
                 element.center - element.start;
@@ -223,8 +222,7 @@ ShapeWithHoles shape::inflate(
     if (shape.shape.is_circle()) {
         Shape circle = shape.shape;
         ShapeElement& element = circle.elements[0];
-        LengthDbl radius_orig = distance(element.center, element.start);
-        LengthDbl radius = radius_orig + offset;
+        LengthDbl radius = element.radius() + offset;
         element.start = {element.center.x + radius, element.center.y};
         element.end = element.start;
         union_input.push_back({circle});
@@ -286,7 +284,7 @@ ShapeWithHoles shape::inflate(
         if (hole.is_circle()) {
             Shape circle = hole;
             ShapeElement& element = circle.elements[0];
-            LengthDbl radius_orig = distance(element.center, element.start);
+            LengthDbl radius_orig = element.radius();
             if (strictly_greater(radius_orig, offset)) {
                 LengthDbl radius = radius_orig - offset;
                 element.start = {element.center.x + radius, element.center.y};
@@ -369,7 +367,7 @@ ShapeWithHoles shape::inflate(
         ShapeWithHoles output;
         Shape shape = shape_orig;
         ShapeElement& element = shape.elements[0];
-        LengthDbl radius_orig = distance(element.center, element.start);
+        LengthDbl radius_orig = element.radius();
         LengthDbl radius = radius_orig + offset;
         element.start = {element.center.x + radius, element.center.y};
         element.end = element.start;
@@ -554,8 +552,7 @@ std::vector<Shape> shape::deflate(
     if (shape_orig.is_circle()) {
         Shape shape = shape_orig;
         ShapeElement& element = shape.elements[0];
-        LengthDbl radius_orig = distance(element.center, element.start);
-        LengthDbl radius = radius_orig - offset;
+        LengthDbl radius = element.radius() - offset;
         element.start = {element.center.x + radius, element.center.y};
         element.end = element.start;
         return {shape};
