@@ -568,6 +568,148 @@ bool ShapeElement::contains(const Point& point) const
     return equal(point, this->point(l));
 }
 
+std::vector<RayCrossing> ShapeElement::ray_crossings(LengthDbl y) const
+{
+    std::vector<RayCrossing> crossings;
+
+    if (this->type == ShapeElementType::LineSegment) {
+        // A horizontal edge doesn't touch 'y' at isolated points at all;
+        // see ray_horizontal_extent for that case.
+        if (equal(this->start.y, this->end.y))
+            return crossings;
+
+        // Check y.
+        if (strictly_greater(y, this->start.y)
+                && strictly_greater(y, this->end.y)) {
+            return crossings;
+        }
+        if (strictly_lesser(y, this->start.y)
+                && strictly_lesser(y, this->end.y)) {
+            return crossings;
+        }
+
+        bool upward = (this->end.y > this->start.y);
+
+        if (upward) {
+            // An upward edge includes its starting endpoint, and excludes its
+            // final endpoint;
+            if (equal(y, this->start.y)) {
+                crossings.push_back({this->start.x, true});
+                return crossings;
+            } else if (equal(y, this->end.y)) {
+                crossings.push_back({this->end.x, false});
+                return crossings;
+            }
+        } else {
+            // A downward edge excludes its starting endpoint, and includes its final endpoint;
+            if (equal(y, this->start.y)) {
+                crossings.push_back({this->start.x, false});
+                return crossings;
+            } else if (equal(y, this->end.y)) {
+                crossings.push_back({this->end.x, true});
+                return crossings;
+            }
+        }
+
+        LengthDbl x_inters = this->start.x
+            + (y - this->start.y)
+            * (this->end.x - this->start.x)
+            / (this->end.y - this->start.y);
+        crossings.push_back({x_inters, true});
+        return crossings;
+    } else if (this->type == ShapeElementType::CircularArc) {
+        // Span the ray across the full circle, independently of any query
+        // point, so every crossing of the arc at height 'y' is found.
+        LengthDbl r = this->radius();
+        ShapeElement ray;
+        ray.type = ShapeElementType::LineSegment;
+        ray.start.x = this->center.x - r - 1;
+        ray.start.y = y;
+        ray.end.x = this->center.x + r + 1;
+        ray.end.y = y;
+
+        ShapeElementIntersectionsOutput intersections = compute_intersections(ray, *this);
+        for (const Point& intersection: intersections.proper_intersections)
+            crossings.push_back({intersection.x, true});
+        for (const Point& intersection: intersections.improper_intersections) {
+            if (intersection == this->start) {
+                Angle start_angle = angle_radian(this->start - this->center);
+                bool start_upward;
+                if (equal(start_angle, M_PI / 2)) {
+                    // this->start is exactly the circle's own topmost
+                    // point: y has a strict local maximum there, so
+                    // moving away along the arc -- whichever direction,
+                    // regardless of orientation or how far the arc
+                    // continues -- always decreases y. The angle-based
+                    // formula below is undefined here (it only makes
+                    // sense when the tangent has a definite non-zero
+                    // vertical component), so this case is handled
+                    // directly instead of through it.
+                    start_upward = false;
+                } else if (equal(start_angle, 3 * M_PI / 2)) {
+                    // Symmetric case at the circle's bottommost point (a
+                    // strict local minimum): moving away always
+                    // increases y.
+                    start_upward = true;
+                } else {
+                    start_upward = (this->orientation == ShapeElementOrientation::Anticlockwise)?
+                        (strictly_lesser(start_angle, M_PI / 2) || !strictly_lesser(start_angle, 3 * M_PI / 2)):
+                        (strictly_greater(start_angle, M_PI / 2) && !strictly_greater(start_angle, 3 * M_PI / 2));
+                }
+                crossings.push_back({this->start.x, start_upward});
+            }
+            if (intersection == this->end) {
+                Angle end_angle = angle_radian(this->end - this->center);
+                bool end_upward;
+                if (equal(end_angle, M_PI / 2)) {
+                    // this->end is exactly the circle's own topmost
+                    // point (a strict local maximum): approaching it
+                    // along the arc, from whichever side, is always
+                    // ascending right up to it.
+                    end_upward = true;
+                } else if (equal(end_angle, 3 * M_PI / 2)) {
+                    // Symmetric case at the bottommost point: always
+                    // descending right up to it.
+                    end_upward = false;
+                } else {
+                    end_upward = (this->orientation == ShapeElementOrientation::Anticlockwise)?
+                        (strictly_lesser(end_angle, M_PI / 2) || !strictly_lesser(end_angle, 3 * M_PI / 2)):
+                        (!strictly_lesser(end_angle, M_PI / 2) && strictly_lesser(end_angle, 3 * M_PI / 2));
+                }
+                crossings.push_back({this->end.x, !end_upward});
+            }
+            if (!(intersection == this->start) && !(intersection == this->end)) {
+                // The ray is tangent to the arc at a local y-extremum
+                // strictly between its endpoints: the boundary touches
+                // 'y' without actually crossing from one side to the
+                // other there, so it never flips parity, but it is still
+                // a touch point that must not be straddled by a candidate
+                // gap.
+                crossings.push_back({intersection.x, false});
+            }
+        }
+        return crossings;
+    }
+
+    return crossings;
+}
+
+bool ShapeElement::ray_horizontal_extent(
+        LengthDbl y,
+        LengthDbl& x_min,
+        LengthDbl& x_max) const
+{
+    if (this->type != ShapeElementType::LineSegment)
+        return false;
+    if (!equal(this->start.y, this->end.y))
+        return false;
+    if (!equal(this->start.y, y))
+        return false;
+    x_min = (std::min)(this->start.x, this->end.x);
+    x_max = (std::max)(this->start.x, this->end.x);
+    return true;
+}
+
 LengthDbl ShapeElement::length() const
 {
     switch (this->type) {
@@ -1232,136 +1374,18 @@ bool Shape::contains(
         if (element.contains(point))
             return (strict)? false: true;
 
-    // Then use the ray-casting algorithm to check if the point is inside
+    // Then use the ray-casting algorithm to check if the point is inside:
+    // count the genuine crossings (see ShapeElement::ray_crossings) that
+    // lie to the right of 'point'.
     ElementPos intersection_count = 0;
     for (const ShapeElement& element: this->elements) {
-        //std::cout << "element " << element.to_string() << std::endl;
-        if (element.type == ShapeElementType::LineSegment) {
-            // Horizontal edges are excluded.
-            if (equal(element.start.y, element.end.y))
-                continue;
-
-            // Check y.
-            if (strictly_greater(point.y, element.start.y)
-                    && strictly_greater(point.y, element.end.y)) {
-                continue;
-            }
-            if (strictly_lesser(point.y, element.start.y)
-                    && strictly_lesser(point.y, element.end.y)) {
-                continue;
-            }
-
-            bool upward = (element.end.y > element.start.y);
-
-            if (upward) {
-                // An upward edge includes its starting endpoint, and excludes its
-                // final endpoint;
-                if (equal(point.y, element.start.y)) {
-                    if (element.start.x > point.x) {
-                        intersection_count++;
-                        continue;
-                    }
-                } else if (equal(point.y, element.end.y)) {
-                    continue;
-                }
-            } else {
-                // A downward edge excludes its starting endpoint, and includes its final endpoint;
-                if (equal(point.y, element.start.y)) {
-                    continue;
-                } else if (equal(point.y, element.end.y)) {
-                    if (element.end.x > point.x) {
-                        intersection_count++;
-                        continue;
-                    }
-                }
-            }
-
-            LengthDbl x_inters = element.start.x
-                + (point.y - element.start.y)
-                * (element.end.x - element.start.x)
-                / (element.end.y - element.start.y);
-            //std::cout << "x_inters " << x_inters << std::endl;
-            if (x_inters > point.x) {
+        for (const RayCrossing& crossing: element.ray_crossings(point.y)) {
+            if (crossing.is_crossing && strictly_greater(crossing.x, point.x))
                 intersection_count++;
-            }
-        } else if (element.type == ShapeElementType::CircularArc) {
-            ShapeElement ray;
-            ray.type = ShapeElementType::LineSegment;
-            ray.start.x = point.x;
-            ray.start.y = point.y;
-            ray.end.x = (std::max)(point.x, element.center.x) + 2 * element.radius();
-            ray.end.y = point.y;
-
-            ShapeElementIntersectionsOutput intersections = compute_intersections(ray, element);
-            //std::cout << intersections.to_string(0) << std::endl;
-            for (const Point& intersection: intersections.proper_intersections) {
-                if (intersection.x < point.x)
-                    continue;
-                intersection_count++;
-            }
-            for (const Point& intersection: intersections.improper_intersections) {
-                if (intersection.x < point.x)
-                    continue;
-                //std::cout << "intersection " << intersection.to_string() << std::endl;
-                if (intersection == element.start) {
-                    Angle start_angle = angle_radian(element.start - element.center);
-                    bool start_upward;
-                    if (equal(start_angle, M_PI / 2)) {
-                        // element.start is exactly the circle's own topmost
-                        // point: y has a strict local maximum there, so
-                        // moving away along the arc -- whichever direction,
-                        // regardless of orientation or how far the arc
-                        // continues -- always decreases y. The angle-based
-                        // formula below is undefined here (it only makes
-                        // sense when the tangent has a definite non-zero
-                        // vertical component), so this case is handled
-                        // directly instead of through it.
-                        start_upward = false;
-                    } else if (equal(start_angle, 3 * M_PI / 2)) {
-                        // Symmetric case at the circle's bottommost point (a
-                        // strict local minimum): moving away always
-                        // increases y.
-                        start_upward = true;
-                    } else {
-                        start_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
-                            (strictly_lesser(start_angle, M_PI / 2) || !strictly_lesser(start_angle, 3 * M_PI / 2)):
-                            (strictly_greater(start_angle, M_PI / 2) && !strictly_greater(start_angle, 3 * M_PI / 2));
-                    }
-                    if (start_upward)
-                        intersection_count++;
-                }
-                if (intersection == element.end) {
-                    Angle end_angle = angle_radian(element.end - element.center);
-                    bool end_upward;
-                    if (equal(end_angle, M_PI / 2)) {
-                        // element.end is exactly the circle's own topmost
-                        // point (a strict local maximum): approaching it
-                        // along the arc, from whichever side, is always
-                        // ascending right up to it.
-                        end_upward = true;
-                    } else if (equal(end_angle, 3 * M_PI / 2)) {
-                        // Symmetric case at the bottommost point: always
-                        // descending right up to it.
-                        end_upward = false;
-                    } else {
-                        end_upward = (element.orientation == ShapeElementOrientation::Anticlockwise)?
-                            (strictly_lesser(end_angle, M_PI / 2) || !strictly_lesser(end_angle, 3 * M_PI / 2)):
-                            (!strictly_lesser(end_angle, M_PI / 2) && strictly_lesser(end_angle, 3 * M_PI / 2));
-                    }
-                    if (!end_upward)
-                        intersection_count++;
-                }
-                //if (!(intersection == element.start)
-                //        && !(intersection == element.end)) {
-                //    std::cout << "intersection_count++" << std::endl;
-                //    intersection_count++;
-                //}
-            }
         }
     }
 
     // If the number of intersections is odd, the point is inside the shape
-    //std::cout << "intersection_count " << intersection_count << std::endl;
     return (intersection_count % 2 == 1);
 }
 
@@ -1384,54 +1408,70 @@ Point Shape::find_point_strictly_inside() const
     for (Counter k = 2; k < 8; ++k) {
         for (Counter k2 = 1; k2 < k; ++k2) {
             LengthDbl y = aabb.y_min + (aabb.y_max - aabb.y_min) * k2 / k;
-            Point point_min_1 = {
-                std::numeric_limits<LengthDbl>::infinity(),
-                std::numeric_limits<LengthDbl>::infinity()};
-            Point point_min_2 = {
-                std::numeric_limits<LengthDbl>::infinity(),
-                std::numeric_limits<LengthDbl>::infinity()};
-            ShapeElement ray;
-            ray.type = ShapeElementType::LineSegment;
-            ray.start.x = aabb.x_min - 1;
-            ray.start.y = y;
-            ray.end.x = aabb.x_max + 1;
-            ray.end.y = y;
-            for (ElementPos element_pos = 0;
-                    element_pos < this->elements.size();
-                    ++element_pos) {
-                const ShapeElement& element = this->elements[element_pos];
-                ShapeElementIntersectionsOutput intersections = compute_intersections(ray, element);
-                for (const ShapeElement& overlapping_part: intersections.overlapping_parts) {
-                    const Point& intersection = (overlapping_part.start.x < overlapping_part.end.x)?
-                        overlapping_part.start:
-                        overlapping_part.end;
-                    if (!strictly_lesser(point_min_1.x, intersection.x)) {
-                        point_min_2 = intersection;
-                        point_min_1 = intersection;
-                    } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
-                        point_min_2 = intersection;
-                    }
-                }
-                for (const Point& intersection: intersections.improper_intersections) {
-                    if (!strictly_lesser(point_min_1.x, intersection.x)) {
-                        point_min_2 = point_min_1;
-                        point_min_1 = intersection;
-                    } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
-                        point_min_2 = intersection;
-                    }
-                }
-                for (const Point& intersection: intersections.proper_intersections) {
-                    if (!strictly_lesser(point_min_1.x, intersection.x)) {
-                        point_min_2 = point_min_1;
-                        point_min_1 = intersection;
-                    } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
-                        point_min_2 = intersection;
-                    }
+
+            // Every touch of the boundary at this height (see
+            // ShapeElement::ray_crossings), crossing or not: a candidate
+            // gap must be bounded by two touches with nothing else between
+            // them, so its interior cannot coincide with any boundary
+            // feature (a reflex vertex, an arc tangent to this height, ...).
+            std::vector<RayCrossing> touches;
+            // Horizontal edges lying exactly along this height: every point
+            // in such an interval is on the boundary regardless of
+            // ray-casting parity, so no candidate gap may overlap one.
+            std::vector<std::pair<LengthDbl, LengthDbl>> forbidden_intervals;
+            for (const ShapeElement& element: this->elements) {
+                for (const RayCrossing& touch: element.ray_crossings(y))
+                    touches.push_back(touch);
+                LengthDbl x_min, x_max;
+                if (element.ray_horizontal_extent(y, x_min, x_max)) {
+                    forbidden_intervals.push_back({x_min, x_max});
+                    touches.push_back({x_min, false});
+                    touches.push_back({x_max, false});
                 }
             }
-            if (equal(point_min_1.x, point_min_2.x))
-                continue;
-            return {(point_min_1.x + point_min_2.x) / 2, y};
+            std::sort(
+                    touches.begin(),
+                    touches.end(),
+                    [](const RayCrossing& touch_1, const RayCrossing& touch_2)
+                    { return touch_1.x < touch_2.x; });
+
+            // Walk the touches left to right, merging those at the same x
+            // and keeping a running parity that flips at every genuine
+            // crossing: the gap that follows a cluster is strictly inside
+            // the shape exactly when that parity is odd there, unless it
+            // falls inside a forbidden interval.
+            bool inside = false;
+            for (ElementPos cluster_start = 0;
+                    cluster_start < (ElementPos)touches.size(); ) {
+                ElementPos cluster_end = cluster_start;
+                bool flips = false;
+                while (cluster_end < (ElementPos)touches.size()
+                        && equal(touches[cluster_end].x, touches[cluster_start].x)) {
+                    if (touches[cluster_end].is_crossing)
+                        flips = !flips;
+                    ++cluster_end;
+                }
+                if (flips)
+                    inside = !inside;
+
+                if (inside && cluster_end < (ElementPos)touches.size()) {
+                    LengthDbl x_left = touches[cluster_start].x;
+                    LengthDbl x_right = touches[cluster_end].x;
+                    LengthDbl mid = (x_left + x_right) / 2;
+                    bool forbidden = false;
+                    for (const auto& interval: forbidden_intervals) {
+                        if (!strictly_lesser(mid, interval.first)
+                                && !strictly_greater(mid, interval.second)) {
+                            forbidden = true;
+                            break;
+                        }
+                    }
+                    if (!forbidden)
+                        return {mid, y};
+                }
+
+                cluster_start = cluster_end;
+            }
         }
     }
     return this->elements.front().start;

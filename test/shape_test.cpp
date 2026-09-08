@@ -944,7 +944,27 @@ INSTANTIATE_TEST_SUITE_P(
 
 struct ShapeFindPointStrictlyInsideTestParams
 {
+    std::string name;
     Shape shape;
+
+
+    static ShapeFindPointStrictlyInsideTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        ShapeFindPointStrictlyInsideTestParams test_params;
+        test_params.name = file_path;
+        test_params.shape = Shape::from_json(json["shape"]);
+        return test_params;
+    }
 };
 
 void PrintTo(const ShapeFindPointStrictlyInsideTestParams& params, std::ostream* os)
@@ -968,14 +988,30 @@ INSTANTIATE_TEST_SUITE_P(
         ShapeFindPointStrictlyInsideTest,
         testing::ValuesIn(std::vector<ShapeFindPointStrictlyInsideTestParams>{
             {
+                "Rectangle",
                 build_rectangle(2, 4),
             }, {
+                "Circle",
                 build_circle(2),
             }, {
+                "ConcavePolygon",
                 build_shape({{0, 100}, {100, 100}, {100, 0}, {200, 0}, {200, 200}, {0, 200}}),
             }, {
+                "Diamond",
                 build_shape({{15, 4}, {16, 5}, {15, 6}, {14, 5}}),
-            }
+            },
+            // Regression test for fontanf/packingsolver issue #563. This
+            // concave shape has a corner-fillet CircularArc (radius 5,
+            // center (3.5, 38)) whose bottommost point is tangent to y = 33
+            // strictly between the arc's own start and end (not at either
+            // endpoint, so the tangent-at-endpoint handling in
+            // Shape::contains() does not apply here). find_point_strictly_
+            // inside() samples a horizontal ray at y = 33, and its "two
+            // smallest x-intersections" heuristic pairs that tangent touch
+            // with the next real crossing as if both were real crossings,
+            // returning a midpoint that is not actually inside the shape.
+            ShapeFindPointStrictlyInsideTestParams::read_json(
+                    (fs::path("data") / "tests" / "shape" / "find_point_strictly_inside" / "0.json").string()),
         }),
         [](const testing::TestParamInfo<ShapeFindPointStrictlyInsideTest::ParamType>& info) {
             return std::to_string(info.index);

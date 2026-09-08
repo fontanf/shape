@@ -1,0 +1,886 @@
+{
+  "description": "Minimal regression test for fontanf/packingsolver issue #563, isolated from the original 56-shape union input. This single, valid (Shape::check() true, non-self-intersecting), 38-element concave shape with no holes is fed to compute_difference(shapes_1={shape}, shapes={}) (i.e. difference against nothing, which should return the shape unchanged). Root cause: Shape::find_point_strictly_inside() picks a probe point that is not actually inside the shape (it pairs the tangent point of a corner-fillet arc -- which only touches a sampled horizontal ray without crossing it -- with the next real crossing, as if both were real crossings), so compute_boolean_operation_component wrongly discards the one valid face and returns zero faces instead of one.",
+  "shapes_1": [
+    {
+      "elements": [
+        {
+          "end": {
+            "x": 371.5,
+            "y": 49.0
+          },
+          "start": {
+            "x": 377.5,
+            "y": 32.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 359.5,
+            "y": 56.0
+          },
+          "start": {
+            "x": 371.5,
+            "y": 49.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 348.5,
+            "y": 55.5
+          },
+          "start": {
+            "x": 359.5,
+            "y": 56.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 318.5,
+            "y": 47.0
+          },
+          "start": {
+            "x": 348.5,
+            "y": 55.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 291.5,
+            "y": 45.0
+          },
+          "start": {
+            "x": 318.5,
+            "y": 47.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 87.0,
+            "y": 45.0
+          },
+          "start": {
+            "x": 291.5,
+            "y": 45.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 63.0,
+            "y": 50.5
+          },
+          "start": {
+            "x": 87.0,
+            "y": 45.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 37.499999999999986,
+            "y": 66.0
+          },
+          "start": {
+            "x": 63.0,
+            "y": 50.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 40.097076488785405,
+            "y": 70.27260970735662
+          },
+          "start": {
+            "x": 37.499999999999986,
+            "y": 66.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "center": {
+            "x": 37.499999999999986,
+            "y": 66.0
+          },
+          "end": {
+            "x": 36.54565170448888,
+            "y": 70.90807694834291
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": 40.097076488785405,
+            "y": 70.27260970735662
+          },
+          "type": "CircularArc"
+        },
+        {
+          "end": {
+            "x": 18.54565170448888,
+            "y": 67.40807694834291
+          },
+          "start": {
+            "x": 36.54565170448888,
+            "y": 70.90807694834291
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 19.5,
+            "y": 62.5
+          },
+          "start": {
+            "x": 18.54565170448888,
+            "y": 67.40807694834291
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 5.5,
+            "y": 51.5
+          },
+          "start": {
+            "x": 19.5,
+            "y": 62.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 0.0,
+            "y": 42.0
+          },
+          "start": {
+            "x": 5.5,
+            "y": 51.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 3.4999999999999947,
+            "y": 38.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 42.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": -0.262883473534389,
+            "y": 34.70747696065741
+          },
+          "start": {
+            "x": 3.4999999999999947,
+            "y": 38.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "center": {
+            "x": 3.4999999999999947,
+            "y": 38.0
+          },
+          "end": {
+            "x": 4.689343646896293,
+            "y": 33.14351344184014
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": -0.262883473534389,
+            "y": 34.70747696065741
+          },
+          "type": "CircularArc"
+        },
+        {
+          "end": {
+            "x": 29.189343646896294,
+            "y": 39.14351344184014
+          },
+          "start": {
+            "x": 4.689343646896293,
+            "y": 33.14351344184014
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 28.0,
+            "y": 44.0
+          },
+          "start": {
+            "x": 29.189343646896294,
+            "y": 39.14351344184014
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 33.0,
+            "y": 41.5
+          },
+          "start": {
+            "x": 28.0,
+            "y": 44.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 37.5,
+            "y": 31.5
+          },
+          "start": {
+            "x": 33.0,
+            "y": 41.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 37.0,
+            "y": 20.5
+          },
+          "start": {
+            "x": 37.5,
+            "y": 31.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 12.0,
+            "y": 12.0
+          },
+          "start": {
+            "x": 37.0,
+            "y": 20.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 9.0,
+            "y": 9.0
+          },
+          "start": {
+            "x": 12.0,
+            "y": 12.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 9.5,
+            "y": 6.0
+          },
+          "start": {
+            "x": 9.0,
+            "y": 9.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 14.5,
+            "y": 2.5
+          },
+          "start": {
+            "x": 9.5,
+            "y": 6.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 28.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 14.5,
+            "y": 2.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 27.089553699088462,
+            "y": -4.916410024922301
+          },
+          "start": {
+            "x": 28.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "center": {
+            "x": 28.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 29.040538222324294,
+            "y": -4.890529644924177
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": 27.089553699088462,
+            "y": -4.916410024922301
+          },
+          "type": "CircularArc"
+        },
+        {
+          "end": {
+            "x": 52.540538222324294,
+            "y": 0.10947035507582292
+          },
+          "start": {
+            "x": 29.040538222324294,
+            "y": -4.890529644924177
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 51.5,
+            "y": 5.0
+          },
+          "start": {
+            "x": 52.540538222324294,
+            "y": 0.10947035507582292
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 75.0,
+            "y": 17.5
+          },
+          "start": {
+            "x": 51.5,
+            "y": 5.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 94.0,
+            "y": 19.5
+          },
+          "start": {
+            "x": 75.0,
+            "y": 17.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 308.0,
+            "y": 20.0
+          },
+          "start": {
+            "x": 94.0,
+            "y": 19.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 356.5,
+            "y": 10.0
+          },
+          "start": {
+            "x": 308.0,
+            "y": 20.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 367.5,
+            "y": 14.0
+          },
+          "start": {
+            "x": 356.5,
+            "y": 10.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 373.5,
+            "y": 20.0
+          },
+          "start": {
+            "x": 367.5,
+            "y": 14.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 377.5,
+            "y": 32.5
+          },
+          "start": {
+            "x": 373.5,
+            "y": 20.0
+          },
+          "type": "LineSegment"
+        }
+      ],
+      "is_path": false,
+      "type": "general"
+    }
+  ],
+  "shapes": [],
+  "expected_output": [
+    {
+      "elements": [
+        {
+          "end": {
+            "x": 371.5,
+            "y": 49.0
+          },
+          "start": {
+            "x": 377.5,
+            "y": 32.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 359.5,
+            "y": 56.0
+          },
+          "start": {
+            "x": 371.5,
+            "y": 49.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 348.5,
+            "y": 55.5
+          },
+          "start": {
+            "x": 359.5,
+            "y": 56.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 318.5,
+            "y": 47.0
+          },
+          "start": {
+            "x": 348.5,
+            "y": 55.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 291.5,
+            "y": 45.0
+          },
+          "start": {
+            "x": 318.5,
+            "y": 47.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 87.0,
+            "y": 45.0
+          },
+          "start": {
+            "x": 291.5,
+            "y": 45.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 63.0,
+            "y": 50.5
+          },
+          "start": {
+            "x": 87.0,
+            "y": 45.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 37.499999999999986,
+            "y": 66.0
+          },
+          "start": {
+            "x": 63.0,
+            "y": 50.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 40.097076488785405,
+            "y": 70.27260970735662
+          },
+          "start": {
+            "x": 37.499999999999986,
+            "y": 66.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "center": {
+            "x": 37.499999999999986,
+            "y": 66.0
+          },
+          "end": {
+            "x": 36.54565170448888,
+            "y": 70.90807694834291
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": 40.097076488785405,
+            "y": 70.27260970735662
+          },
+          "type": "CircularArc"
+        },
+        {
+          "end": {
+            "x": 18.54565170448888,
+            "y": 67.40807694834291
+          },
+          "start": {
+            "x": 36.54565170448888,
+            "y": 70.90807694834291
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 19.5,
+            "y": 62.5
+          },
+          "start": {
+            "x": 18.54565170448888,
+            "y": 67.40807694834291
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 5.5,
+            "y": 51.5
+          },
+          "start": {
+            "x": 19.5,
+            "y": 62.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 0.0,
+            "y": 42.0
+          },
+          "start": {
+            "x": 5.5,
+            "y": 51.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 3.4999999999999947,
+            "y": 38.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 42.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": -0.262883473534389,
+            "y": 34.70747696065741
+          },
+          "start": {
+            "x": 3.4999999999999947,
+            "y": 38.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "center": {
+            "x": 3.4999999999999947,
+            "y": 38.0
+          },
+          "end": {
+            "x": 4.689343646896293,
+            "y": 33.14351344184014
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": -0.262883473534389,
+            "y": 34.70747696065741
+          },
+          "type": "CircularArc"
+        },
+        {
+          "end": {
+            "x": 29.189343646896294,
+            "y": 39.14351344184014
+          },
+          "start": {
+            "x": 4.689343646896293,
+            "y": 33.14351344184014
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 28.0,
+            "y": 44.0
+          },
+          "start": {
+            "x": 29.189343646896294,
+            "y": 39.14351344184014
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 33.0,
+            "y": 41.5
+          },
+          "start": {
+            "x": 28.0,
+            "y": 44.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 37.5,
+            "y": 31.5
+          },
+          "start": {
+            "x": 33.0,
+            "y": 41.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 37.0,
+            "y": 20.5
+          },
+          "start": {
+            "x": 37.5,
+            "y": 31.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 12.0,
+            "y": 12.0
+          },
+          "start": {
+            "x": 37.0,
+            "y": 20.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 9.0,
+            "y": 9.0
+          },
+          "start": {
+            "x": 12.0,
+            "y": 12.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 9.5,
+            "y": 6.0
+          },
+          "start": {
+            "x": 9.0,
+            "y": 9.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 14.5,
+            "y": 2.5
+          },
+          "start": {
+            "x": 9.5,
+            "y": 6.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 28.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 14.5,
+            "y": 2.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 27.089553699088462,
+            "y": -4.916410024922301
+          },
+          "start": {
+            "x": 28.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "center": {
+            "x": 28.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 29.040538222324294,
+            "y": -4.890529644924177
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": 27.089553699088462,
+            "y": -4.916410024922301
+          },
+          "type": "CircularArc"
+        },
+        {
+          "end": {
+            "x": 52.540538222324294,
+            "y": 0.10947035507582292
+          },
+          "start": {
+            "x": 29.040538222324294,
+            "y": -4.890529644924177
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 51.5,
+            "y": 5.0
+          },
+          "start": {
+            "x": 52.540538222324294,
+            "y": 0.10947035507582292
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 75.0,
+            "y": 17.5
+          },
+          "start": {
+            "x": 51.5,
+            "y": 5.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 94.0,
+            "y": 19.5
+          },
+          "start": {
+            "x": 75.0,
+            "y": 17.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 308.0,
+            "y": 20.0
+          },
+          "start": {
+            "x": 94.0,
+            "y": 19.5
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 356.5,
+            "y": 10.0
+          },
+          "start": {
+            "x": 308.0,
+            "y": 20.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 367.5,
+            "y": 14.0
+          },
+          "start": {
+            "x": 356.5,
+            "y": 10.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 373.5,
+            "y": 20.0
+          },
+          "start": {
+            "x": 367.5,
+            "y": 14.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 377.5,
+            "y": 32.5
+          },
+          "start": {
+            "x": 373.5,
+            "y": 20.0
+          },
+          "type": "LineSegment"
+        }
+      ],
+      "is_path": false,
+      "type": "general"
+    }
+  ]
+}
