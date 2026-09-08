@@ -289,6 +289,34 @@ INSTANTIATE_TEST_SUITE_P(
             return fs::path(info.param.name).stem().string();
         });
 
+// Regression test for fontanf/packingsolver issue #563: the 56 input shapes
+// in 028.json form a closed "sleeve" of overlapping rectangles and
+// circular-arc sectors around a real polygon boundary and its hole (produced
+// by shape::inflate offsetting each edge). Their union can never legitimately
+// be empty, but compute_union() currently returns zero faces for this input,
+// which downstream (in shape::inflate) turns into a segfault when the empty
+// result is blindly dereferenced with .front(). No exact expected_output is
+// recorded yet since the correct output for this input hasn't been
+// determined; this only pins down that the result must be non-empty.
+TEST(ComputeBooleanUnionTest, Issue563NonEmptyResult)
+{
+    ComputeBooleanUnionTestParams test_params = ComputeBooleanUnionTestParams::read_json(
+            (fs::path("data") / "tests" / "boolean_operations" / "union" / "028.json").string());
+    PrintTo(test_params, &std::cout);
+
+    for (const ShapeWithHoles& shape: test_params.shapes) {
+        if (!shape.shape.check())
+            throw std::invalid_argument(FUNC_SIGNATURE);
+    }
+
+    auto output = compute_union(test_params.shapes).shapes_with_holes;
+    std::cout << "output" << std::endl;
+    for (const ShapeWithHoles& shape: output)
+        std::cout << "- " << shape.to_string(2) << std::endl;
+
+    EXPECT_GE(output.size(), 1);
+}
+
 
 struct ComputeBooleanIntersectionTestParams
 {
@@ -602,6 +630,8 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "boolean_operations" / "difference" / "004.json").string()),
             ComputeBooleanDifferenceTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "difference" / "005.json").string()),
+            ComputeBooleanDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "difference" / "006.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeBooleanDifferenceTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();

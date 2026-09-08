@@ -376,6 +376,26 @@ char orientation2char(ShapeElementOrientation type);
 ShapeElementOrientation opposite(ShapeElementOrientation orientation);
 
 /**
+ * A point at which an element touches a horizontal ray-casting line at
+ * some height 'y' (see ShapeElement::ray_crossings).
+ */
+struct RayCrossing
+{
+    /** x-coordinate of the touch point. */
+    LengthDbl x;
+
+    /**
+     * Whether this touch is a genuine, parity-flipping ray-casting
+     * crossing (see Shape::contains()), as opposed to a mere touch (a
+     * vertex the ray grazes without the boundary actually switching sides,
+     * or a CircularArc tangent to the ray at a local y-extremum strictly
+     * between its own endpoints) that still lies exactly on the boundary
+     * but does not affect ray-casting parity.
+     */
+    bool is_crossing;
+};
+
+/**
  * Structure for the elementary elements composing a shape.
  */
 struct ShapeElement
@@ -400,6 +420,31 @@ struct ShapeElement
 
     /** Check if a point is on the element. */
     bool contains(const Point& point) const;
+
+    /**
+     * Every point at which this element touches a horizontal line at
+     * height 'y', each tagged with whether it is a genuine, parity-flipping
+     * ray-casting crossing (see RayCrossing) -- 0, 1 or 2 points for a
+     * CircularArc; 0 or 1 for a non-horizontal LineSegment. A horizontal
+     * LineSegment exactly at height 'y' returns no point here; see
+     * ray_horizontal_extent for that case instead.
+     *
+     * This is the same up/down, include-start / exclude-end classification
+     * used by Shape::contains(), extracted so it can be reused
+     * independently of any specific query point.
+     */
+    std::vector<RayCrossing> ray_crossings(LengthDbl y) const;
+
+    /**
+     * If this element is a LineSegment exactly horizontal at height 'y',
+     * sets 'x_min' and 'x_max' to its extent (every point in
+     * ['x_min', 'x_max'] lies exactly on this element, regardless of
+     * ray-casting parity) and returns true. Returns false otherwise.
+     */
+    bool ray_horizontal_extent(
+            LengthDbl y,
+            LengthDbl& x_min,
+            LengthDbl& x_max) const;
 
     /** Radius of the element. The element must be a CircularArc. */
     LengthDbl radius() const

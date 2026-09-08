@@ -281,6 +281,8 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "offset" / "inflate" / "021.json").string()),
             InflateShapeWithHolesTestParams::read_json(
                     (fs::path("data") / "tests" / "offset" / "inflate" / "022.json").string()),
+            InflateShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "inflate" / "023.json").string()),
         }),
         [](const testing::TestParamInfo<InflateShapeWithHolesTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
