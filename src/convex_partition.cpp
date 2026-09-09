@@ -80,8 +80,19 @@ std::vector<Shape> shape::compute_convex_partition(
     std::vector<GeneralizedTrapezoid> trapezoids = trapezoidation(shape);
 
     std::vector<Shape> parts;
-    for (const GeneralizedTrapezoid& trapezoid: trapezoids)
-        parts.push_back(trapezoid.to_shape());
+    for (const GeneralizedTrapezoid& trapezoid: trapezoids) {
+        // trapezoidation() can emit a degenerate, zero-area trapezoid where
+        // two sweep events land at (almost) the same coordinate, collapsing
+        // one of its sides to a point -- e.g. a "triangle" with two of its
+        // three vertices equal. Such a part carries no area to contribute to
+        // the partition, and is_convex() has no well-defined answer for it
+        // (a zero-length edge has no tangent direction), so drop it here
+        // rather than let it reach candidate generation or the final output.
+        Shape part = trapezoid.to_shape();
+        if (!strictly_greater(part.compute_area(), 0.0))
+            continue;
+        parts.push_back(std::move(part));
+    }
 
     std::vector<bool> active(parts.size(), true);
 
