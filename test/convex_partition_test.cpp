@@ -145,6 +145,31 @@ INSTANTIATE_TEST_SUITE_P(
                 },
                 "OctagonWithDiamondHole",
             },
+            // Regression tests for fontanf/packingsolver#558: real
+            // production data, an 8-vertex zigzag shape whose vertices carry
+            // ~1e-13 floating-point noise around otherwise round
+            // coordinates. trapezoidation()'s sweep produced a degenerate,
+            // zero-area trapezoid at this input (a "triangle" with two of
+            // its three vertices equal), which used to reach the final
+            // output unfiltered: is_convex() has no well-defined answer for
+            // a zero-length edge, so it reported false, and a caller
+            // computing a no-fit polygon against this part would throw
+            // ("orbiting_shape is not convex").
+            {
+                {build_shape({
+                    {400.00000000000034, 200.0}, {200.00000000000034, 199.9999999999999},
+                    {200.00000000000102, 399.9999999999999}, {400.00000000000193, 399.99999999999943},
+                    {400.00000000000193, 599.9999999999994}, {1.9326762412674725e-12, 599.9999999999994},
+                    {0.0, 3.9968028886505635e-13}, {400.0, 0.0}})},
+                "ZigzagPolygonIssue558Item0",
+            }, {
+                {build_shape({
+                    {0.0, 199.9999999999999}, {200.0, 200.0},
+                    {199.9999999999984, 3.410605131648481e-13}, {399.9999999999975, 3.410605131648481e-13},
+                    {400.0000000000002, 600.0}, {200.0000000000016, 599.9999999999994},
+                    {200.0000000000016, 399.99999999999943}, {6.821210263296962e-13, 399.9999999999999}})},
+                "ZigzagPolygonIssue558Item1",
+            },
         }),
         [](const testing::TestParamInfo<ConvexPartitionTest::ParamType>& info) {
             return info.param.name;
