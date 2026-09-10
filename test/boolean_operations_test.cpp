@@ -284,39 +284,83 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "boolean_operations" / "union" / "026.json").string()),
             ComputeBooleanUnionTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "union" / "027.json").string()),
+            // Regression test for fontanf/packingsolver issue #563: the 56
+            // input shapes in 028.json form a closed "sleeve" of overlapping
+            // rectangles and circular-arc sectors around a real polygon
+            // boundary and its hole (produced by shape::inflate offsetting
+            // each edge). Their union can never legitimately be empty, but
+            // compute_union() currently returns zero faces for this input,
+            // which downstream (in shape::inflate) turns into a segfault
+            // when the empty result is blindly dereferenced with .front().
+            // The exact correct output for this input hasn't been
+            // determined yet, so expected_output is a placeholder single
+            // empty shape for now -- to be filled in once the underlying
+            // bug is fixed.
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "028.json").string()),
+            // Regression test for fontanf/packingsolver issue #558: the 17
+            // input shapes in 029.json are a subset of the 114
+            // per-fixed-part NFP group unions computed while building the
+            // no-fit-polygon of a sawtooth-strip item against a
+            // 180-degree-rotated copy of itself. Their union legitimately
+            // contains one large (~326-element, ~1981-area) real polygon
+            // component -- confirmed by computing this union with
+            // cross_product() left as the naive "vector_1.x * vector_2.y -
+            // vector_2.x * vector_1.y" (its result here does not depend on
+            // FMA availability or -ffp-contract, since it is naive on every
+            // tested compiler/flag combination for this input) -- but with
+            // cross_product() computed via std::fma instead (as it is
+            // written today, for portability -- see strictly_lesser_angle),
+            // that same real component is lost entirely:
+            // bridge_touching_holes/fix_self_intersections shatters it into
+            // only degenerate near-zero-area slivers, the same failure mode
+            // as the original empty-result bug this issue started from.
+            // This reproduces that regression in isolation, without the
+            // full simplify()+no_fit_polygon() pipeline it was originally
+            // found in (which takes several seconds to run). The exact
+            // correct output isn't pinned down either (this shape sits on
+            // top of several near-exact-tangency ties), so expected_output
+            // is likewise a placeholder single empty shape for now.
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "029.json").string()),
+            // Same issue #558 divergence as 029.json, minimized further: a
+            // scan of all pairs among 029.json's 17 shapes found none that
+            // diverge between cross_product() computed via std::fma versus
+            // left naive, but a scan of all triples found many that do --
+            // 030.json is shapes 0, 1 and 3 of 029.json's list, one such
+            // triple. Here the divergence is milder than 029.json's (it is
+            // not about losing a large real component, both regimes agree
+            // on a ~4019.776-area main component to 9 significant figures)
+            // but the exact split into components still differs: fma gives
+            // 4 components ([636, 6, 3, 3]-element, including 2 extra
+            // degenerate 3-element slivers not present in the naive
+            // regime's 2 components ([634, 6]-element), and the main
+            // component's element count itself differs (636 vs 634). No
+            // exact expected_output is recorded yet for the same reason as
+            // 029.json.
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "030.json").string()),
+            // Same issue #558 divergence as 030.json, cropped down to just
+            // the region where it actually occurs: diffing the two regimes'
+            // arrangement-graph node lists for 030.json located the extra
+            // degenerate slivers fma produces within x in [13, 20]
+            // (y in [6.5, 7.9]). 031.json keeps, from each of 030.json's 3
+            // shapes, only the contiguous run of elements with x in
+            // [13, 17] (a window around two of those three slivers), closed
+            // back into a valid (non-self-intersecting) polygon with a
+            // 3-segment path per shape that steps outside the window's y
+            // range and back rather than cutting straight across it. This
+            // still diverges -- fma gives 3 components ([10, 6, 5]-element),
+            // naive gives 2 ([12, 6]-element) -- with only 29 elements total
+            // across the 3 input shapes, instead of 029.json's ~7353 or
+            // 030.json's ~1299. No exact expected_output is recorded yet
+            // for the same reason as 029.json and 030.json.
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "031.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeBooleanUnionTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
         });
-
-// Regression test for fontanf/packingsolver issue #563: the 56 input shapes
-// in 028.json form a closed "sleeve" of overlapping rectangles and
-// circular-arc sectors around a real polygon boundary and its hole (produced
-// by shape::inflate offsetting each edge). Their union can never legitimately
-// be empty, but compute_union() currently returns zero faces for this input,
-// which downstream (in shape::inflate) turns into a segfault when the empty
-// result is blindly dereferenced with .front(). No exact expected_output is
-// recorded yet since the correct output for this input hasn't been
-// determined; this only pins down that the result must be non-empty.
-TEST(ComputeBooleanUnionTest, Issue563NonEmptyResult)
-{
-    ComputeBooleanUnionTestParams test_params = ComputeBooleanUnionTestParams::read_json(
-            (fs::path("data") / "tests" / "boolean_operations" / "union" / "028.json").string());
-    PrintTo(test_params, &std::cout);
-
-    for (const ShapeWithHoles& shape: test_params.shapes) {
-        if (!shape.shape.check())
-            throw std::invalid_argument(FUNC_SIGNATURE);
-    }
-
-    auto output = compute_union(test_params.shapes).shapes_with_holes;
-    std::cout << "output" << std::endl;
-    for (const ShapeWithHoles& shape: output)
-        std::cout << "- " << shape.to_string(2) << std::endl;
-
-    EXPECT_GE(output.size(), 1);
-}
-
 
 struct ComputeBooleanIntersectionTestParams
 {

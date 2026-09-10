@@ -4,7 +4,11 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
 #include <cmath>
+#include <fstream>
+
+namespace fs = boost::filesystem;
 
 using namespace shape;
 
@@ -113,8 +117,59 @@ struct NoFitPolygonGeneralTestParams
 {
     ShapeWithHoles fixed_shape;
     ShapeWithHoles orbiting_shape;
-    std::vector<ShapeWithHoles> expected_nfp;
+    // Each entry is one acceptable full nfp result. Normally there is just
+    // one, but a computation that (legitimately) depends on the exact
+    // rounding of intermediate floating-point operations -- e.g. whether
+    // the compiler fuses multiply-adds into a single instruction, which
+    // differs by ISA (always on AArch64, opt-in via -mfma on x86-64) --
+    // can settle on more than one, equally valid, exact result depending
+    // on the build. Recording each such result as its own variant here
+    // lets the test accept any of them, rather than only the one recorded
+    // on whichever platform happened to generate the fixture.
+    std::vector<std::vector<ShapeWithHoles>> expected_nfp_variants;
     std::string name;
+
+    // Skips the bounding-box grid-sampling oracle check below: appropriate
+    // for a large, real-world shape (a fixed 0.25 step over its bounding box
+    // would mean hundreds of thousands of intersect() calls against a
+    // several-hundred-vertex shape), where exact equality against a
+    // recorded expected_nfp variant is the only practical check.
+    bool skip_oracle_check = false;
+
+    static NoFitPolygonGeneralTestParams read_json(
+            const std::string& file_path,
+            const std::string& name,
+            bool skip_oracle_check = false)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        NoFitPolygonGeneralTestParams test_params;
+        test_params.fixed_shape = ShapeWithHoles::from_json(json["shapes"][0]);
+        test_params.orbiting_shape = ShapeWithHoles::from_json(json["shapes"][1]);
+        if (json.contains("expected_outputs")) {
+            for (auto& json_variant: json["expected_outputs"].items()) {
+                std::vector<ShapeWithHoles> variant;
+                for (auto& json_shape: json_variant.value().items())
+                    variant.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+                test_params.expected_nfp_variants.push_back(std::move(variant));
+            }
+        } else {
+            std::vector<ShapeWithHoles> variant;
+            for (auto& json_shape: json["expected_output"].items())
+                variant.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+            test_params.expected_nfp_variants.push_back(std::move(variant));
+        }
+        test_params.name = name;
+        test_params.skip_oracle_check = skip_oracle_check;
+        return test_params;
+    }
 };
 
 void PrintTo(const NoFitPolygonGeneralTestParams& params, std::ostream* os)
@@ -139,9 +194,29 @@ TEST_P(NoFitPolygonGeneralTest, NoFitPolygonGeneral)
     for (const ShapeWithHoles& component: nfp)
         std::cout << "  " << component.to_string(0) << std::endl;
 
-    ASSERT_EQ((ShapePos)nfp.size(), (ShapePos)test_params.expected_nfp.size());
-    for (ShapePos i = 0; i < (ShapePos)nfp.size(); ++i)
-        EXPECT_TRUE(equal(nfp[i], test_params.expected_nfp[i]));
+    bool matches_a_variant = false;
+    for (const std::vector<ShapeWithHoles>& variant: test_params.expected_nfp_variants) {
+        if (nfp.size() != variant.size())
+            continue;
+        bool all_equal = true;
+        for (ShapePos i = 0; i < (ShapePos)nfp.size(); ++i) {
+            if (!equal(nfp[i], variant[i])) {
+                all_equal = false;
+                break;
+            }
+        }
+        if (all_equal) {
+            matches_a_variant = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(matches_a_variant)
+        << "nfp did not exactly match any of the "
+        << test_params.expected_nfp_variants.size()
+        << " recorded expected_output variant(s).";
+
+    if (test_params.skip_oracle_check)
+        return;
 
     // Oracle check: sample a grid around the union of all NFP components.
     AxisAlignedBoundingBox aabb;
@@ -199,24 +274,62 @@ INSTANTIATE_TEST_SUITE_P(
             {  // Convex inputs: same result as the convex overload, one component.
                 {build_rectangle(0, 4, 0, 4), {}},
                 {build_rectangle(0, 2, 0, 2), {}},
-                {{build_rectangle(-2, 4, -2, 4), {}}},
+                {{{build_rectangle(-2, 4, -2, 4), {}}}},
                 "ConvexSquares",
             }, {  // L-shape fixed, unit square orbiting: one connected NFP.
                 {build_shape({{0, 0}, {4, 0}, {4, 2}, {2, 2}, {2, 4}, {0, 4}}), {}},
                 {build_rectangle(0, 1, 0, 1), {}},
-                {{build_shape({{4, 2}, {2, 2}, {2, 4}, {-1, 4}, {-1, -1}, {4, -1}}), {}}},
+                {{{build_shape({{4, 2}, {2, 2}, {2, 4}, {-1, 4}, {-1, -1}, {4, -1}}), {}}}},
                 "LShapeAndUnitSquare",
             }, {  // Two L-shapes.
                 {build_shape({{0, 0}, {4, 0}, {4, 2}, {2, 2}, {2, 4}, {0, 4}}), {}},
                 {build_shape({{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 2}, {0, 2}}), {}},
-                {{build_shape({{4, 2}, {2, 2}, {2, 4}, {-2, 4}, {-2, -1}, {-1, -1}, {-1, -2}, {4, -2}}), {}}},
+                {{{build_shape({{4, 2}, {2, 2}, {2, 4}, {-2, 4}, {-2, -1}, {-1, -1}, {-1, -2}, {4, -2}}), {}}}},
                 "TwoLShapes",
             }, {  // T-shape fixed, unit square orbiting.
                 {build_shape({{0, 2}, {1, 2}, {1, 0}, {2, 0}, {2, 2}, {3, 2}, {3, 3}, {0, 3}}), {}},
                 {build_rectangle(0, 1, 0, 1), {}},
-                {{build_shape({{3, 3}, {-1, 3}, {-1, 1}, {0, 1}, {0, -1}, {2, -1}, {2, 1}, {3, 1}}), {}}},
+                {{{build_shape({{3, 3}, {-1, 3}, {-1, 1}, {0, 1}, {0, -1}, {2, -1}, {2, 1}, {3, 1}}), {}}}},
                 "TShapeAndUnitSquare",
             },
+            // Regression test for fontanf/packingsolver#558 (test cases 1
+            // and 3): the two shapes in 000.json are a real sawtooth strip
+            // item (fine repetitive teeth), scaled the way packingsolver
+            // actually scales it (item coordinates ~250 in magnitude,
+            // matching its scale_value normalization) then simplified down
+            // to 442 vertices, and its own 180-degree rotation -- the
+            // pairing periodic_packing.cpp relies on to detect an
+            // interlocking placement.
+            //
+            // no_fit_polygon(shape_0, shape_r) used to segfault. Deep in the
+            // computation, a face gets extracted (as a Union's outline)
+            // whose boundary retraces itself almost exactly -- three
+            // vertices that are collinear to within floating-point
+            // precision, confirmed by compute_intersections() reporting a
+            // genuine overlapping_parts match between two of the face's
+            // edges, not a fuzzy near-miss. Its computed area lands right at
+            // the floating-point noise floor (observed as low as ~1e-15,
+            // but not reliably below any fixed epsilon -- other occurrences
+            // of the same shape measured ~1.5e-12, defeating an attempted
+            // fix that skipped faces below 1e-12).
+            //
+            // fix_self_intersections() passes this degenerate face to
+            // bridge_touching_holes(), which runs a boolean Difference on
+            // it. Because its boundary retraces itself, the arc-tracing
+            // algorithm has no independent "reverse" arc set to recover a
+            // face from (forward and reverse are the same arcs, unlike for
+            // a normal, non-self-overlapping shape) -- so
+            // bridge_touching_holes() legitimately returns zero components.
+            // fix_self_intersections() then indexed .front() into that
+            // empty result unconditionally: segfault. Fixed by only
+            // appending a per-component union result when it's non-empty.
+            //
+            // The oracle grid-sampling check below is skipped for this case
+            // (see skip_oracle_check's comment).
+            NoFitPolygonGeneralTestParams::read_json(
+                    (fs::path("data") / "tests" / "no_fit_polygon" / "000.json").string(),
+                    "Issue558SawtoothSelfPairing",
+                    /*skip_oracle_check=*/true),
         }),
         [](const testing::TestParamInfo<NoFitPolygonGeneralTest::ParamType>& info) {
             return info.param.name;
