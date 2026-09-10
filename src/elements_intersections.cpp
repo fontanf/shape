@@ -32,6 +32,45 @@ std::pair<bool, Point> shape::compute_line_intersection(
     } else if (p12 == p21 || p12 == p22) {
         //std::cout << "c" << std::endl;
         return {true, p12};
+    // Check whether an endpoint of one line already lies (within tolerance)
+    // on the other line *before* the axis-aligned special cases below. Those
+    // special cases each compute their result by projecting along one
+    // line's own direction, which -- for a line that meets the tolerance
+    // band at a shallow angle -- can amplify a sub-tolerance perpendicular
+    // gap (e.g. two near-duplicate near-parallel lines, both within 1e-6 of
+    // each other) into a displacement well outside the point-equality
+    // tolerance once projected along the shallow line. Checking the
+    // perpendicular distances first (unaffected by that amplification)
+    // ensures such a case snaps to the existing endpoint instead of
+    // computing a slightly-off, spuriously "new" point next to it.
+    } else if (equal(dist_1start_2, 0.0)) {
+        //std::cout << "h" << std::endl;
+        if (equal(dist_2start_1, 0.0))
+            return (std::abs(dist_1start_2) < std::abs(dist_2start_1))?
+                std::pair<bool, Point>{true, p11}:
+                std::pair<bool, Point>{true, p21};
+        if (equal(dist_2end_1, 0.0))
+            return (std::abs(dist_1start_2) < std::abs(dist_2end_1))?
+                std::pair<bool, Point>{true, p11}:
+                std::pair<bool, Point>{true, p22};
+        return {true, p11};
+    } else if (equal(dist_1end_2, 0.0)) {
+        //std::cout << "i" << std::endl;
+        if (equal(dist_2start_1, 0.0))
+            return (std::abs(dist_1end_2) < std::abs(dist_2start_1))?
+                std::pair<bool, Point>{true, p12}:
+                std::pair<bool, Point>{true, p21};
+        if (equal(dist_2end_1, 0.0))
+            return (std::abs(dist_1end_2) < std::abs(dist_2end_1))?
+                std::pair<bool, Point>{true, p12}:
+                std::pair<bool, Point>{true, p22};
+        return {true, p12};
+    } else if (equal(dist_2start_1, 0.0)) {
+        //std::cout << "j" << std::endl;
+        return {true, p21};
+    } else if (equal(dist_2end_1, 0.0)) {
+        //std::cout << "k" << std::endl;
+        return {true, p22};
     } else if (p11.x == p12.x) {
         //std::cout << "d" << std::endl;
         if (p21.x == p22.x)
@@ -120,34 +159,6 @@ std::pair<bool, Point> shape::compute_line_intersection(
         }
 
         return {true, p};
-    } else if (equal(dist_1start_2, 0.0)) {
-        //std::cout << "h" << std::endl;
-        if (equal(dist_2start_1, 0.0))
-            return (std::abs(dist_1start_2) < std::abs(dist_2start_1))?
-                std::pair<bool, Point>{true, p11}:
-                std::pair<bool, Point>{true, p21};
-        if (equal(dist_2end_1, 0.0))
-            return (std::abs(dist_1start_2) < std::abs(dist_2end_1))?
-                std::pair<bool, Point>{true, p11}:
-                std::pair<bool, Point>{true, p22};
-        return {true, p11};
-    } else if (equal(dist_1end_2, 0.0)) {
-        //std::cout << "i" << std::endl;
-        if (equal(dist_2start_1, 0.0))
-            return (std::abs(dist_1end_2) < std::abs(dist_2start_1))?
-                std::pair<bool, Point>{true, p12}:
-                std::pair<bool, Point>{true, p21};
-        if (equal(dist_2end_1, 0.0))
-            return (std::abs(dist_1end_2) < std::abs(dist_2end_1))?
-                std::pair<bool, Point>{true, p12}:
-                std::pair<bool, Point>{true, p22};
-        return {true, p12};
-    } else if (equal(dist_2start_1, 0.0)) {
-        //std::cout << "j" << std::endl;
-        return {true, p21};
-    } else if (equal(dist_2end_1, 0.0)) {
-        //std::cout << "k" << std::endl;
-        return {true, p22};
     } else {
         //std::cout << "l" << std::endl;
         Point p;
