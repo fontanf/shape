@@ -357,6 +357,44 @@ INSTANTIATE_TEST_SUITE_P(
             // for the same reason as 029.json and 030.json.
             ComputeBooleanUnionTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "union" / "031.json").string()),
+            // Regression test for fontanf/packingsolver issue #558:
+            // unrelated to the missing-split-point bug 029/030/031.json
+            // cover, found while sweeping the item's simplification ratio
+            // through no_fit_polygon(shape_0, shape_r) -- at ratio 0.008
+            // (389-vertex simplified shape, vs. 442 at the ratio 0.001 used
+            // elsewhere), the same final compute_union(group_unions) call
+            // in no_fit_polygon() threw instead of returning a result:
+            // "face area is not positive; area: -2.573084." 032.json is 3
+            // of the 87 per-fixed_part group unions from that call,
+            // minimized by bisection (from 87 down to 3; the minimal 3
+            // still threw the same error, with a different reported area
+            // since removing shapes changes which face ends up negative --
+            // observed -14.249123 for this exact triple).
+            //
+            // Root cause: three near-duplicate, near-parallel edges (from
+            // three near-identical periodic copies of the same shape) sit
+            // within compute_line_intersection's 1e-6 tolerance of each
+            // other, but a fourth edge ("wall") crosses them at a shallow
+            // angle (~2.66 degrees). That amplifies the sub-tolerance
+            // perpendicular gap between the near-duplicate edges by
+            // ~1/sin(angle) (~22x) once projected along wall's own
+            // direction, so wall's genuine crossing with each near-duplicate
+            // landed 1.5e-5 to 1.7e-5 away from wall's own endpoint instead
+            // of snapping to it -- well outside the 1e-6 point tolerance,
+            // even though the underlying edges were within it. This left
+            // three separate, nearly-collinear vertices next to each other
+            // instead of one, which defeated compute_arcs_next's angle sort
+            // (an exact tie between two of the resulting near-duplicate
+            // fragments) and traced a face with the wrong winding. Fixed by
+            // reordering compute_line_intersection's checks so the
+            // perpendicular-distance-to-zero tests (which are not affected
+            // by the shallow-angle amplification) run before the
+            // axis-aligned substitution branches; see also the two new
+            // "wall" cases added to elements_intersections_test.cpp's
+            // ComputeIntersectionsTest for the underlying, minimal
+            // reproduction of this same mechanism.
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "032.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeBooleanUnionTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();

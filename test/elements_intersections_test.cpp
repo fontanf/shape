@@ -388,6 +388,32 @@ INSTANTIATE_TEST_SUITE_P(
                 build_circular_arc({51.87571790450103, 829.62616084793081}, {51.898968087141867, 829.66319973722932}, {51.7325166990734, 829.74186840337882}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({51.87704326994384, 829.62782063296618}, {51.859870441010187, 829.60894475579755}, {51.734086740113739, 829.74062946385982}, ShapeElementOrientation::Clockwise),
                 {{}, {{51.87704326994384, 829.62782063296618}, {51.87571790450103, 829.62616084793081}}, {}},
+            }, {  // Regression test for fontanf/packingsolver issue #558.
+                // A shallow-angle line ("wall") crosses a near-horizontal
+                // line ("B") whose y only differs from wall's own endpoint
+                // by 6.95e-7 (well within the 1e-6 tolerance), but whose x
+                // differs from that endpoint by 1.5e-5 (outside the
+                // tolerance) because the shallow crossing angle amplifies
+                // the sub-tolerance perpendicular gap by ~1/sin(angle) once
+                // projected along wall's own direction. Before reordering
+                // compute_line_intersection's checks so the
+                // perpendicular-distance-to-zero tests run before the
+                // axis-aligned (line2 horizontal) substitution branch, this
+                // produced a spurious point 1.5e-5 away from wall's own
+                // endpoint instead of snapping to it, corrupting the local
+                // topology at that vertex enough to produce a
+                // negative-area face a few steps downstream (see
+                // boolean_operations_test.cpp's 032.json).
+                build_line_segment({-18.00637974167887, 9.137762183367965}, {-18.125, 9.143238162835434}),
+                build_line_segment({-1.2500000000000213, 9.143237467547198}, {-81.25, 9.143237467547198}),
+                {{}, {{-18.125, 9.143238162835434}}, {}},
+            }, {  // Regression test for fontanf/packingsolver issue #558.
+                // Same as above, with the other near-duplicate horizontal
+                // line ("C") from the same repro, whose y is 7.7e-7 from
+                // wall's endpoint (amplified to a 1.7e-5 x-displacement).
+                build_line_segment({-18.00637974167887, 9.137762183367965}, {-18.125, 9.143238162835434}),
+                build_line_segment({11.24999999999998, 9.143237390292951}, {-68.75, 9.143237390292951}),
+                {{}, {{-18.125, 9.143238162835434}}, {}},
             }
         }),
         [](const testing::TestParamInfo<ComputeIntersectionsTest::ParamType>& info) {
