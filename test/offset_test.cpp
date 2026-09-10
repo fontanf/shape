@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <boost/filesystem.hpp>
 #include <fstream>
 
@@ -19,7 +20,16 @@ struct InflateShapeTestParams
     std::string name;
     Shape shape;
     LengthDbl offset;
-    ShapeWithHoles expected_output;
+    // Each entry is one acceptable output. Normally there is just one, but
+    // a computation that (legitimately) depends on the exact rounding of
+    // intermediate floating-point operations -- e.g. whether the compiler
+    // fuses multiply-adds into a single instruction, which differs by ISA
+    // (always on AArch64, opt-in via -mfma on x86-64) -- can settle on
+    // more than one, equally valid, exact result depending on the build.
+    // Recording each such result as its own variant here lets the test
+    // accept any of them, rather than only the one recorded on whichever
+    // platform happened to generate the fixture.
+    std::vector<ShapeWithHoles> expected_output_variants;
 
 
     static InflateShapeTestParams read_json(
@@ -38,8 +48,12 @@ struct InflateShapeTestParams
         test_params.name = file_path;
         test_params.shape = Shape::from_json(json["shape"]);
         test_params.offset = json["offset"];
-        if (json.contains("expected_output"))
-            test_params.expected_output = ShapeWithHoles::from_json(json["expected_output"]);
+        if (json.contains("expected_outputs")) {
+            for (auto& json_shape: json["expected_outputs"].items())
+                test_params.expected_output_variants.emplace_back(ShapeWithHoles::from_json(json_shape.value()));
+        } else if (json.contains("expected_output")) {
+            test_params.expected_output_variants.emplace_back(ShapeWithHoles::from_json(json["expected_output"]));
+        }
         return test_params;
     }
 };
@@ -48,7 +62,8 @@ void PrintTo(const InflateShapeTestParams& params, std::ostream* os)
 {
     *os << "shape " << params.shape.to_string(0) << "\n";
     *os << "offset " << params.offset << "\n";
-    *os << "expected_output " << params.expected_output.to_string(0) << "\n";
+    for (const ShapeWithHoles& variant: params.expected_output_variants)
+        *os << "expected_output variant " << variant.to_string(0) << "\n";
 }
 
 class InflateShapeTest: public testing::TestWithParam<InflateShapeTestParams> { };
@@ -61,8 +76,9 @@ TEST_P(InflateShapeTest, InflateShape)
 #ifdef OFFSET_TEST_DEBUG
     Writer writer;
     writer.add_shape(test_params.shape);
-    if (!test_params.expected_output.shape.elements.empty())
-        writer.add_shape_with_holes(test_params.expected_output);
+    for (const ShapeWithHoles& variant: test_params.expected_output_variants)
+        if (!variant.shape.elements.empty())
+            writer.add_shape_with_holes(variant);
     writer.write_json("inflate_shape_input.json");;
 #endif
 
@@ -74,7 +90,14 @@ TEST_P(InflateShapeTest, InflateShape)
     writer.add_shape_with_holes(output).write_json("inflate_shape_output.json");
 #endif
 
-    EXPECT_TRUE(equal(output, test_params.expected_output));
+    bool matches_a_variant = std::any_of(
+            test_params.expected_output_variants.begin(),
+            test_params.expected_output_variants.end(),
+            [&output](const ShapeWithHoles& variant) { return equal(output, variant); });
+    EXPECT_TRUE(matches_a_variant)
+        << "output did not exactly match any of the "
+        << test_params.expected_output_variants.size()
+        << " recorded expected_output variant(s).";
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -85,15 +108,15 @@ INSTANTIATE_TEST_SUITE_P(
                 "VerticalSegment",
                 build_path({{0, 0}, {0, 10}}),
                 1.0,
-                {
+                {{
                     build_shape({{-1, 0}, {0, 0, 1}, {1, 0}, {1, 10}, {0, 10, 1}, {-1, 10}}),
-                },
+                }},
             },
             {
                 "DiagonalSegment",
                 build_path({{6, 5}, {7, 13}}),
                 1e-3,
-                {
+                {{
                     build_shape({
                             {6.000992277876714, 4.999875965265411},
                             {7.000992277876714, 12.99987596526541},
@@ -101,13 +124,13 @@ INSTANTIATE_TEST_SUITE_P(
                             {6.999007722123286, 13.00012403473459},
                             {5.999007722123286, 5.000124034734589},
                             {6, 5, 1}}),
-                },
+                }},
             },
             {
                 "TwoSegmentPath",
                 build_path({{8, 0}, {10, 20}, {12, -10}}),
                 1e-3,
-                {
+                {{
                     build_shape({
                             {8.00099503719021, -9.950371902099892e-05},
                             {9.99980066316971, 19.98795675607598},
@@ -119,13 +142,13 @@ INSTANTIATE_TEST_SUITE_P(
                             {9.99900496280979, 20.00009950371902},
                             {7.99900496280979, 9.950371902099892e-05},
                             {8, 0, 1}}),
-                },
+                }},
             },
             {
                 "ArcPath1",
                 build_path({{1, 0}, {0, 0, 1}, {0, 1}}),
                 1,
-                {
+                {{
                     build_shape({
                             {0, 0},
                             {1, 0, 1},
@@ -133,13 +156,13 @@ INSTANTIATE_TEST_SUITE_P(
                             {0, 0, 1},
                             {0, 2},
                             {0, 1, 1}})
-                },
+                }},
             },
             {
                 "ArcPath2",
                 build_path({{1, 0}, {0, 0, 1}, {0, 1}}),
                 2,
-                {
+                {{
                     build_shape({
                             {-0.82287565553229536, -0.82287565553229536},
                             {1, 0, 1},
@@ -147,7 +170,7 @@ INSTANTIATE_TEST_SUITE_P(
                             {0, 0, 1},
                             {0, 3},
                             {0, 1, 1}})
-                },
+                }},
             },
             InflateShapeTestParams::read_json(
                     (fs::path("data") / "tests" / "offset" / "inflate_shape" / "0.json").string()),

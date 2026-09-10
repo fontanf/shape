@@ -919,11 +919,12 @@ MultiShapeWithHoles shape::fix_self_intersections(
     if (shapes.size() == 1)
         return {{shape}};
     MultiShapeWithHoles output;
-    output.shapes_with_holes.resize(shapes.size());
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
             ++shape_pos) {
-        output.shapes_with_holes[shape_pos] = compute_union({shapes[shape_pos]}).shapes_with_holes.front();
+        MultiShapeWithHoles u = compute_union({shapes[shape_pos]});
+        if (!u.shapes_with_holes.empty())
+            output.shapes_with_holes.push_back(u.shapes_with_holes.front());
     }
     return output;
 }

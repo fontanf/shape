@@ -332,6 +332,50 @@ ComputeSplittedElementsOutput compute_splitted_elements(
     std::cout << "elements end" << std::endl;
 #endif
 
+    // Equalize element endpoints before computing intersections, so that
+    // near-coincident vertices from different shapes (e.g. slightly
+    // different simplifications of what should be the same physical
+    // boundary point) become exactly coincident before any pairwise
+    // intersection test runs. Without this, two edges that are "meant" to
+    // be collinear/coincident but aren't bit-exact can each independently
+    // pass or fail the intersection tests' tolerance-based collinearity
+    // check, so a proper crossing found against one of them isn't found
+    // against the other -- even though the later equalize_points pass
+    // (below) still merges their endpoints into the same graph vertex
+    // regardless, silently creating an inconsistent arrangement where one
+    // edge is split at a point lying on its interior and the other,
+    // sharing that same (post-equalization) vertex, isn't.
+    {
+        std::vector<Point*> equalize_to_orig;
+        std::vector<Point> equalize_input;
+        for (ElementPos element_pos = 0;
+                element_pos < (ElementPos)elements.size();
+                ++element_pos) {
+            ShapeElement& element = elements[element_pos];
+            equalize_input.push_back(element.start);
+            equalize_to_orig.push_back(&element.start);
+            equalize_input.push_back(element.end);
+            equalize_to_orig.push_back(&element.end);
+            if (element.type == ShapeElementType::CircularArc) {
+                equalize_input.push_back(element.center);
+                equalize_to_orig.push_back(&element.center);
+            }
+        }
+        std::vector<Point> equalize_output = equalize_points(equalize_input);
+        for (ElementPos pos = 0; pos < (ElementPos)equalize_output.size(); ++pos)
+            *equalize_to_orig[pos] = equalize_output[pos];
+        // Start, end and center were just equalized independently, which
+        // can desynchronize a CircularArc's center from its (now snapped)
+        // start/end; recompute it so intersection tests downstream see a
+        // geometrically consistent arc.
+        for (ShapeElement& element: elements) {
+            if (element.type == ShapeElementType::CircularArc
+                    && !(element.start == element.end)) {
+                element.center = element.recompute_center();
+            }
+        }
+    }
+
     IntersectionTree intersection_tree({}, elements, {});
     std::vector<ElementElementIntersection> intersections
         = intersection_tree.compute_intersecting_elements(false);
