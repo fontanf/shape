@@ -143,13 +143,32 @@ struct SimplifyInputShape
     ShapePos copies;
 };
 
+/**
+ * Simplify 'shapes' by iteratively removing the cheapest-to-remove vertex
+ * (across all shapes and their copies at once) until either the total
+ * removal cost would exceed 'maximum_approximation_area', or every
+ * remaining vertex belongs to a shape already at or below
+ * 'minimum_number_of_vertices'.
+ *
+ * 'minimum_number_of_vertices' is a per-shape floor, not a per-call one:
+ * each shape stops being simplified once its own vertex count reaches it,
+ * independently of every other shape. A shape whose vertex count is
+ * already at or below this floor before this call is returned unchanged
+ * (only run through the exact, non-approximating remove_redundant_vertices
+ * cleanup), regardless of how much of 'maximum_approximation_area' remains
+ * unspent -- so a caller that only wants shapes above some vertex count
+ * approximated at all, and every other shape left untouched, can pass that
+ * count here.
+ */
 std::vector<ShapeWithHoles> simplify(
         const std::vector<SimplifyInputShape>& shapes,
-        AreaDbl maximum_approximation_area);
+        AreaDbl maximum_approximation_area,
+        ElementPos minimum_number_of_vertices = 4);
 
 void simplify_export_inputs(
         const std::string& file_path,
         const std::vector<SimplifyInputShape>& shapes,
-        AreaDbl maximum_approximation_area);
+        AreaDbl maximum_approximation_area,
+        ElementPos minimum_number_of_vertices = 4);
 
 }

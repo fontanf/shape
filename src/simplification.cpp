@@ -681,7 +681,8 @@ SmoothArcToLineOutput shape::try_smooth_arc_to_line(
 
 std::vector<ShapeWithHoles> shape::simplify(
         const std::vector<SimplifyInputShape>& shapes,
-        AreaDbl maximum_approximation_area)
+        AreaDbl maximum_approximation_area,
+        ElementPos minimum_number_of_vertices)
 {
     //std::cout << "shape_simplification " << maximum_approximation_area << std::endl;
     //for (const SimplifyInputShape& shape: shapes)
@@ -831,7 +832,7 @@ std::vector<ShapeWithHoles> shape::simplify(
 
         ApproximatedShape& shape = approximated_shapes[element_keys[element_key_id].approximated_shape_pos];
 
-        if (shape.number_of_elements <= 4)
+        if (shape.number_of_elements <= minimum_number_of_vertices)
             continue;
 
         const ApproximatedElementKey& element_key = element_keys[element_key_id];
@@ -980,7 +981,8 @@ std::vector<ShapeWithHoles> shape::simplify(
 void shape::simplify_export_inputs(
         const std::string& file_path,
         const std::vector<SimplifyInputShape>& shapes,
-        AreaDbl maximum_approximation_area)
+        AreaDbl maximum_approximation_area,
+        ElementPos minimum_number_of_vertices)
 {
     std::ofstream file{file_path};
     nlohmann::json json;
@@ -991,5 +993,6 @@ void shape::simplify_export_inputs(
         json["shapes"][shape_pos]["copies"] = shapes[shape_pos].copies;
     }
     json["maximum_approximation_area"] = maximum_approximation_area;
+    json["minimum_number_of_vertices"] = minimum_number_of_vertices;
     file << std::setw(4) << json << std::endl;
 }
