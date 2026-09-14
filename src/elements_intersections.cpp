@@ -422,38 +422,37 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
     // Circle contains line start.
     if (equal(distance(line.start, arc.center), radius)) {
         end_points.push_back(line.start);
-        if (computed_points.size() == 0) {
-        } else if (computed_points.size() == 1
-                || squared_distance(line.start, computed_points[0]) < squared_distance(line.start, computed_points[1])) {
+        // Invalidate every computed point that duplicates this endpoint,
+        // not just whichever one happens to be nominally closest to it.
+        // With a genuine tangency at this endpoint, both roots of
+        // compute_line_circle_intersections can independently land within
+        // point-equality tolerance of it (see fontanf/packingsolver#574):
+        // the old mutually-exclusive if/else-if/else always discarded
+        // exactly one of the two, leaving the other to survive as a
+        // spurious 'proper' intersection a fraction of a micro-unit away.
+        if (computed_points.size() >= 1 && equal(computed_points[0], line.start))
             computed_points_valid[0] = false;
-        } else {
+        if (computed_points.size() >= 2 && equal(computed_points[1], line.start))
             computed_points_valid[1] = false;
-        }
     }
     // Circle contains line end.
     if (!(line.end == line.start)
             && equal(distance(line.end, arc.center), radius)) {
         end_points.push_back(line.end);
-        if (computed_points.size() == 0) {
-        } else if (computed_points.size() == 1
-                || squared_distance(line.end, computed_points[0]) < squared_distance(line.end, computed_points[1])) {
+        if (computed_points.size() >= 1 && equal(computed_points[0], line.end))
             computed_points_valid[0] = false;
-        } else {
+        if (computed_points.size() >= 2 && equal(computed_points[1], line.end))
             computed_points_valid[1] = false;
-        }
     }
     // Line contains arc start.
     if (!(arc.start == line.start)
             && !(arc.start == line.end)
             && equal(distance_point_to_line(arc.start, line.start, line.end), 0.0)) {
         end_points.push_back(arc.start);
-        if (computed_points.size() == 0) {
-        } else if (computed_points.size() == 1
-                || squared_distance(arc.start, computed_points[0]) < squared_distance(arc.start, computed_points[1])) {
+        if (computed_points.size() >= 1 && equal(computed_points[0], arc.start))
             computed_points_valid[0] = false;
-        } else {
+        if (computed_points.size() >= 2 && equal(computed_points[1], arc.start))
             computed_points_valid[1] = false;
-        }
     }
     // Line contains arc end.
     if (!(arc.end == line.start)
@@ -461,13 +460,10 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
             && !(arc.end == arc.start)
             && equal(distance_point_to_line(arc.end, line.start, line.end), 0.0)) {
         end_points.push_back(arc.end);
-        if (computed_points.size() == 0) {
-        } else if (computed_points.size() == 1
-                || squared_distance(arc.end, computed_points[0]) < squared_distance(arc.end, computed_points[1])) {
+        if (computed_points.size() >= 1 && equal(computed_points[0], arc.end))
             computed_points_valid[0] = false;
-        } else {
+        if (computed_points.size() >= 2 && equal(computed_points[1], arc.end))
             computed_points_valid[1] = false;
-        }
     }
 
     ShapeElementIntersectionsOutput output;
@@ -590,38 +586,33 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     // Circle 1 contains arc 2 start.
     if (equal(distance(arc_2.start, arc.center), radius_1)) {
         end_points.push_back(arc_2.start);
-        if (computed_points.size() == 0) {
-        } else if (computed_points.size() == 1
-                || squared_distance(arc_2.start, computed_points[0]) < squared_distance(arc_2.start, computed_points[1])) {
+        // Invalidate every computed point that duplicates this endpoint,
+        // not just whichever one happens to be nominally closest to it --
+        // see the identical fix (and why) in compute_line_arc_intersections
+        // (fontanf/packingsolver#574).
+        if (computed_points.size() >= 1 && equal(computed_points[0], arc_2.start))
             computed_points_valid[0] = false;
-        } else {
+        if (computed_points.size() >= 2 && equal(computed_points[1], arc_2.start))
             computed_points_valid[1] = false;
-        }
     }
     // Circle 1 contains arc 2 end.
     if (!(arc_2.end == arc_2.start)
             && equal(distance(arc_2.end, arc.center), radius_1)) {
         end_points.push_back(arc_2.end);
-        if (computed_points.size() == 0) {
-        } else if (computed_points.size() == 1
-                || squared_distance(arc_2.end, computed_points[0]) < squared_distance(arc_2.end, computed_points[1])) {
+        if (computed_points.size() >= 1 && equal(computed_points[0], arc_2.end))
             computed_points_valid[0] = false;
-        } else {
+        if (computed_points.size() >= 2 && equal(computed_points[1], arc_2.end))
             computed_points_valid[1] = false;
-        }
     }
     // Circle 2 contains arc 1 start.
     if (!(arc.start == arc_2.start)
             && !(arc.start == arc_2.end)
             && equal(distance(arc.start, arc_2.center), radius_2)) {
         end_points.push_back(arc.start);
-        if (computed_points.size() == 0) {
-        } else if (computed_points.size() == 1
-                || squared_distance(arc.start, computed_points[0]) < squared_distance(arc.start, computed_points[1])) {
+        if (computed_points.size() >= 1 && equal(computed_points[0], arc.start))
             computed_points_valid[0] = false;
-        } else {
+        if (computed_points.size() >= 2 && equal(computed_points[1], arc.start))
             computed_points_valid[1] = false;
-        }
     }
     // Circle 2 contains arc 1 end.
     if (!(arc.end == arc_2.start)
@@ -629,13 +620,10 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
             && !(arc.end == arc.start)
             && equal(distance(arc.end, arc_2.center), radius_2)) {
         end_points.push_back(arc.end);
-        if (computed_points.size() == 0) {
-        } else if (computed_points.size() == 1
-                || squared_distance(arc.end, computed_points[0]) < squared_distance(arc.end, computed_points[1])) {
+        if (computed_points.size() >= 1 && equal(computed_points[0], arc.end))
             computed_points_valid[0] = false;
-        } else {
+        if (computed_points.size() >= 2 && equal(computed_points[1], arc.end))
             computed_points_valid[1] = false;
-        }
     }
 
     ShapeElementIntersectionsOutput output;
