@@ -209,13 +209,26 @@ std::vector<Point> shape::compute_line_circle_intersections(
         points.push_back({circle_center.x + v, line_point_1.y});
         points.push_back({circle_center.x - v, line_point_1.y});
     } else {
-        LengthDbl line_a = line_point_1.y - line_point_2.y;
-        LengthDbl line_b = line_point_2.x - line_point_1.x;
-        LengthDbl line_c = line_point_2.x * line_point_1.y
-            - line_point_1.x * line_point_2.y;
-        LengthDbl c_prime = line_c
-            - line_a * circle_center.x
-            - line_b * circle_center.y;
+        // Work in coordinates relative to the circle's own center, rather
+        // than computing the line's implicit-form coefficients from the
+        // raw input points and only re-centering afterwards (via
+        // 'c_prime'). For a line and circle far from the world origin,
+        // 'line_point_2.x * line_point_1.y - line_point_1.x * line_point_2.y'
+        // subtracts two products of similar, large magnitude to get a much
+        // smaller result -- and the discriminant below repeats the same
+        // cancellation one level up, squaring the effect. E.g. for a
+        // tangent line to a radius-4 circle at coordinates ~(700, 1150),
+        // this produced two computed roots ~1.7e-6 apart instead of the
+        // true, exact double root (see fontanf/packingsolver#574).
+        // Translating first keeps every intermediate term at the scale of
+        // the circle itself (~radius), not the scale of its position in
+        // the world, which removes the cancellation at its source: the
+        // same tangency above now resolves to bit-identical roots.
+        Point p1 = {line_point_1.x - circle_center.x, line_point_1.y - circle_center.y};
+        Point p2 = {line_point_2.x - circle_center.x, line_point_2.y - circle_center.y};
+        LengthDbl line_a = p1.y - p2.y;
+        LengthDbl line_b = p2.x - p1.x;
+        LengthDbl c_prime = p2.x * p1.y - p1.x * p2.y;
         LengthDbl rsq = circle_radius * circle_radius;
         LengthDbl denom = line_a * line_a + line_b * line_b;
         if (strictly_lesser(rsq * denom, c_prime * c_prime))
@@ -236,12 +249,20 @@ std::vector<Point> shape::compute_line_circle_intersections(
             points.push_back(point_2);
     }
 
-    // Collapse to a single tangent point when the two computed points coincide.
-    if (points.size() == 2) {
-        Point midpoint = 0.5 * (points[0] + points[1]);
-        if (equal(distance(midpoint, circle_center), circle_radius))
-            return {midpoint};
-    }
+    // Collapse to a single tangent point when the two computed points
+    // coincide, at the standard point-equality tolerance (not a threshold
+    // derived from the circle's own geometry -- see
+    // fontanf/packingsolver#574 for why that goes wrong at different
+    // radii). With coordinates translated relative to the circle's center
+    // above, a genuine tangency's discriminant reliably computes as exactly
+    // zero or slightly negative (clamped to zero), making point_1 and
+    // point_2 bit-identical -- but compute_line_arc_intersections still
+    // needs this collapsed to a single entry: it uses
+    // computed_points.size() == 1 (vs. 2) to decide whether a surviving
+    // point is an 'improper' (tangency) or 'proper' (crossing)
+    // intersection, so two identical points must not be reported as two.
+    if (points.size() == 2 && equal(points[0], points[1]))
+        return {0.5 * (points[0] + points[1])};
 
     return points;
 }
@@ -255,17 +276,21 @@ std::vector<Point> shape::compute_circle_circle_intersections(
     if (equal(center_1, center_2))
         return {};
 
+    // Work relative to center_1 rather than computing the radical line's
+    // coefficients from the raw world coordinates of both centers and only
+    // re-centering afterwards -- see the identical fix (and why) in
+    // compute_line_circle_intersections (fontanf/packingsolver#574): the
+    // 'center_1.x*center_1.x + ... + center_2.x*center_2.x + ...' form
+    // subtracts large squared terms to get a much smaller result, then the
+    // discriminant repeats the cancellation one level up. d = center_2 -
+    // center_1 keeps every term at the scale of the two circles' actual
+    // separation instead of their absolute position in the world.
+    Point d = {center_2.x - center_1.x, center_2.y - center_1.y};
     LengthDbl rsq = radius_1 * radius_1;
     LengthDbl r2sq = radius_2 * radius_2;
-    LengthDbl line_a = 2 * (center_2.x - center_1.x);
-    LengthDbl line_b = 2 * (center_2.y - center_1.y);
-    LengthDbl line_c = rsq
-        - center_1.x * center_1.x - center_1.y * center_1.y
-        - r2sq
-        + center_2.x * center_2.x + center_2.y * center_2.y;
-    LengthDbl c_prime = line_c
-        - line_a * center_1.x
-        - line_b * center_1.y;
+    LengthDbl line_a = 2 * d.x;
+    LengthDbl line_b = 2 * d.y;
+    LengthDbl c_prime = rsq - r2sq + d.x * d.x + d.y * d.y;
     LengthDbl denom = line_a * line_a + line_b * line_b;
     if (strictly_lesser(rsq * denom, c_prime * c_prime))
         return {};
@@ -289,14 +314,12 @@ std::vector<Point> shape::compute_circle_circle_intersections(
         points.push_back(point_2);
     }
 
-    // Collapse to a single tangent point when the two computed points coincide.
-    if (points.size() == 2) {
-        Point midpoint = 0.5 * (points[0] + points[1]);
-        if (equal(distance(midpoint, center_1), radius_1)
-                || equal(distance(midpoint, center_2), radius_2)) {
-            return {midpoint};
-        }
-    }
+    // Collapse to a single tangent point when the two computed points
+    // coincide -- see the identical check (and why it's still needed even
+    // with numerically stable, translated-coordinate roots) in
+    // compute_line_circle_intersections (fontanf/packingsolver#574).
+    if (points.size() == 2 && equal(points[0], points[1]))
+        return {0.5 * (points[0] + points[1])};
 
     return points;
 }
