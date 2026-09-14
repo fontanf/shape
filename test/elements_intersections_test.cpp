@@ -488,6 +488,39 @@ INSTANTIATE_TEST_SUITE_P(
                 build_line_segment({710.9688275775103, 1149.8855686451016}, {-714.23934709768969, 511.45104471390141}),
                 build_circular_arc({716.6040873376, 1146.235099426353}, {710.9688275775103, 1149.8855686451016}, {712.6040873376, 1146.235099426353}, ShapeElementOrientation::Anticlockwise),
                 {{}, {{710.9688275775103, 1149.8855686451016}}, {}},
+            }, {  // Third regression case related to fontanf/packingsolver
+                // issue #574, found while verifying the fix above
+                // end-to-end in packingsolver: this line and arc are two
+                // adjacent elements of an item's own inflate()d shape
+                // (instance_builder.cpp's item_spacing_scaled() inflation,
+                // not the periodic-packing self-NFP that produced the two
+                // cases above), meeting at an ordinary polygon corner the
+                // same way as the second case, but this time the line is
+                // exactly vertical (x constant), so it hits
+                // compute_line_circle_intersections's separate
+                // axis-aligned special-case branch instead of the general
+                // one fixed above. That branch was never touched by the
+                // coordinate-translation fix, and its own arithmetic is
+                // different: it computes 'diff = circle_radius^2 - dx^2'
+                // directly from the line's x and the circle's own radius
+                // and center (both taken from the arc's start point), and
+                // only clamps 'diff' to zero when it is negative. Here
+                // 'circle_radius' and 'dx' are independently-derived from
+                // upstream construction and do not correspond exactly for
+                // this genuine tangency, so 'diff' comes out as a tiny
+                // positive ~4.93e-13 instead of exactly (or negative)
+                // zero, which the existing clamp does not catch. That
+                // leaves a nonzero 'v = sqrt(diff)', producing two roots
+                // ~1.4e-6 apart -- just past 'equal()'s 1e-6 tolerance, so
+                // 'equal(points[0], points[1])' does not collapse them.
+                // The surviving spurious point is reported as a second,
+                // 'proper' intersection ~6.5e-7 from the real corner,
+                // which downstream makes Shape::check() report a false
+                // self-intersection on the item's own inflated shape,
+                // blocking InstanceBuilder::build(). Not yet fixed.
+                build_line_segment({-4, 776.4547423432}, {-4, 46.177845159999997}),
+                build_circular_arc({1.633054104459519, 780.1061988049297}, {-4, 776.4547423432}, {-6.1284310959308641e-14, 776.4547423432}, ShapeElementOrientation::Anticlockwise),
+                {{}, {{-4, 776.4547423432}}, {}},
             }
         }),
         [](const testing::TestParamInfo<ComputeIntersectionsTest::ParamType>& info) {
