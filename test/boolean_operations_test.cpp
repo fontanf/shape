@@ -395,6 +395,68 @@ INSTANTIATE_TEST_SUITE_P(
             // reproduction of this same mechanism.
             ComputeBooleanUnionTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "union" / "032.json").string()),
+            // Regression test for fontanf/packingsolver issue #574:
+            // compute_union() on these 2 shapes used to throw "outline area
+            // is not positive." Captured directly from the crashing
+            // shape::compute_union(ext_nfp) call in
+            // find_periodic_packing_lattice_from_combined_nfp
+            // (packingsolver's src/irregular/periodic_packing.cpp, vertical-
+            // lattice-strategy branch): shapes[0] is the spacing-inflated
+            // self-NFP of a single convex quadrilateral item type
+            // (allowed_rotations 0 and 180 degrees, item_item_minimum_spacing
+            // 0.5), and shapes[1] is the same shape shifted by a candidate
+            // vertical lattice vector (~(0, 831.4)) while searching for a
+            // periodic tiling of the item. Only reached for item types with
+            // more than 16 copies (periodic_packings_copies_threshold in
+            // InstanceBuilder::build), computed unconditionally during
+            // instance building regardless of the
+            // --use-tree-search-periodic-packing CLI flag. Distinct from --
+            // not fixed by -- #56/#474/6a90fe2/032.json's near-parallel-line
+            // and shallow-angle fixes.
+            //
+            // Root cause: compute_line_circle_intersections computed the
+            // line's implicit-form coefficients (and compute_circle_circle_
+            // intersections the radical line's) from the raw input
+            // coordinates and only translated to the circle's center
+            // afterwards, so for a circle far from the world origin (here,
+            // radius 4 at coordinates ~(700, 1150)) computing line_c and
+            // the discriminant each subtracted two large, similarly-sized
+            // quantities to get a much smaller result -- classic
+            // catastrophic cancellation, stacked two levels deep. That left
+            // a genuine ~0.0023-chord crossing (two truly distinct
+            // intersection points) numerically indistinguishable from a
+            // genuine tangency (which should be a single, exact double
+            // root): both produced two computed roots a few 1e-6 apart, so
+            // no fixed tolerance on "are these the same point" could
+            // separate them correctly -- collapsing tightly enough to
+            // preserve the crossing left some genuine tangencies
+            // uncollapsed (elements_intersections_test.cpp's second
+            // #574 case), while collapsing loosely enough to catch every
+            // tangency swallowed this crossing, dropping a vertex the
+            // arrangement graph needed.
+            //
+            // Fixed by working in coordinates relative to the circle's own
+            // center *before* computing those coefficients (see
+            // src/elements_intersections.cpp): every intermediate term then
+            // stays at the scale of the circle itself, not its position in
+            // the world, which removes the cancellation at its source
+            // rather than papering over its symptom with a tolerance. With
+            // accurate roots, a genuine tangency's discriminant reliably
+            // computes as exactly zero (or negative, clamped to zero),
+            // making its two roots bit-identical -- so the existing
+            // 'equal(points[0], points[1])' collapse (kept because
+            // compute_line_arc_intersections / compute_arc_arc_intersections
+            // still need exactly one point, not two identical ones, to
+            // classify a tangency as improper rather than a crossing as
+            // proper) now does the right thing for both cases. See
+            // elements_intersections_test.cpp's two #574 cases (the
+            // crossing and the tangency) for minimal, isolated
+            // reproductions of each side of this.
+            // expected_output is the fixed code's actual output, confirmed
+            // simple/non-self-intersecting with the expected full-extent
+            // area (~3.57e6, matching the union of both input shapes).
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "033.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeBooleanUnionTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();

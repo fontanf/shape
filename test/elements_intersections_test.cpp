@@ -414,6 +414,80 @@ INSTANTIATE_TEST_SUITE_P(
                 build_line_segment({-18.00637974167887, 9.137762183367965}, {-18.125, 9.143238162835434}),
                 build_line_segment({11.24999999999998, 9.143237390292951}, {-68.75, 9.143237390292951}),
                 {{}, {{-18.125, 9.143238162835434}}, {}},
+            }, {  // Regression test for fontanf/packingsolver issue #574.
+                // The line segment and the circular arc are taken directly
+                // from a real inflate()d self-NFP shape (item_item_minimum_spacing
+                // 0.5): they share their upper endpoint, and the arc's own
+                // circle genuinely crosses the (near-vertical) line at a
+                // second, distinct point -- the arc's x grows monotonically
+                // from 714.239 (its far endpoint) past the line's x
+                // (~716.60408717374901) before curving back down to meet
+                // the line exactly at the shared endpoint. Fine-sampling
+                // the arc confirmed a real crossing near y=323.599 (see
+                // proper_intersections below), about 0.0034 away (in y)
+                // from the shared endpoint.
+                //
+                // compute_line_circle_intersections found this correctly
+                // (two roots), but then collapsed the two computed points
+                // into their midpoint via 'equal(distance(midpoint,
+                // circle_center), circle_radius)' -- a check whose
+                // effective tolerance on the chord between the two roots is
+                // sqrt(8*radius*1e-6) (from sagitta = chord^2/(8*radius)),
+                // i.e. growing with sqrt(radius) rather than shrinking to
+                // genuine floating-point noise. At this arc's radius (~4)
+                // that is already ~0.0057, comfortably swallowing the
+                // ~0.0034 gap between these two genuinely distinct roots
+                // and silently discarding the interior crossing. That
+                // missing split point left the boundary graph missing a
+                // vertex, which downstream (in
+                // compute_boolean_operation_component, see
+                // boolean_operations_test.cpp's 033.json) produced a
+                // negative-area face and threw "outline area is not
+                // positive." Fixed by comparing the two computed points
+                // against each other directly instead
+                // ('equal(points[0], points[1])'), the same convention
+                // used everywhere else in this codebase to mean "same
+                // point", which is unaffected by the circle's radius.
+                build_line_segment({716.60408717374901, 319.21840687083619}, {716.60408717374912, 323.60140506674622}),
+                build_circular_arc({714.23934709768969, 319.94979094276141}, {716.60408717374912, 323.60140506674622}, {712.60408733760016, 323.60026016151011}, ShapeElementOrientation::Anticlockwise),
+                {{}, {{716.60408717374912, 323.60140506674622}}, {{716.60408717374605, 323.59911524549011}}},
+            }, {  // Second regression case for fontanf/packingsolver issue
+                // #574, the opposite failure mode from the one above: this
+                // line and arc are two adjacent elements of the *same*
+                // input shape (elements 5 and 6 of shape 0 in
+                // boolean_operations_test.cpp's 033.json) meeting at a
+                // completely ordinary, valid polygon corner (a rounding arc
+                // tangent to the straight edge that follows it) -- the
+                // shared vertex below is both arc.end and line.start.
+                //
+                // Because the straight edge is meant to be exactly tangent
+                // to the arc there, the line touches the arc's circle at a
+                // single point in theory, but
+                // compute_line_circle_intersections's quadratic-formula
+                // computation (before it worked in coordinates relative to
+                // the circle's own center) did not resolve this to a clean
+                // double root: it produced two roots straddling the true
+                // vertex by ~8.3e-7 each, 1.66e-6 apart -- just past
+                // 'equal()'s 1e-6 tolerance, so 'equal(points[0],
+                // points[1])' alone (without also fixing the root
+                // computation itself) failed to collapse them. The
+                // surviving spurious point was reported as a second,
+                // 'proper' intersection ~9e-7 from the real corner, which
+                // made compute_splitted_elements split both elements there
+                // too, corrupting the local arrangement graph enough to
+                // either report a false self-intersection (see
+                // Shape::check() on 033.json's own input shapes) or throw
+                // "outline area is not positive" during the union itself,
+                // depending on what else the corrupted graph fed into.
+                // Fixed by the same coordinate-translation in
+                // compute_line_circle_intersections used for the first
+                // case above: with the circle's own center as the origin,
+                // this tangency's discriminant now computes as exactly
+                // zero (or slightly negative, clamped to zero), so the two
+                // roots come out bit-identical and collapse cleanly.
+                build_line_segment({710.9688275775103, 1149.8855686451016}, {-714.23934709768969, 511.45104471390141}),
+                build_circular_arc({716.6040873376, 1146.235099426353}, {710.9688275775103, 1149.8855686451016}, {712.6040873376, 1146.235099426353}, ShapeElementOrientation::Anticlockwise),
+                {{}, {{710.9688275775103, 1149.8855686451016}}, {}},
             }
         }),
         [](const testing::TestParamInfo<ComputeIntersectionsTest::ParamType>& info) {

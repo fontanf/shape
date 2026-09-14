@@ -1,0 +1,835 @@
+{
+    "description": "Regression test for fontanf/packingsolver issue #574: compute_union() on these 2 shapes used to throw \"outline area is not positive.\" Captured directly from the crashing shape::compute_union(ext_nfp) call in find_periodic_packing_lattice_from_combined_nfp (src/irregular/periodic_packing.cpp), vertical-lattice-strategy branch: shapes[0] is the (spacing-)inflated self-NFP of a single convex quadrilateral item type (allowed_rotations 0 and 180 degrees, item_item_minimum_spacing 0.5), and shapes[1] is the same shape shifted by a candidate vertical lattice vector (~(0, 831.4)) while searching for a periodic tiling. Reached only for item types with more than 16 copies (the periodic_packings_copies_threshold in InstanceBuilder::build), which is computed unconditionally during instance building regardless of the --use-tree-search-periodic-packing CLI flag. Root cause: compute_line_circle_intersections computed the line's implicit-form coefficients (and compute_circle_circle_intersections the radical line's) from the raw input coordinates and only translated to the circle's center afterwards, so for a circle far from the world origin (here, radius 4 at coordinates ~(700, 1150)) computing line_c and the discriminant each subtracted two large, similarly-sized quantities to get a much smaller result -- catastrophic cancellation, stacked two levels deep. That left a genuine ~0.0023-chord crossing numerically indistinguishable from a genuine tangency (which should be a single, exact double root): both produced two computed roots a few 1e-6 apart, so no fixed tolerance on \"are these the same point\" could separate them correctly. Fixed by working in coordinates relative to the circle's own center before computing those coefficients (see src/elements_intersections.cpp), removing the cancellation at its source rather than papering over its symptom with a tolerance. With accurate roots, a genuine tangency's discriminant reliably computes as exactly zero (or negative, clamped to zero), making its two roots bit-identical, so the existing equal(points[0], points[1]) collapse (kept because compute_line_arc_intersections / compute_arc_arc_intersections still need exactly one point, not two identical ones, to classify a tangency as improper rather than a crossing as proper) now does the right thing for both cases. See elements_intersections_test.cpp's two #574 cases (the crossing and the tangency) for minimal, isolated reproductions of each side of this. expected_output is the correct output of the fixed code, confirmed to have the expected simple, non-self-intersecting, full-extent outline (area ~3.57e6, matching the union of the two input shapes' extents).",
+    "expected_output": [
+        {
+            "elements": [
+                {
+                    "end": {
+                        "x": 716.6040871937836,
+                        "y": 420.3401278105075
+                    },
+                    "start": {
+                        "x": 716.6040871737491,
+                        "y": 323.6014050667462
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": 420.3412004389126
+                    },
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": 420.34120043906285
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.6040871937836,
+                        "y": 420.3401278105075
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": 1150.618097622263
+                    },
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": 420.34120043906285
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": 1150.6180976221303
+                    },
+                    "end": {
+                        "x": 716.604087173749,
+                        "y": 1150.619242527499
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": 1150.618097622263
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": 1977.6359350830157
+                    },
+                    "start": {
+                        "x": 716.604087173749,
+                        "y": 1150.619242527499
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": 1977.6359350830157
+                    },
+                    "end": {
+                        "x": 710.9688275775103,
+                        "y": 1981.2864043017644
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": 1977.6359350830157
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -714.2393470976897,
+                        "y": 1342.8518803705642
+                    },
+                    "start": {
+                        "x": 710.9688275775103,
+                        "y": 1981.2864043017644
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376002,
+                        "y": 1339.2014111518156
+                    },
+                    "end": {
+                        "x": -716.6040871737491,
+                        "y": 1339.2002662465793
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -714.2393470976897,
+                        "y": 1342.8518803705642
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.5765318538124,
+                        "y": 1242.9291760754438
+                    },
+                    "start": {
+                        "x": -716.6040871737491,
+                        "y": 1339.2002662465793
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": 1242.4604708742627
+                    },
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": 1242.4604708742627
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.5765318538124,
+                        "y": 1242.9291760754438
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": 512.1835736910627
+                    },
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": 1242.4604708742627
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": 512.1835736911949
+                    },
+                    "end": {
+                        "x": -716.604087173749,
+                        "y": 512.1824287858265
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": 512.1835736910627
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.6040871746168,
+                        "y": 507.80171736487483
+                    },
+                    "start": {
+                        "x": -716.604087173749,
+                        "y": 512.1824287858265
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376002,
+                        "y": 507.8005754950928
+                    },
+                    "end": {
+                        "x": -716.6040871737491,
+                        "y": 507.7994305899166
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.6040871746168,
+                        "y": 507.80171736487483
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.6040871937835,
+                        "y": 411.060707846418
+                    },
+                    "start": {
+                        "x": -716.6040871737491,
+                        "y": 507.7994305899166
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": 411.0596352175889
+                    },
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": 411.05963521759986
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.6040871937835,
+                        "y": 411.060707846418
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": -319.21726196560013
+                    },
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": 411.05963521759986
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": -319.2172619654679
+                    },
+                    "end": {
+                        "x": -716.604087173749,
+                        "y": -319.2184068708363
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": -319.21726196560013
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": -1146.235099426353
+                    },
+                    "start": {
+                        "x": -716.604087173749,
+                        "y": -319.2184068708363
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": -1146.235099426353
+                    },
+                    "end": {
+                        "x": -710.9688275775103,
+                        "y": -1149.8855686451016
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": -1146.235099426353
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 714.2393470976897,
+                        "y": -511.4510447139014
+                    },
+                    "start": {
+                        "x": -710.9688275775103,
+                        "y": -1149.8855686451016
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376002,
+                        "y": -507.8005754951527
+                    },
+                    "end": {
+                        "x": 716.6040871737491,
+                        "y": -507.7994305899166
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 714.2393470976897,
+                        "y": -511.4510447139014
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 716.5765318538124,
+                        "y": -411.52834041878106
+                    },
+                    "start": {
+                        "x": 716.6040871737491,
+                        "y": -507.7994305899166
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": -411.05963521759986
+                    },
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": -411.0596352176
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.5765318538124,
+                        "y": -411.52834041878106
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": 319.2172619656
+                    },
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": -411.0596352176
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": 319.2172619654678
+                    },
+                    "end": {
+                        "x": 716.604087173749,
+                        "y": 319.2184068708362
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": 319.2172619656
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 716.6040871746169,
+                        "y": 323.59911829203486
+                    },
+                    "start": {
+                        "x": 716.604087173749,
+                        "y": 319.2184068708362
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376002,
+                        "y": 323.6002601614945
+                    },
+                    "end": {
+                        "x": 716.6040871737491,
+                        "y": 323.6014050667462
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.6040871746169,
+                        "y": 323.59911829203486
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        }
+    ],
+    "shapes": [
+        {
+            "elements": [
+                {
+                    "end": {
+                        "x": 716.5765318538124,
+                        "y": -411.52834041878106
+                    },
+                    "start": {
+                        "x": 716.6040871737491,
+                        "y": -507.7994305899166
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": -411.05963521759986
+                    },
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": -411.0596352176
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.5765318538124,
+                        "y": -411.52834041878106
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": 319.2172619656
+                    },
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": -411.0596352176
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": 319.2172619654678
+                    },
+                    "end": {
+                        "x": 716.604087173749,
+                        "y": 319.2184068708362
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": 319.2172619656
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": 1146.235099426353
+                    },
+                    "start": {
+                        "x": 716.604087173749,
+                        "y": 319.2184068708362
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": 1146.235099426353
+                    },
+                    "end": {
+                        "x": 710.9688275775103,
+                        "y": 1149.8855686451016
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": 1146.235099426353
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -714.2393470976897,
+                        "y": 511.4510447139014
+                    },
+                    "start": {
+                        "x": 710.9688275775103,
+                        "y": 1149.8855686451016
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376002,
+                        "y": 507.8005754951527
+                    },
+                    "end": {
+                        "x": -716.6040871737491,
+                        "y": 507.7994305899166
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -714.2393470976897,
+                        "y": 511.4510447139014
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.5765318538124,
+                        "y": 411.52834041878094
+                    },
+                    "start": {
+                        "x": -716.6040871737491,
+                        "y": 507.7994305899166
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": 411.05963521759975
+                    },
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": 411.05963521759986
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.5765318538124,
+                        "y": 411.52834041878094
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": -319.21726196560013
+                    },
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": 411.05963521759986
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": -319.2172619654679
+                    },
+                    "end": {
+                        "x": -716.604087173749,
+                        "y": -319.2184068708363
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": -319.21726196560013
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": -1146.235099426353
+                    },
+                    "start": {
+                        "x": -716.604087173749,
+                        "y": -319.2184068708363
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": -1146.235099426353
+                    },
+                    "end": {
+                        "x": -710.9688275775103,
+                        "y": -1149.8855686451016
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": -1146.235099426353
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 714.2393470976897,
+                        "y": -511.4510447139014
+                    },
+                    "start": {
+                        "x": -710.9688275775103,
+                        "y": -1149.8855686451016
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376002,
+                        "y": -507.8005754951527
+                    },
+                    "end": {
+                        "x": 716.6040871737491,
+                        "y": -507.7994305899166
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 714.2393470976897,
+                        "y": -511.4510447139014
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        },
+        {
+            "elements": [
+                {
+                    "end": {
+                        "x": 716.5765318538124,
+                        "y": 419.87249523788176
+                    },
+                    "start": {
+                        "x": 716.6040871737491,
+                        "y": 323.6014050667462
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": 420.34120043906296
+                    },
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": 420.34120043906285
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.5765318538124,
+                        "y": 419.87249523788176
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": 1150.618097622263
+                    },
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": 420.34120043906285
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": 1150.6180976221306
+                    },
+                    "end": {
+                        "x": 716.604087173749,
+                        "y": 1150.619242527499
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": 1150.618097622263
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 716.6040873376,
+                        "y": 1977.6359350830157
+                    },
+                    "start": {
+                        "x": 716.604087173749,
+                        "y": 1150.619242527499
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376,
+                        "y": 1977.6359350830157
+                    },
+                    "end": {
+                        "x": 710.9688275775103,
+                        "y": 1981.2864043017644
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 716.6040873376,
+                        "y": 1977.6359350830157
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -714.2393470976897,
+                        "y": 1342.8518803705642
+                    },
+                    "start": {
+                        "x": 710.9688275775103,
+                        "y": 1981.2864043017644
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376002,
+                        "y": 1339.2014111518156
+                    },
+                    "end": {
+                        "x": -716.6040871737491,
+                        "y": 1339.2002662465793
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -714.2393470976897,
+                        "y": 1342.8518803705642
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.5765318538124,
+                        "y": 1242.9291760754438
+                    },
+                    "start": {
+                        "x": -716.6040871737491,
+                        "y": 1339.2002662465793
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": 1242.4604708742627
+                    },
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": 1242.4604708742627
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.5765318538124,
+                        "y": 1242.9291760754438
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": 512.1835736910627
+                    },
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": 1242.4604708742627
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": 512.1835736911949
+                    },
+                    "end": {
+                        "x": -716.604087173749,
+                        "y": 512.1824287858265
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": 512.1835736910627
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": -716.6040873376,
+                        "y": -314.8342637696901
+                    },
+                    "start": {
+                        "x": -716.604087173749,
+                        "y": 512.1824287858265
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": -712.6040873376,
+                        "y": -314.8342637696901
+                    },
+                    "end": {
+                        "x": -710.9688275775103,
+                        "y": -318.48473298843874
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": -716.6040873376,
+                        "y": -314.8342637696901
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 714.2393470976897,
+                        "y": 319.9497909427614
+                    },
+                    "start": {
+                        "x": -710.9688275775103,
+                        "y": -318.48473298843874
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 712.6040873376002,
+                        "y": 323.6002601615101
+                    },
+                    "end": {
+                        "x": 716.6040871737491,
+                        "y": 323.6014050667462
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 714.2393470976897,
+                        "y": 319.9497909427614
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        }
+    ]
+}
