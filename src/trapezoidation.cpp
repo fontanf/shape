@@ -181,7 +181,17 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
     //std::cout << "polygon_trapezoidation" << std::endl;
     //std::cout << shape.to_string(0) << std::endl;
     //write_json({shape}, {}, "trapezoidation_input.json");
-    ShapeWithHoles shape = bridge_touching_holes(shape_orig).shapes_with_holes.front();
+    MultiShapeWithHoles bridged = bridge_touching_holes(shape_orig);
+    // A touching hole is subtracted from the outline via compute_difference
+    // (see bridge_touching_holes); if that hole's area covers the whole
+    // outline, nothing is left (found via fuzzing -- .front() on the empty
+    // result used to segfault instead). That is a legitimate degenerate
+    // shape (no material left once its touching hole is bridged in), not an
+    // error, so it produces no trapezoids, the same way an entirely
+    // deflated-away shape produces no output.
+    if (bridged.shapes_with_holes.empty())
+        return {};
+    ShapeWithHoles shape = bridged.shapes_with_holes.front();
     //std::cout << shape.to_string(0) << std::endl;
 
     std::vector<GeneralizedTrapezoid> trapezoids;
