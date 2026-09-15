@@ -9,6 +9,24 @@ using namespace shape;
 Shape shape::convex_hull(
         const Shape& shape)
 {
+    // The algorithm below only looks at each element's start point, so a
+    // circular arc bulging past the chord between its endpoints would be
+    // silently ignored, producing a hull that doesn't actually contain the
+    // input shape (only caught after the fact by the area check below,
+    // with a much less helpful error). Reject arcs up front instead; for
+    // shapes with circular arcs, decompose into arc-free convex pieces
+    // first (see decompose_into_basic_shapes -- as of this writing it does
+    // not yet feed into a convex-hull-of-those-pieces computation, but that
+    // is the intended path forward).
+    for (const ShapeElement& element: shape.elements) {
+        if (element.type != ShapeElementType::LineSegment) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "convex_hull only supports polygons (shapes made of line "
+                    "segments); shape contains at least one circular arc.");
+        }
+    }
+
     //std::cout << "shape.elements.size() " << shape.elements.size() << std::endl;
     if (shape.elements.size() < 3)
         return shape;
