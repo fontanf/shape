@@ -1,0 +1,146 @@
+{
+    "description": "Regression test for a crash found via random fuzzing of the library with valid (Shape::check() == true) shapes: deflate() decomposes the shape into rectangle/annulus-sector pieces per edge/corner and calls compute_union() (via compute_difference, which shares the same compute_boolean_operation_component machinery) on them; that used to throw \"face area is not positive\". Root cause: several of those decomposition pieces were themselves malformed -- self-intersecting with negative area (Shape::check() failed on each individually). They came from inflate_element()'s CircularArc branch in src/offset.cpp: that function only special-cased the boundary arc's own radius being deflated by exactly its radius (equal(deflate, element.radius()), collapsing to a triangle wedge); it had no handling for deflate > element.radius() (three of this shape's boundary arcs have radius 8.16/19.89/6.84, all smaller than this deflate offset of ~48.51), so the 'inner' offset arc was naively placed past the original arc's own center instead of collapsing to the center like the exact-equality case. Fixed by widening that special case to deflate >= element.radius() (not just ==): once deflate reaches the radius, there is no more material further inward within this arc's angular wedge for the piece to capture, regardless of by how much deflate exceeds the radius. expected_output is empty because this shape (small in the region actually removed) is fully consumed at this offset -- confirmed by inspection, not just by the fix compiling.",
+    "shape": {
+        "elements": [
+            {
+                "center": {
+                    "x": 268.28120267415795,
+                    "y": 447.9658267699413
+                },
+                "end": {
+                    "x": 268.20361062967874,
+                    "y": 478.2489267689469
+                },
+                "orientation": "Anticlockwise",
+                "start": {
+                    "x": 249.07114035837185,
+                    "y": 424.5554514654155
+                },
+                "type": "CircularArc"
+            },
+            {
+                "center": {
+                    "x": 268.3970148323209,
+                    "y": 470.09110871016713
+                },
+                "end": {
+                    "x": 260.46350938761753,
+                    "y": 472.00079246006254
+                },
+                "orientation": "Anticlockwise",
+                "start": {
+                    "x": 268.20361062967874,
+                    "y": 478.2489267689469
+                },
+                "type": "CircularArc"
+            },
+            {
+                "center": {
+                    "x": 240.60465268394634,
+                    "y": 470.92794018044435
+                },
+                "end": {
+                    "x": 225.08248831989363,
+                    "y": 483.36126696960906
+                },
+                "orientation": "Anticlockwise",
+                "start": {
+                    "x": 260.46350938761753,
+                    "y": 472.00079246006254
+                },
+                "type": "CircularArc"
+            },
+            {
+                "end": {
+                    "x": 190.9389592066584,
+                    "y": 384.98225181800797
+                },
+                "start": {
+                    "x": 225.08248831989363,
+                    "y": 483.36126696960906
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 174.01697716379243,
+                    "y": 355.1825204412192
+                },
+                "start": {
+                    "x": 190.9389592066584,
+                    "y": 384.98225181800797
+                },
+                "type": "LineSegment"
+            },
+            {
+                "center": {
+                    "x": 168.10869315408507,
+                    "y": 351.7299701565714
+                },
+                "end": {
+                    "x": 166.59366073416072,
+                    "y": 345.0566950855165
+                },
+                "orientation": "Anticlockwise",
+                "start": {
+                    "x": 174.01697716379243,
+                    "y": 355.1825204412192
+                },
+                "type": "CircularArc"
+            },
+            {
+                "end": {
+                    "x": 230.72538215178986,
+                    "y": 343.02386599207574
+                },
+                "start": {
+                    "x": 166.59366073416072,
+                    "y": 345.0566950855165
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 229.6534072865994,
+                    "y": 330.9638595994843
+                },
+                "start": {
+                    "x": 230.72538215178986,
+                    "y": 343.02386599207574
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 237.51746888174426,
+                    "y": 364.08647395396014
+                },
+                "start": {
+                    "x": 229.6534072865994,
+                    "y": 330.9638595994843
+                },
+                "type": "LineSegment"
+            },
+            {
+                "center": {
+                    "x": 81.492041449732,
+                    "y": 425.2361570751067
+                },
+                "end": {
+                    "x": 249.07114035837185,
+                    "y": 424.5554514654155
+                },
+                "orientation": "Anticlockwise",
+                "start": {
+                    "x": 237.51746888174426,
+                    "y": 364.08647395396014
+                },
+                "type": "CircularArc"
+            }
+        ],
+        "is_path": false,
+        "type": "general"
+    },
+    "offset": 48.50905620459181,
+    "expected_output": []
+}

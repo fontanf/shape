@@ -71,7 +71,16 @@ Shape inflate_element(
     } case shape::ShapeElementType::CircularArc: {
         if (element.orientation == shape::ShapeElementOrientation::Clockwise)
             return inflate_element(element.reverse(), deflate, inflate);
-        if (equal(deflate, element.radius())) {
+        // Once 'deflate' reaches (or exceeds) the arc's own radius, the
+        // inner offset arc would sit at or past the arc's center -- there is
+        // no more material further inward within this arc's angular wedge
+        // for this piece to capture, so collapse to the same
+        // center-to-outer-arc wedge used for the exact-equality case below,
+        // rather than (for deflate > radius) naively placing the inner arc
+        // on the far side of the center, which produced a self-intersecting,
+        // negative-area piece (found via fuzzing -- see
+        // data/tests/offset/deflate/001.json).
+        if (!strictly_lesser(deflate, element.radius())) {
             Point normal_start = (element.orientation == shape::ShapeElementOrientation::Anticlockwise)?
                 element.start - element.center:
                 element.center - element.start;
