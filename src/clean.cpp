@@ -155,7 +155,7 @@ std::pair<bool, ShapeWithHoles> shape::remove_aligned_vertices(
         const ShapeWithHoles& shape)
 {
     ShapeWithHoles res;
-    bool b;
+    bool b = false;
 
     auto p = remove_aligned_vertices(shape.shape);
     b |= p.first;
