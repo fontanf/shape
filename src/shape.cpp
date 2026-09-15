@@ -2156,6 +2156,16 @@ bool ShapeWithHoles::check() const
         const Shape& hole = this->holes[hole_pos];
         if (!hole.check())
             return false;
+
+        // A hole must actually lie inside the outer boundary: check that a
+        // point strictly inside the hole is also strictly inside the outer
+        // shape, the same containment test used elsewhere (e.g.
+        // bridge_touching_holes) to attribute a hole to its outer face.
+        if (!this->shape.contains(hole.find_point_strictly_inside(), true)) {
+            std::cout << this->to_string(1) << std::endl;
+            std::cout << "hole " << hole_pos << " is not inside the outer shape." << std::endl;
+            return false;
+        }
     }
 
     return true;

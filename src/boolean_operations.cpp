@@ -1842,6 +1842,20 @@ std::vector<ShapeElement> shape::find_holes_bridges(
                 }
             }
         }
+
+        // If the ray hit nothing, this hole component isn't actually inside
+        // the outer boundary / the rest of the shape (e.g. a hole not fully
+        // nested in its outer shape) -- fail loudly here instead of silently
+        // building a bridge element with an infinite coordinate, which would
+        // only surface much later as a confusing, unrelated-looking failure
+        // deep in the boolean-operations face-tracing code.
+        if (!std::isfinite(x_max)) {
+            throw std::invalid_argument(
+                    FUNC_SIGNATURE + ": "
+                    "no bridge found for hole component " + std::to_string(component_id) + "; "
+                    "the hole is likely not (fully) contained in the outer shape.");
+        }
+
         bridges.push_back(build_line_segment({x_max, end.y}, end));
     }
     return bridges;

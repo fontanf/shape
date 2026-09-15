@@ -1244,3 +1244,18 @@ INSTANTIATE_TEST_SUITE_P(
         [](const testing::TestParamInfo<ShapeComputeMinMaxTest::ParamType>& info) {
             return std::to_string(info.index);
         });
+
+TEST(ShapeWithHolesCheckTest, RejectsHoleNotContainedInOuterShape)
+{
+    // Both the outer shape and the hole individually pass Shape::check(),
+    // but the hole sits entirely above the rectangle (y in [140, 160] vs.
+    // the rectangle's [0, 100]) rather than inside it -- ShapeWithHoles is
+    // still expected to reject this as a whole.
+    ShapeWithHoles shape = {
+        build_rectangle(200, 100),
+        {build_shape({{50, 150}, {60, 140}, {70, 150}, {60, 160}})}
+    };
+    EXPECT_TRUE(shape.shape.check());
+    EXPECT_TRUE(shape.holes[0].check());
+    EXPECT_FALSE(shape.check());
+}
