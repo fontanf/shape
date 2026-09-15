@@ -383,6 +383,15 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(std::vector<DeflateTestParams>{
             DeflateTestParams::read_json(
                     (fs::path("data") / "tests" / "offset" / "deflate" / "000.json").string()),
+            // Regression test for a crash found via random fuzzing of the
+            // library with valid shapes: deflate() used to throw "face area
+            // is not positive" because inflate_element()'s CircularArc
+            // branch (in src/offset.cpp) built a self-intersecting/
+            // negative-area decomposition piece when deflating past a
+            // boundary arc's own radius -- see the JSON fixture's
+            // description for the confirmed root cause and fix.
+            DeflateTestParams::read_json(
+                    (fs::path("data") / "tests" / "offset" / "deflate" / "001.json").string()),
         }),
         [](const testing::TestParamInfo<DeflateTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
