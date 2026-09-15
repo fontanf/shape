@@ -523,8 +523,8 @@ bool ShapeElement::in_circular_arc_cone(const Point& point) const
     // this->point(l) away from it, landing on start or end instead.
     LengthDbl l = (std::max)(0.0, (std::min)(this->length(), this->length(point)));
     LengthDbl point_distance = distance(this->center, point);
-    Point point_on_circle = this->center + (this->radius() / point_distance) * (point - this->center);
-    return equal(point_on_circle, this->point(l));
+    Point radial_projection = this->center + (this->radius() / point_distance) * (point - this->center);
+    return equal(radial_projection, this->point(l));
 }
 
 bool ShapeElement::contains(const Point& point) const
