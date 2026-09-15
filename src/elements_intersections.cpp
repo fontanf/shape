@@ -243,9 +243,9 @@ std::vector<Point> shape::compute_line_circle_intersections(
         LengthDbl teta_2 = (line_b * c_prime + line_a * sqrt_disc) / denom;
         Point point_1 = {circle_center.x + eta_1, circle_center.y + teta_1};
         Point point_2 = {circle_center.x + eta_2, circle_center.y + teta_2};
-        if (equal(distance(point_1, circle_center), circle_radius))
+        if (point_on_circle(point_1, circle_center, circle_radius))
             points.push_back(point_1);
-        if (equal(distance(point_2, circle_center), circle_radius))
+        if (point_on_circle(point_2, circle_center, circle_radius))
             points.push_back(point_2);
     }
 
@@ -305,12 +305,12 @@ std::vector<Point> shape::compute_circle_circle_intersections(
     Point point_1 = {center_1.x + eta_1, center_1.y + teta_1};
     Point point_2 = {center_1.x + eta_2, center_1.y + teta_2};
     std::vector<Point> points;
-    if (equal(distance(point_1, center_1), radius_1)
-            && equal(distance(point_1, center_2), radius_2)) {
+    if (point_on_circle(point_1, center_1, radius_1)
+            && point_on_circle(point_1, center_2, radius_2)) {
         points.push_back(point_1);
     }
-    if (equal(distance(point_2, center_1), radius_1)
-            && equal(distance(point_2, center_2), radius_2)) {
+    if (point_on_circle(point_2, center_1, radius_1)
+            && point_on_circle(point_2, center_2, radius_2)) {
         points.push_back(point_2);
     }
 
@@ -337,8 +337,8 @@ ShapeElementIntersectionsOutput compute_line_line_intersections(
 
     if (!p.first) {
         // If they are colinear, check if they are aligned.
-        if (!equal(signed_distance_point_to_line(line1.start, line2.start, line2.end), 0.0)
-                && !equal(signed_distance_point_to_line(line2.start, line1.start, line1.end), 0.0)) {
+        if (!point_on_line(line1.start, line2.start, line2.end)
+                && !point_on_line(line2.start, line1.start, line1.end)) {
             return {};
         }
 
@@ -420,7 +420,7 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
     std::vector<Point> end_points;
 
     // Circle contains line start.
-    if (equal(distance(line.start, arc.center), radius)) {
+    if (point_on_circle(line.start, arc.center, radius)) {
         end_points.push_back(line.start);
         // Invalidate every computed point that duplicates this endpoint,
         // not just whichever one happens to be nominally closest to it.
@@ -437,7 +437,7 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
     }
     // Circle contains line end.
     if (!(line.end == line.start)
-            && equal(distance(line.end, arc.center), radius)) {
+            && point_on_circle(line.end, arc.center, radius)) {
         end_points.push_back(line.end);
         if (computed_points.size() >= 1 && equal(computed_points[0], line.end))
             computed_points_valid[0] = false;
@@ -447,7 +447,7 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
     // Line contains arc start.
     if (!(arc.start == line.start)
             && !(arc.start == line.end)
-            && equal(distance_point_to_line(arc.start, line.start, line.end), 0.0)) {
+            && point_on_line(arc.start, line.start, line.end)) {
         end_points.push_back(arc.start);
         if (computed_points.size() >= 1 && equal(computed_points[0], arc.start))
             computed_points_valid[0] = false;
@@ -458,7 +458,7 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
     if (!(arc.end == line.start)
             && !(arc.end == line.end)
             && !(arc.end == arc.start)
-            && equal(distance_point_to_line(arc.end, line.start, line.end), 0.0)) {
+            && point_on_line(arc.end, line.start, line.end)) {
         end_points.push_back(arc.end);
         if (computed_points.size() >= 1 && equal(computed_points[0], arc.end))
             computed_points_valid[0] = false;
@@ -584,7 +584,7 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     std::vector<Point> end_points;
 
     // Circle 1 contains arc 2 start.
-    if (equal(distance(arc_2.start, arc.center), radius_1)) {
+    if (point_on_circle(arc_2.start, arc.center, radius_1)) {
         end_points.push_back(arc_2.start);
         // Invalidate every computed point that duplicates this endpoint,
         // not just whichever one happens to be nominally closest to it --
@@ -597,7 +597,7 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     }
     // Circle 1 contains arc 2 end.
     if (!(arc_2.end == arc_2.start)
-            && equal(distance(arc_2.end, arc.center), radius_1)) {
+            && point_on_circle(arc_2.end, arc.center, radius_1)) {
         end_points.push_back(arc_2.end);
         if (computed_points.size() >= 1 && equal(computed_points[0], arc_2.end))
             computed_points_valid[0] = false;
@@ -607,7 +607,7 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     // Circle 2 contains arc 1 start.
     if (!(arc.start == arc_2.start)
             && !(arc.start == arc_2.end)
-            && equal(distance(arc.start, arc_2.center), radius_2)) {
+            && point_on_circle(arc.start, arc_2.center, radius_2)) {
         end_points.push_back(arc.start);
         if (computed_points.size() >= 1 && equal(computed_points[0], arc.start))
             computed_points_valid[0] = false;
@@ -618,7 +618,7 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     if (!(arc.end == arc_2.start)
             && !(arc.end == arc_2.end)
             && !(arc.end == arc.start)
-            && equal(distance(arc.end, arc_2.center), radius_2)) {
+            && point_on_circle(arc.end, arc_2.center, radius_2)) {
         end_points.push_back(arc.end);
         if (computed_points.size() >= 1 && equal(computed_points[0], arc.end))
             computed_points_valid[0] = false;

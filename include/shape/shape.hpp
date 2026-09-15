@@ -215,13 +215,51 @@ inline Point project_point_on_line(
     return q;
 }
 
-inline bool line_contains(
+/**
+ * Return true iff 'point' lies (within tolerance) on the infinite line
+ * through line_point_1 and line_point_2.
+ *
+ * Project 'point' onto the line and compare the projection to 'point' itself
+ * with the standard point tolerance, rather than checking
+ * distance_point_to_line(...) against 0 directly: the same rationale as
+ * ShapeElement::contains applies here too, and project_point_on_line_ratio's
+ * fma-based, line_point_1-relative computation additionally avoids the
+ * catastrophic cancellation that distance_point_to_line's raw absolute-
+ * coordinate formula is prone to far from the origin (see
+ * fontanf/packingsolver#574).
+ */
+inline bool point_on_line(
+        const Point& point,
         const Point& line_point_1,
-        const Point& line_point_2,
-        const Point& point)
+        const Point& line_point_2)
 {
     Point proj = project_point_on_line(line_point_1, line_point_2, point);
     return shape::equal(proj, point);
+}
+
+/**
+ * Return true iff 'point' lies (within tolerance) on the circle of the given
+ * center and radius.
+ *
+ * Same rationale as point_on_line/ShapeElement::contains: radially project
+ * 'point' onto the circle and compare the projection to 'point' itself with
+ * the standard (anisotropic, per-coordinate) point tolerance, rather than
+ * comparing distance(point, center) to radius directly (an isotropic
+ * tolerance on the radial distance) -- consistent with how every other
+ * on-element check in this codebase measures closeness. 'point' at 'center'
+ * has no well-defined radial direction to project along, so it is handled
+ * separately: it is on the circle only in the degenerate radius-0 case.
+ */
+inline bool point_on_circle(
+        const Point& point,
+        const Point& center,
+        LengthDbl radius)
+{
+    LengthDbl point_distance = distance(point, center);
+    if (point_distance == 0.0)
+        return shape::equal(radius, 0.0);
+    Point projection = center + (radius / point_distance) * (point - center);
+    return shape::equal(projection, point);
 }
 
 LengthDbl distance_point_to_line(
