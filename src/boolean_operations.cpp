@@ -519,9 +519,23 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                         output.shape_component_ids);
                 break;
             } case BooleanOperation::SymmetricDifference: {
-                throw std::logic_error(
-                        FUNC_SIGNATURE + ": "
-                        "not implemented.");
+                // Same as Intersection/Difference above: bridge_components
+                // only connects the two components into one planar-graph
+                // component so the face-tracer can enumerate the faces
+                // between them; it doesn't itself encode any
+                // operation-specific meaning. The actual symmetric-
+                // difference semantics (is_inside_1 != is_inside_2) are
+                // applied per-face further down, regardless of how the
+                // components got connected, so bridging them here is all
+                // that's needed.
+                bridge_components(
+                        component_id,
+                        component_2_id,
+                        shapes,
+                        elements,
+                        elements_info,
+                        elements_intersections,
+                        output.shape_component_ids);
                 break;
             } case BooleanOperation::OutlineExtraction: {
                 throw std::logic_error(

@@ -1,0 +1,35 @@
+{
+    "description": "Regression test for compute_symmetric_difference throwing \"not implemented\" (a std::logic_error from the anonymous compute_boolean_operation_component in src/boolean_operations.cpp) whenever one component is strictly inside another with no shared boundary at all -- here, shapes_2's 50x50 square sits fully inside shapes_1's 200x200 square, not touching any of its edges. The Union/Intersection/Difference cases already handle this via bridge_components; SymmetricDifference just never got the same treatment despite the surrounding comment already saying to do so.",
+    "shapes_1": [
+        {
+            "type": "rectangle",
+            "width": 200,
+            "height": 200
+        }
+    ],
+    "shapes_2": [
+        {
+            "type": "rectangle",
+            "x": 75,
+            "y": 75,
+            "width": 50,
+            "height": 50
+        }
+    ],
+    "expected_output": [
+        {
+            "type": "rectangle",
+            "width": 200,
+            "height": 200,
+            "holes": [
+                {
+                    "type": "rectangle",
+                    "x": 75,
+                    "y": 75,
+                    "width": 50,
+                    "height": 50
+                }
+            ]
+        }
+    ]
+}
