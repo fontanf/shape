@@ -34,4 +34,4 @@ jobs:
         cmake --install build --config Release --prefix install
     - name: Run unit tests
       working-directory: build/test
-      run: ctest --output-on-failure --parallel
+      run: ctest --output-on-failure --parallel --timeout 120
