@@ -1,0 +1,136 @@
+{
+    "description": "Regression test for a stack overflow found via random fuzzing of the library: no_fit_polygon() used to overflow the stack through unbounded mutual recursion between fix_self_intersections() and compute_union() (compute_union()'s own Union cleanup pass calls back into fix_self_intersections()). Root cause: fix_self_intersections() received an (essentially) degenerate, near-zero-area self-intersecting face; bridge_touching_holes() split it into equally near-zero-area pieces that, recursed into, just reassembled the same degenerate face every time. Fixed by dropping (rather than recursing into compute_union() for) any piece -- or the top-level shape itself, which can also reach this function directly through compute_union()'s Union cleanup pass, unfiltered by the per-piece check -- whose area is not strictly positive, plus a hard recursion-depth backstop, since this exact input was confirmed (by deliberately enabling FMA contraction) to be chaotically sensitive to floating-point rounding: three different compiler/flag combinations produced three different output topologies for it, all differing from what's recorded below. Given that, this fixture intentionally does NOT assert exact output equality (only that no_fit_polygon() completes without crashing) -- the exact result isn't portable across platforms/compilers for this input, only the absence of a crash is.",
+    "shapes": [
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 596.6756121721289,
+                        "y": 71.63481824124459
+                    },
+                    "end": {
+                        "x": 559.551488564542,
+                        "y": 96.33731405457867
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 614.6052878447334,
+                        "y": 30.80663455259144
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 558.9496597051063,
+                        "y": 78.14552561903446
+                    },
+                    "end": {
+                        "x": 552.0845441064494,
+                        "y": 61.28807764264352
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 559.551488564542,
+                        "y": 96.33731405457867
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 489.27750535723123,
+                        "y": 50.72199181903214
+                    },
+                    "start": {
+                        "x": 552.0845441064494,
+                        "y": 61.28807764264352
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "center": {
+                        "x": 579.7572763643014,
+                        "y": 58.18915425144982
+                    },
+                    "end": {
+                        "x": 583.408046445965,
+                        "y": -32.524788194542566
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 489.27750535723123,
+                        "y": 50.72199181903214
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 614.6052878447334,
+                        "y": 30.80663455259144
+                    },
+                    "start": {
+                        "x": 583.408046445965,
+                        "y": -32.524788194542566
+                    },
+                    "type": "LineSegment"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        },
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 556.664115764325,
+                        "y": 565.2825229299746
+                    },
+                    "end": {
+                        "x": 544.4190468640979,
+                        "y": 568.023194944327
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 569.0846255855816,
+                        "y": 567.0668803049498
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "end": {
+                        "x": 571.099732320355,
+                        "y": 521.3846451236235
+                    },
+                    "start": {
+                        "x": 544.4190468640979,
+                        "y": 568.023194944327
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 576.2041253240814,
+                        "y": 484.71998432343
+                    },
+                    "start": {
+                        "x": 571.099732320355,
+                        "y": 521.3846451236235
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 569.0846255855816,
+                        "y": 567.0668803049498
+                    },
+                    "start": {
+                        "x": 576.2041253240814,
+                        "y": 484.71998432343
+                    },
+                    "type": "LineSegment"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        }
+    ]
+}

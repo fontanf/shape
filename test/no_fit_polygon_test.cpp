@@ -335,6 +335,34 @@ INSTANTIATE_TEST_SUITE_P(
             return info.param.name;
         });
 
+// Regression test for a stack overflow found via random fuzzing of the
+// library: no_fit_polygon() used to overflow the stack through unbounded
+// mutual recursion between fix_self_intersections() and compute_union()
+// (compute_union()'s own Union cleanup pass calls back into
+// fix_self_intersections()) -- see the JSON fixture's description for the
+// confirmed root cause and fix.
+//
+// Unlike the other regression tests above, this one does not assert an
+// exact expected output: this exact input was confirmed (by deliberately
+// enabling FMA contraction) to be chaotically sensitive to floating-point
+// rounding -- three different compiler/flag combinations produced three
+// different output topologies for it. Only the absence of a crash is
+// portable here, so that's all this checks.
+TEST(NoFitPolygonGeneralTest, FixSelfIntersectionsInfiniteRecursionDoesNotCrash)
+{
+    std::ifstream file((fs::path("data") / "tests" / "no_fit_polygon" / "001.json").string());
+    ASSERT_TRUE(file.good());
+    nlohmann::json json;
+    file >> json;
+    ShapeWithHoles fixed_shape = ShapeWithHoles::from_json(json["shapes"][0]);
+    ShapeWithHoles orbiting_shape = ShapeWithHoles::from_json(json["shapes"][1]);
+
+    std::vector<ShapeWithHoles> nfp = no_fit_polygon(fixed_shape, orbiting_shape).shapes_with_holes;
+    std::cout << "nfp (" << nfp.size() << " component(s))" << std::endl;
+    for (const ShapeWithHoles& component: nfp)
+        std::cout << "  " << component.to_string(0) << std::endl;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Convex overload with circular arcs (decompose_into_basic_shapes' circular
