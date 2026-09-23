@@ -544,6 +544,21 @@ INSTANTIATE_TEST_SUITE_P(
                 build_line_segment({450.55675868107301, 177.13793241582951}, {490.00721569352601, 176.88776950083727}),
                 build_circular_arc({429.51381764916795, 188.65055970412675}, {518.63927234583173, 188.08539810055171}, {474.59380568556355, 269.93950415948046}, ShapeElementOrientation::Anticlockwise),
                 {{}, {{474.00439027267123, 176.98924648636697}}, {}},
+            }, {  // Two externally tangent arcs (radii ~181 and ~110) at
+                // (-56.779877603404827, -27.324012137915233). Rounding the
+                // coordinates is enough to make the two circles miss each
+                // other: no intersection used to be reported. See
+                // compute_circle_circle_intersections's tangency criterion.
+                build_circular_arc({-63.077696444092282, -8.3521535536657154}, {-48.43027484673857, -45.486558052427071}, {111.7531979246358, 39.152750952232367}, ShapeElementOrientation::Anticlockwise),
+                build_circular_arc({-51.161228765429527, -46.490100730137179}, {-65.758361864739257, -9.4831885286097872}, {-159.52300864813327, -67.850364369967252}, ShapeElementOrientation::Anticlockwise),
+                {{}, {{-56.779877603404827, -27.324012137915233}}, {}},
+            }, {  // Two internally tangent arcs (radii ~181 and ~68) at the
+                // same point. Rounding the coordinates is enough to separate
+                // the double root by ~4.3e-6: it used to be reported as two
+                // proper intersections straddling the tangent point.
+                build_circular_arc({-63.077696444092282, -8.3521535536657154}, {-48.43027484673857, -45.486558052427071}, {111.7531979246358, 39.152750952232367}, ShapeElementOrientation::Anticlockwise),
+                build_circular_arc({-61.310228807601433, -7.9171224525300019}, {-46.841759559404466, -44.597843763747171}, {6.7731239787950699, -2.2559486933318951}, ShapeElementOrientation::Anticlockwise),
+                {{}, {{-56.779877603404827, -27.324012137915233}}, {}},
             }
         }),
         [](const testing::TestParamInfo<ComputeIntersectionsTest::ParamType>& info) {

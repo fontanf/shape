@@ -1,0 +1,137 @@
+{
+    "description": "Same as 038.json, for a disk internally tangent to a larger one, on which compute_union() used to crash (stack overflow). expected_output is the fixed code's output: the larger disk; its area matches the larger disk's area.",
+    "expected_output": [
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 732.8870182401979,
+                        "y": 209.85588003338347
+                    },
+                    "end": {
+                        "x": 671.3704185478764,
+                        "y": 59.633644539525676
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 604.5947719570855,
+                        "y": 309.31497523392625
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 732.8870182401979,
+                        "y": 209.85588003338341
+                    },
+                    "end": {
+                        "x": 861.1792645233099,
+                        "y": 110.3967848328403
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 671.3704185478764,
+                        "y": 59.633644539525676
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 732.8870182401978,
+                        "y": 209.85588003338347
+                    },
+                    "end": {
+                        "x": 604.5947719570855,
+                        "y": 309.31497523392625
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 861.1792645233099,
+                        "y": 110.3967848328403
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        }
+    ],
+    "shapes": [
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 732.8870182401978,
+                        "y": 209.85588003338333
+                    },
+                    "end": {
+                        "x": 604.5947719570855,
+                        "y": 309.31497523392625
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 861.1792645233099,
+                        "y": 110.3967848328403
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 732.8870182401978,
+                        "y": 209.85588003338333
+                    },
+                    "end": {
+                        "x": 861.1792645233099,
+                        "y": 110.3967848328403
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 604.5947719570855,
+                        "y": 309.31497523392625
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        },
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 685.3634290773723,
+                        "y": 93.80428032797201
+                    },
+                    "end": {
+                        "x": 648.8026993429972,
+                        "y": 88.63226571515159
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 721.9241588117474,
+                        "y": 98.97629494079244
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 685.3634290773723,
+                        "y": 93.80428032797201
+                    },
+                    "end": {
+                        "x": 721.9241588117474,
+                        "y": 98.97629494079244
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 648.8026993429972,
+                        "y": 88.63226571515159
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        }
+    ]
+}
