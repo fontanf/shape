@@ -651,11 +651,26 @@ Shape shape::no_fit_polygon(
         } else if (direction_strictly_lesser(orbiting_dir, fixed_dir)) {
             consume_up_to(orbiting_cursor, fixed_dir, result, current_vertex);
         } else if (!fixed_is_arc && !orbiting_is_arc) {
-            // Tied plain edges: fixed first, then orbiting (matches the
-            // pre-arc-support behavior exactly, just spread over two loop
-            // iterations instead of one: fixed's next element strictly
-            // exceeds this tie, so orbiting is picked up correctly next).
-            consume_whole(fixed_cursor, result, current_vertex);
+            // Tied plain edges. direction_strictly_lesser's tolerance is
+            // meant for the floating-point noise of arc tangents, but, on
+            // unit vectors, it also ties plain edges up to ~1e-6 rad apart
+            // that are not parallel. Consuming the fixed one first
+            // regardless would then add them in the wrong order whenever
+            // the orbiting one has the smaller direction, putting the vertex
+            // between them inside the actual Minkowski sum, by up to that
+            // angle times the shorter edge's length (e.g. an edge-length
+            // wrong vertex, and ~7e-5 off the sum, for two edges ~9.5e-7 rad
+            // apart of a self-NFP, see fontanf/packingsolver#598): the
+            // result is not even centrally symmetric anymore. So the exact
+            // directions decide, and the fixed one only goes first if they
+            // are exactly parallel. (Once consumed, the next element of that
+            // side strictly exceeds this tie, so the other one is picked up
+            // correctly next.)
+            if (strictly_lesser_angle(orbiting_dir, fixed_dir)) {
+                consume_whole(orbiting_cursor, result, current_vertex);
+            } else {
+                consume_whole(fixed_cursor, result, current_vertex);
+            }
         } else if (fixed_is_arc) {
             // Tie at the arc's own start: the plain edge (a single point,
             // contributing nothing beyond it) goes first; the arc, which is

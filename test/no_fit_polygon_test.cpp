@@ -102,6 +102,18 @@ INSTANTIATE_TEST_SUITE_P(
                 build_rectangle(0, 1, 0, 1),
                 {{build_shape({{-1, -1}, {4, -1}, {5, 1}, {5, 2}, {3, 4}, {0, 4}, {-1, 0}}), {}}},
                 "ConvexPentagonAndUnitSquare",
+            }, {  // Convex hexagon with itself (fontanf/packingsolver#598).
+                // Its edges 0 and 3 are ~9.5e-7 rad from parallel: close
+                // enough for direction_strictly_lesser to tie them, but
+                // not parallel. They used to be merged in the wrong order
+                // on one side of the NFP, replacing the vertex
+                // (58.8411, -157.0224) by (130.8797, -104.8274): the NFP was
+                // then not even centrally symmetric. Expected: the exact
+                // Minkowski sum of the hexagon and its point reflection.
+                build_shape({{58.8146, 199.6359}, {0.0, 157.0224}, {0.0, 30.0296}, {58.8411, 0.0}, {189.6943, 94.8085}, {179.4885, 160.0763}}),
+                build_shape({{58.8146, 199.6359}, {0.0, 157.0224}, {0.0, 30.0296}, {58.8411, 0.0}, {189.6943, 94.8085}, {179.4885, 160.0763}}),
+                {{build_shape({{-189.6943, -64.7789}, {-179.4885, -130.0467}, {-120.6474, -160.0763}, {0.0265, -199.6359}, {58.8411, -157.0224}, {189.6943, -62.2139}, {189.6943, 64.7789}, {179.4885, 130.0467}, {120.6474, 160.0763}, {-0.0265, 199.6359}, {-58.8411, 157.0224}, {-189.6943, 62.2139}}), {}}},
+                "HexagonWithItselfNearlyParallelEdges",
             },
         }),
         [](const testing::TestParamInfo<NoFitPolygonConvexTest::ParamType>& info) {
@@ -326,6 +338,15 @@ INSTANTIATE_TEST_SUITE_P(
             //
             // The oracle grid-sampling check below is skipped for this case
             // (see skip_oracle_check's comment).
+            //
+            // Its two expected_outputs variants (without and with fused
+            // multiply-adds, i.e. x86-64 and AArch64 builds) were
+            // re-recorded when tied, nearly parallel plain edges started
+            // being merged in their exact angular order
+            // (fontanf/packingsolver#598): the result keeps the same
+            // structure (1 component, 883 elements, no self-intersection),
+            // with ~1.1e-4 more area, as expected since the old order put
+            // some vertices inside the actual Minkowski sums.
             NoFitPolygonGeneralTestParams::read_json(
                     (fs::path("data") / "tests" / "no_fit_polygon" / "000.json").string(),
                     "Issue558SawtoothSelfPairing",
