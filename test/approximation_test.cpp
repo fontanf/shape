@@ -279,6 +279,13 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "1.json").string()),
             ApproximateByLineSegmentsTestParams::read_json(
                     (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "2.json").string()),
+            // Circular hole made of two anticlockwise semicircles: the
+            // approximation of each semicircle used to end with a degenerate
+            // line segment, making the hole look self-intersecting and
+            // triggering the fallback union, which then failed with "face area
+            // is not positive" (fontanf/packingsolver#595).
+            ApproximateByLineSegmentsTestParams::read_json(
+                    (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "3.json").string()),
         }),
         [](const testing::TestParamInfo<ApproximateByLineSegmentsTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();

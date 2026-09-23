@@ -58,11 +58,27 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
         number_of_line_segments = 3;
     //std::cout << "number_of_line_segments " << number_of_line_segments << std::endl;
 
+    // Vertices either lie on the circle ('on_circle'), or at the
+    // intersections of the tangents at consecutive points of the circle.
+    bool on_circle = ((outer && circular_arc.orientation == ShapeElementOrientation::Clockwise)
+            || (!outer && circular_arc.orientation != ShapeElementOrientation::Clockwise));
+    // The points of the circle are spread at 'angle / (number_of_line_segments - 1)'
+    // intervals, the last one being the end of the arc. With tangents, each
+    // of the 'number_of_line_segments - 1' pairs of consecutive points gives
+    // a vertex. On the circle, the points themselves are the vertices, and
+    // the last one is added below as the exact end of the arc: computing it
+    // by rotation too would only give an approximation of it, joined to the
+    // exact end by a degenerate line segment (see also
+    // 'compute_circular_arc_extras_inner', which uses the same vertices).
+    ElementPos number_of_vertices = (on_circle)?
+        number_of_line_segments - 2:
+        number_of_line_segments - 1;
+
     std::vector<ShapeElement> line_segments;
     Point point_prev = circular_arc.start;
     Point point_circle_prev = circular_arc.start;
     for (ElementPos line_segment_id = 0;
-            line_segment_id < number_of_line_segments - 1;
+            line_segment_id < number_of_vertices;
             ++line_segment_id) {
         Angle angle_cur = (angle * (line_segment_id + 1)) / (number_of_line_segments - 1);
         if (circular_arc.orientation == ShapeElementOrientation::Clockwise)
@@ -73,8 +89,7 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
                 angle_cur);
         //std::cout << "point_circle " << point_circle.to_string() << std::endl;
         Point point_cur;
-        if ((outer && circular_arc.orientation == ShapeElementOrientation::Clockwise)
-                || (!outer && circular_arc.orientation != ShapeElementOrientation::Clockwise)) {
+        if (on_circle) {
             point_cur = point_circle;
         } else {
             // https://en.wikipedia.org/wiki/Tangent_lines_to_circles#Cartesian_equation
