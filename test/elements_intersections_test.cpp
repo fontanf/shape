@@ -418,39 +418,27 @@ INSTANTIATE_TEST_SUITE_P(
                 // The line segment and the circular arc are taken directly
                 // from a real inflate()d self-NFP shape (item_item_minimum_spacing
                 // 0.5): they share their upper endpoint, and the arc's own
-                // circle genuinely crosses the (near-vertical) line at a
-                // second, distinct point -- the arc's x grows monotonically
-                // from 714.239 (its far endpoint) past the line's x
-                // (~716.60408717374901) before curving back down to meet
-                // the line exactly at the shared endpoint. Fine-sampling
-                // the arc confirmed a real crossing near y=323.599 (see
-                // proper_intersections below), about 0.0034 away (in y)
-                // from the shared endpoint.
+                // circle crosses the (near-vertical) line again at a second
+                // point ~0.0023 lower, near y=323.599. In between, the arc
+                // never strays from the line by more than ~1.6e-7: the
+                // foot of the perpendicular from the circle's center to the
+                // line (their midpoint) is on the circle, so
+                // compute_line_circle_intersections treats the line as
+                // tangent (see there, and fontanf/packingsolver#595), and
+                // reports that foot, (716.60408717374912, 323.60026016150999),
+                // ~0.0011 below the shared endpoint, as the single
+                // intersection with the circle. It is reported as an
+                // improper intersection, besides the shared endpoint.
                 //
-                // compute_line_circle_intersections found this correctly
-                // (two roots), but then collapsed the two computed points
-                // into their midpoint via 'equal(distance(midpoint,
-                // circle_center), circle_radius)' -- a check whose
-                // effective tolerance on the chord between the two roots is
-                // sqrt(8*radius*1e-6) (from sagitta = chord^2/(8*radius)),
-                // i.e. growing with sqrt(radius) rather than shrinking to
-                // genuine floating-point noise. At this arc's radius (~4)
-                // that is already ~0.0057, comfortably swallowing the
-                // ~0.0034 gap between these two genuinely distinct roots
-                // and silently discarding the interior crossing. That
-                // missing split point left the boundary graph missing a
-                // vertex, which downstream (in
-                // compute_boolean_operation_component, see
-                // boolean_operations_test.cpp's 033.json) produced a
-                // negative-area face and threw "outline area is not
-                // positive." Fixed by comparing the two computed points
-                // against each other directly instead
-                // ('equal(points[0], points[1])'), the same convention
-                // used everywhere else in this codebase to mean "same
-                // point", which is unaffected by the circle's radius.
+                // Reporting only the shared endpoint instead (treating the
+                // foot as the same contact) makes boolean_operations_test.cpp's
+                // 033.json throw "outline area is not positive" again, as
+                // it originally did in #574, whose analysis attributed it to
+                // the boundary graph missing a vertex there: the two
+                // elements do cross in floating point near y=323.599.
                 build_line_segment({716.60408717374901, 319.21840687083619}, {716.60408717374912, 323.60140506674622}),
                 build_circular_arc({714.23934709768969, 319.94979094276141}, {716.60408717374912, 323.60140506674622}, {712.60408733760016, 323.60026016151011}, ShapeElementOrientation::Anticlockwise),
-                {{}, {{716.60408717374912, 323.60140506674622}}, {{716.60408717374605, 323.59911524549011}}},
+                {{}, {{716.60408717374912, 323.60140506674622}, {716.60408717374912, 323.60026016150999}}, {}},
             }, {  // Second regression case for fontanf/packingsolver issue
                 // #574, the opposite failure mode from the one above: this
                 // line and arc are two adjacent elements of the *same*
@@ -521,6 +509,41 @@ INSTANTIATE_TEST_SUITE_P(
                 build_line_segment({-4, 776.4547423432}, {-4, 46.177845159999997}),
                 build_circular_arc({1.633054104459519, 780.1061988049297}, {-4, 776.4547423432}, {-6.1284310959308641e-14, 776.4547423432}, ShapeElementOrientation::Anticlockwise),
                 {{}, {{-4, 776.4547423432}}, {}},
+            }, {  // Regression test for fontanf/packingsolver issue #595.
+                // A line segment tangent to an arc of radius ~46.25 at the
+                // segment's start, taken from the circular arc extras of
+                // 'approximate_by_line_segments' (the segment joins a point
+                // of the arc to the intersection of the tangents there and
+                // at the next point). Rounding the coordinates moves such a
+                // line by ~1e-14, which is enough to separate the double
+                // root of the tangency by ~2e-6 at this radius: the second
+                // root used to be reported as a spurious 'proper'
+                // intersection ~2e-6 from the tangent point, and the
+                // resulting split made compute_union fail with "face area
+                // is not positive" (see boolean_operations_test.cpp's
+                // 034.json).
+                build_line_segment({97.836435331602672, 107.84473485649727}, {97.422552289476016, 108.1354932612289}),
+                build_circular_arc({101.80803571428487, 104.71698364323365}, {40.691964285711087, 104.71698364323238}, {71.249999999998707, 69.999999999999574}, ShapeElementOrientation::Anticlockwise),
+                {{}, {{97.836435331602672, 107.84473485649727}}, {}},
+            }, {  // Regression test for fontanf/packingsolver issue #595.
+                // Same as above, for the tangent segment at the arc's own
+                // start point, where the spurious root was ~4.5e-6 away
+                // (see boolean_operations_test.cpp's 035.json).
+                build_line_segment({101.80803571428487, 104.71698364323365}, {101.42835883563217, 105.05117683631086}),
+                build_circular_arc({101.80803571428487, 104.71698364323365}, {40.691964285711087, 104.71698364323238}, {71.249999999998707, 69.999999999999574}, ShapeElementOrientation::Anticlockwise),
+                {{}, {{101.80803571428487, 104.71698364323365}}, {}},
+            }, {  // Tangency at an interior point of the line segment (found
+                // while fixing fontanf/packingsolver#595): neither endpoint
+                // is on the circle. The line segment was built along
+                // the tangent at (474.00439027267123, 176.98924648636697) to
+                // a circle of radius ~93, and rounding its coordinates is
+                // enough to separate the double root by ~4e-6: it used to
+                // be reported as two proper intersections straddling the
+                // tangent point (see boolean_operations_test.cpp's 036.json
+                // and 037.json for its consequences).
+                build_line_segment({450.55675868107301, 177.13793241582951}, {490.00721569352601, 176.88776950083727}),
+                build_circular_arc({429.51381764916795, 188.65055970412675}, {518.63927234583173, 188.08539810055171}, {474.59380568556355, 269.93950415948046}, ShapeElementOrientation::Anticlockwise),
+                {{}, {{474.00439027267123, 176.98924648636697}}, {}},
             }
         }),
         [](const testing::TestParamInfo<ComputeIntersectionsTest::ParamType>& info) {

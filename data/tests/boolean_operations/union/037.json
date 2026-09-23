@@ -1,0 +1,199 @@
+{
+    "description": "Same as 036.json, for another rectangle and disk touching at an interior point of the rectangle's edge. Here, the spurious intersections used to make compute_union() recurse endlessly between fix_self_intersections() and compute_union() until the stack overflowed (see fontanf/shape#68). expected_output: see 036.json.",
+    "expected_output": [
+        {
+            "elements": [
+                {
+                    "end": {
+                        "x": 611.5433400004247,
+                        "y": 1025.9828968334552
+                    },
+                    "start": {
+                        "x": 614.820829680479,
+                        "y": 1002.317367316379
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 571.903324626661,
+                        "y": 1020.493066520934
+                    },
+                    "start": {
+                        "x": 611.5433400004247,
+                        "y": 1025.9828968334552
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 575.1808143067153,
+                        "y": 996.8275370038577
+                    },
+                    "start": {
+                        "x": 571.903324626661,
+                        "y": 1020.493066520934
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 614.820829680479,
+                        "y": 1002.317367316379
+                    },
+                    "start": {
+                        "x": 575.1808143067153,
+                        "y": 996.8275370038577
+                    },
+                    "type": "LineSegment"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        },
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 587.9082612096705,
+                        "y": 956.9018888412598
+                    },
+                    "end": {
+                        "x": 582.2434118790061,
+                        "y": 997.8056512117337
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 622.7445379521594,
+                        "y": 979.074893074337
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 587.9082612096705,
+                        "y": 956.9018888412598
+                    },
+                    "end": {
+                        "x": 553.0719844671817,
+                        "y": 934.728884608183
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 582.2434118790061,
+                        "y": 997.8056512117337
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 587.9082612096705,
+                        "y": 956.9018888412598
+                    },
+                    "end": {
+                        "x": 622.7445379521594,
+                        "y": 979.074893074337
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 553.0719844671817,
+                        "y": 934.728884608183
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        }
+    ],
+    "shapes": [
+        {
+            "elements": [
+                {
+                    "end": {
+                        "x": 611.5433400004247,
+                        "y": 1025.9828968334552
+                    },
+                    "start": {
+                        "x": 614.820829680479,
+                        "y": 1002.317367316379
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 571.903324626661,
+                        "y": 1020.493066520934
+                    },
+                    "start": {
+                        "x": 611.5433400004247,
+                        "y": 1025.9828968334552
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 575.1808143067153,
+                        "y": 996.8275370038577
+                    },
+                    "start": {
+                        "x": 571.903324626661,
+                        "y": 1020.493066520934
+                    },
+                    "type": "LineSegment"
+                },
+                {
+                    "end": {
+                        "x": 614.820829680479,
+                        "y": 1002.317367316379
+                    },
+                    "start": {
+                        "x": 575.1808143067153,
+                        "y": 996.8275370038577
+                    },
+                    "type": "LineSegment"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        },
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 587.9082612096705,
+                        "y": 956.90188884126
+                    },
+                    "end": {
+                        "x": 622.7445379521594,
+                        "y": 979.074893074337
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 553.0719844671817,
+                        "y": 934.728884608183
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 587.9082612096705,
+                        "y": 956.90188884126
+                    },
+                    "end": {
+                        "x": 553.0719844671817,
+                        "y": 934.728884608183
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 622.7445379521594,
+                        "y": 979.074893074337
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        }
+    ]
+}
