@@ -286,6 +286,13 @@ INSTANTIATE_TEST_SUITE_P(
             // is not positive" (fontanf/packingsolver#595).
             ApproximateByLineSegmentsTestParams::read_json(
                     (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "3.json").string()),
+            // Thin half-annulus hole with a large segment length: the tangent
+            // approximation of its clockwise inner arc crosses the chords of
+            // its anticlockwise outer arc, so the fallback union is used. The
+            // circular segments between the outer arc's chords and the arc
+            // used to be clockwise, and the union filled the hole entirely.
+            ApproximateByLineSegmentsTestParams::read_json(
+                    (fs::path("data") / "tests" / "approximation" / "approximate_by_line_segments" / "4.json").string()),
         }),
         [](const testing::TestParamInfo<ApproximateByLineSegmentsTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();

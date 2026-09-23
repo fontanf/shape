@@ -301,21 +301,24 @@ std::vector<Shape> compute_circular_arc_extras_inner(
         }
         //std::cout << "point_circle " << point_circle.to_string() << std::endl;
 
+        // The circular segment between the chord and the arc, anticlockwise
+        // like every shape passed to 'compute_union' (the arc is always
+        // traversed anticlockwise, the chord closes it).
         Shape shape;
         if (circular_arc.orientation != shape::ShapeElementOrientation::Clockwise) {
+            shape.elements.push_back(build_circular_arc(
+                        point_circle_prev,
+                        point_circle,
+                        circular_arc.center,
+                        ShapeElementOrientation::Anticlockwise));
+            shape.elements.push_back(build_line_segment(point_circle, point_circle_prev));
+        } else {
             shape.elements.push_back(build_line_segment(point_circle_prev, point_circle));
             shape.elements.push_back(build_circular_arc(
                         point_circle,
                         point_circle_prev,
                         circular_arc.center,
-                        ShapeElementOrientation::Clockwise));
-        } else {
-            shape.elements.push_back(build_circular_arc(
-                        point_circle_prev,
-                        point_circle,
-                        circular_arc.center,
-                        ShapeElementOrientation::Clockwise));
-            shape.elements.push_back(build_line_segment(point_circle, point_circle_prev));
+                        ShapeElementOrientation::Anticlockwise));
         }
         output.push_back(shape);
         point_circle_prev = point_circle;
