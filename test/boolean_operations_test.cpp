@@ -470,6 +470,14 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "boolean_operations" / "union" / "036.json").string()),
             ComputeBooleanUnionTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "union" / "037.json").string()),
+            // Tangent disks, see elements_intersections_test.cpp's two
+            // circle/circle tangency cases.
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "038.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "039.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "040.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeBooleanUnionTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();

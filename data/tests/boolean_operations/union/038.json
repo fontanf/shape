@@ -1,0 +1,191 @@
+{
+    "description": "Regression test for circle/circle tangencies (found after fixing fontanf/packingsolver#595): two externally tangent disks, each made of two semicircles whose junctions are away from the tangent point. Rounding the coordinates is enough to separate the double root of the circle/circle intersection by several times the point-equality tolerance: the tangency used to be computed as two proper intersections straddling the tangent point, or as no intersection at all, and compute_union() threw \"face area is not positive.\" expected_output is the fixed code's output: the two disks, touching at the tangent point; its area matches the sum of both input shapes' areas.",
+    "expected_output": [
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 853.8323196007755,
+                        "y": 81.24903571568669
+                    },
+                    "end": {
+                        "x": 835.8985988510311,
+                        "y": 122.62877028914025
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 888.9068522659803,
+                        "y": 109.59824966628422
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 853.8323196007755,
+                        "y": 81.24903571568672
+                    },
+                    "end": {
+                        "x": 871.7660403505198,
+                        "y": 39.869301142233176
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 835.8985988510311,
+                        "y": 122.62877028914025
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 853.8323196007755,
+                        "y": 81.24903571568669
+                    },
+                    "end": {
+                        "x": 888.9068522659803,
+                        "y": 109.59824966628422
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 871.7660403505198,
+                        "y": 39.869301142233176
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        },
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 975.8382892155006,
+                        "y": 179.861136092698
+                    },
+                    "end": {
+                        "x": 888.9068522659803,
+                        "y": 109.59824966628422
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 871.2997102132008,
+                        "y": 219.4292222134527
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 975.8382892155006,
+                        "y": 179.86113609269796
+                    },
+                    "end": {
+                        "x": 1080.3768682178004,
+                        "y": 140.29304997194322
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 888.9068522659803,
+                        "y": 109.59824966628422
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 975.8382892155006,
+                        "y": 179.86113609269796
+                    },
+                    "end": {
+                        "x": 871.2997102132008,
+                        "y": 219.4292222134527
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 1080.3768682178004,
+                        "y": 140.29304997194322
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        }
+    ],
+    "shapes": [
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 853.8323196007755,
+                        "y": 81.24903571568672
+                    },
+                    "end": {
+                        "x": 871.7660403505198,
+                        "y": 39.869301142233176
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 835.8985988510311,
+                        "y": 122.62877028914025
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 853.8323196007755,
+                        "y": 81.24903571568672
+                    },
+                    "end": {
+                        "x": 835.8985988510311,
+                        "y": 122.62877028914025
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 871.7660403505198,
+                        "y": 39.869301142233176
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        },
+        {
+            "elements": [
+                {
+                    "center": {
+                        "x": 975.8382892155006,
+                        "y": 179.86113609269796
+                    },
+                    "end": {
+                        "x": 1080.3768682178004,
+                        "y": 140.29304997194322
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 871.2997102132008,
+                        "y": 219.4292222134527
+                    },
+                    "type": "CircularArc"
+                },
+                {
+                    "center": {
+                        "x": 975.8382892155006,
+                        "y": 179.86113609269796
+                    },
+                    "end": {
+                        "x": 871.2997102132008,
+                        "y": 219.4292222134527
+                    },
+                    "orientation": "Anticlockwise",
+                    "start": {
+                        "x": 1080.3768682178004,
+                        "y": 140.29304997194322
+                    },
+                    "type": "CircularArc"
+                }
+            ],
+            "is_path": false,
+            "type": "general"
+        }
+    ]
+}

@@ -306,11 +306,29 @@ std::vector<Point> shape::compute_circle_circle_intersections(
     LengthDbl line_b = 2 * d.y;
     LengthDbl c_prime = rsq - r2sq + d.x * d.x + d.y * d.y;
     LengthDbl denom = line_a * line_a + line_b * line_b;
-    if (strictly_lesser(rsq * denom, c_prime * c_prime))
-        return {};
+    // Same tangency criterion as compute_line_circle_intersections's (see
+    // there, and fontanf/packingsolver#595), applied to circle 1 and the
+    // radical line 'line_a * x + line_b * y = c_prime' (relative to
+    // center_1), which goes through the two intersections: the foot of the
+    // perpendicular from center_1 to it lies on the line through the two
+    // centers, and is the midpoint of the two intersections whenever there
+    // are two. If it is on both circles, they stay within the
+    // point-equality tolerance of each other everywhere between the two
+    // intersections, and the foot is returned as the single tangency point.
+    // Otherwise, the rounding error of the coordinates would separate the
+    // double root of a tangency (external or internal) by several times the
+    // tolerance for radii above ~30, reporting it as two distinct proper
+    // intersections, or make the circles miss each other.
+    Point foot = {
+        center_1.x + line_a * c_prime / denom,
+        center_1.y + line_b * c_prime / denom};
+    if (point_on_circle(foot, center_1, radius_1)
+            && point_on_circle(foot, center_2, radius_2)) {
+        return {foot};
+    }
     LengthDbl discriminant = rsq * denom - c_prime * c_prime;
     if (discriminant < 0)
-        discriminant = 0;
+        return {};
     LengthDbl sqrt_disc = std::sqrt(discriminant);
     LengthDbl eta_1 = (line_a * c_prime + line_b * sqrt_disc) / denom;
     LengthDbl eta_2 = (line_a * c_prime - line_b * sqrt_disc) / denom;
@@ -327,14 +345,6 @@ std::vector<Point> shape::compute_circle_circle_intersections(
             && point_on_circle(point_2, center_2, radius_2)) {
         points.push_back(point_2);
     }
-
-    // Collapse to a single tangent point when the two computed points
-    // coincide, since callers use the number of returned points to tell a
-    // tangency from a crossing (fontanf/packingsolver#574). See
-    // compute_line_circle_intersections for the tangency criterion used
-    // there instead (fontanf/packingsolver#595).
-    if (points.size() == 2 && equal(points[0], points[1]))
-        return {0.5 * (points[0] + points[1])};
 
     return points;
 }
