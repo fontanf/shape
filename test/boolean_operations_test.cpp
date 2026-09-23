@@ -457,6 +457,19 @@ INSTANTIATE_TEST_SUITE_P(
             // area (~3.57e6, matching the union of both input shapes).
             ComputeBooleanUnionTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "union" / "033.json").string()),
+            // fontanf/packingsolver#595: tangent line segments along an arc
+            // of radius ~46.25, see elements_intersections_test.cpp's #595
+            // cases.
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "034.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "035.json").string()),
+            // Tangency at an interior point of a line segment, see
+            // elements_intersections_test.cpp's last case.
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "036.json").string()),
+            ComputeBooleanUnionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "union" / "037.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeBooleanUnionTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();

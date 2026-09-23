@@ -1,5 +1,5 @@
 {
-    "description": "Regression test for fontanf/packingsolver issue #574: compute_union() on these 2 shapes used to throw \"outline area is not positive.\" Captured directly from the crashing shape::compute_union(ext_nfp) call in find_periodic_packing_lattice_from_combined_nfp (src/irregular/periodic_packing.cpp), vertical-lattice-strategy branch: shapes[0] is the (spacing-)inflated self-NFP of a single convex quadrilateral item type (allowed_rotations 0 and 180 degrees, item_item_minimum_spacing 0.5), and shapes[1] is the same shape shifted by a candidate vertical lattice vector (~(0, 831.4)) while searching for a periodic tiling. Reached only for item types with more than 16 copies (the periodic_packings_copies_threshold in InstanceBuilder::build), which is computed unconditionally during instance building regardless of the --use-tree-search-periodic-packing CLI flag. Root cause: compute_line_circle_intersections computed the line's implicit-form coefficients (and compute_circle_circle_intersections the radical line's) from the raw input coordinates and only translated to the circle's center afterwards, so for a circle far from the world origin (here, radius 4 at coordinates ~(700, 1150)) computing line_c and the discriminant each subtracted two large, similarly-sized quantities to get a much smaller result -- catastrophic cancellation, stacked two levels deep. That left a genuine ~0.0023-chord crossing numerically indistinguishable from a genuine tangency (which should be a single, exact double root): both produced two computed roots a few 1e-6 apart, so no fixed tolerance on \"are these the same point\" could separate them correctly. Fixed by working in coordinates relative to the circle's own center before computing those coefficients (see src/elements_intersections.cpp), removing the cancellation at its source rather than papering over its symptom with a tolerance. With accurate roots, a genuine tangency's discriminant reliably computes as exactly zero (or negative, clamped to zero), making its two roots bit-identical, so the existing equal(points[0], points[1]) collapse (kept because compute_line_arc_intersections / compute_arc_arc_intersections still need exactly one point, not two identical ones, to classify a tangency as improper rather than a crossing as proper) now does the right thing for both cases. See elements_intersections_test.cpp's two #574 cases (the crossing and the tangency) for minimal, isolated reproductions of each side of this. expected_output is the correct output of the fixed code, confirmed to have the expected simple, non-self-intersecting, full-extent outline (area ~3.57e6, matching the union of the two input shapes' extents). Update: after this fix, verifying end-to-end in packingsolver surfaced a related but distinct bug (see elements_intersections_test.cpp's third #574-related case, and offset_test.cpp's InflateShapeTest.Issue574RelatedSelfIntersectionCheck): compute_line_arc_intersections (and compute_arc_arc_intersections) discarded only one of the two roots computed for a line/arc pair sharing an endpoint -- whichever was nominally closer to that endpoint -- assuming exactly one root duplicates it. For a near-tangency where both roots independently land within point-equality tolerance of the shared endpoint (as happens in the axis-aligned special case of compute_line_circle_intersections, which is not itself numerically wrong, just working from inputs -- e.g. from shape::inflate() -- that are not perfectly self-consistent), only one root was discarded, leaving the other to survive as a spurious extra proper intersection. Fixed by checking each root independently against the endpoint instead of picking the nominally-closer one. This also changed one nearby split point in this fixture's own expected_output (a ~0.002 shift near (716.6, 323.6), still the same valid, non-self-intersecting outline of area ~3.57e6) -- expected_output was re-captured from the twice-fixed code.",
+    "description": "Regression test for fontanf/packingsolver issue #574: compute_union() on these 2 shapes used to throw \"outline area is not positive.\" Captured directly from the crashing shape::compute_union(ext_nfp) call in find_periodic_packing_lattice_from_combined_nfp (src/irregular/periodic_packing.cpp), vertical-lattice-strategy branch: shapes[0] is the (spacing-)inflated self-NFP of a single convex quadrilateral item type (allowed_rotations 0 and 180 degrees, item_item_minimum_spacing 0.5), and shapes[1] is the same shape shifted by a candidate vertical lattice vector (~(0, 831.4)) while searching for a periodic tiling. Reached only for item types with more than 16 copies (the periodic_packings_copies_threshold in InstanceBuilder::build), which is computed unconditionally during instance building regardless of the --use-tree-search-periodic-packing CLI flag. Root cause: compute_line_circle_intersections computed the line's implicit-form coefficients (and compute_circle_circle_intersections the radical line's) from the raw input coordinates and only translated to the circle's center afterwards, so for a circle far from the world origin (here, radius 4 at coordinates ~(700, 1150)) computing line_c and the discriminant each subtracted two large, similarly-sized quantities to get a much smaller result -- catastrophic cancellation, stacked two levels deep. That left a genuine ~0.0023-chord crossing numerically indistinguishable from a genuine tangency (which should be a single, exact double root): both produced two computed roots a few 1e-6 apart, so no fixed tolerance on \"are these the same point\" could separate them correctly. Fixed by working in coordinates relative to the circle's own center before computing those coefficients (see src/elements_intersections.cpp), removing the cancellation at its source rather than papering over its symptom with a tolerance. With accurate roots, a genuine tangency's discriminant reliably computes as exactly zero (or negative, clamped to zero), making its two roots bit-identical, so the existing equal(points[0], points[1]) collapse (kept because compute_line_arc_intersections / compute_arc_arc_intersections still need exactly one point, not two identical ones, to classify a tangency as improper rather than a crossing as proper) now does the right thing for both cases. See elements_intersections_test.cpp's two #574 cases (the crossing and the tangency) for minimal, isolated reproductions of each side of this. expected_output is the correct output of the fixed code, confirmed to have the expected simple, non-self-intersecting, full-extent outline (area ~3.57e6, matching the union of the two input shapes' extents). Update: after this fix, verifying end-to-end in packingsolver surfaced a related but distinct bug (see elements_intersections_test.cpp's third #574-related case, and offset_test.cpp's InflateShapeTest.Issue574RelatedSelfIntersectionCheck): compute_line_arc_intersections (and compute_arc_arc_intersections) discarded only one of the two roots computed for a line/arc pair sharing an endpoint -- whichever was nominally closer to that endpoint -- assuming exactly one root duplicates it. For a near-tangency where both roots independently land within point-equality tolerance of the shared endpoint (as happens in the axis-aligned special case of compute_line_circle_intersections, which is not itself numerically wrong, just working from inputs -- e.g. from shape::inflate() -- that are not perfectly self-consistent), only one root was discarded, leaving the other to survive as a spurious extra proper intersection. Fixed by checking each root independently against the endpoint instead of picking the nominally-closer one. This also changed one nearby split point in this fixture's own expected_output (a ~0.002 shift near (716.6, 323.6), still the same valid, non-self-intersecting outline of area ~3.57e6) -- expected_output was re-captured from the twice-fixed code. Updated for fontanf/packingsolver#595: compute_line_circle_intersections now treats a line as tangent to a circle when the foot of the perpendicular from the center (the midpoint of the two intersections) is on the circle, so the ~0.0023-chord crossing near the shared endpoint of the two elements at (716.60408717374912, 323.60140506674622) (and at its mirror image) is now reported as a tangency at that foot instead of a crossing. The two elements never stray from each other by more than ~1.6e-7 between the endpoint and the crossing, so both outputs agree within the point-equality tolerance: expected_output is the updated code's output, still simple and non-self-intersecting, with the same area up to ~1e-4 (out of ~3.57e6).",
     "expected_output": [
         {
             "elements": [
@@ -59,8 +59,8 @@
                 },
                 {
                     "end": {
-                        "x": 716.6040871746173,
-                        "y": 323.6014020292835
+                        "x": 716.6040871746171,
+                        "y": 323.6002601607176
                     },
                     "start": {
                         "x": 716.604087173749,
@@ -70,8 +70,8 @@
                 },
                 {
                     "center": {
-                        "x": 712.6040873375919,
-                        "y": 323.6002601906424
+                        "x": 712.6040873371685,
+                        "y": 323.6008295811722
                     },
                     "end": {
                         "x": 716.6040871737491,
@@ -79,35 +79,8 @@
                     },
                     "orientation": "Anticlockwise",
                     "start": {
-                        "x": 716.6040871746173,
-                        "y": 323.6014020292835
-                    },
-                    "type": "CircularArc"
-                },
-                {
-                    "end": {
-                        "x": 716.6040871937836,
-                        "y": 420.3401278105316
-                    },
-                    "start": {
-                        "x": 716.6040871737491,
-                        "y": 323.6014050667462
-                    },
-                    "type": "LineSegment"
-                },
-                {
-                    "center": {
-                        "x": 712.6040873376,
-                        "y": 420.3412004389367
-                    },
-                    "end": {
-                        "x": 716.6040873376,
-                        "y": 420.34120043906285
-                    },
-                    "orientation": "Anticlockwise",
-                    "start": {
-                        "x": 716.6040871937836,
-                        "y": 420.3401278105316
+                        "x": 716.6040871746171,
+                        "y": 323.6002601607176
                     },
                     "type": "CircularArc"
                 },
@@ -117,8 +90,8 @@
                         "y": 1150.618097622263
                     },
                     "start": {
-                        "x": 716.6040873376,
-                        "y": 420.34120043906285
+                        "x": 716.6040871737491,
+                        "y": 323.6014050667462
                     },
                     "type": "LineSegment"
                 },
@@ -248,8 +221,8 @@
                 },
                 {
                     "end": {
-                        "x": -716.6040871746173,
-                        "y": 507.7994336273793
+                        "x": -716.6040871746171,
+                        "y": 507.8005754959452
                     },
                     "start": {
                         "x": -716.604087173749,
@@ -259,8 +232,8 @@
                 },
                 {
                     "center": {
-                        "x": -712.6040873375919,
-                        "y": 507.8005754660204
+                        "x": -712.6040873371685,
+                        "y": 507.8000060754906
                     },
                     "end": {
                         "x": -716.6040871737491,
@@ -268,35 +241,8 @@
                     },
                     "orientation": "Anticlockwise",
                     "start": {
-                        "x": -716.6040871746173,
-                        "y": 507.7994336273793
-                    },
-                    "type": "CircularArc"
-                },
-                {
-                    "end": {
-                        "x": -716.6040871937836,
-                        "y": 411.0607078461311
-                    },
-                    "start": {
-                        "x": -716.6040871737491,
-                        "y": 507.7994305899166
-                    },
-                    "type": "LineSegment"
-                },
-                {
-                    "center": {
-                        "x": -712.6040873376,
-                        "y": 411.059635217726
-                    },
-                    "end": {
-                        "x": -716.6040873376,
-                        "y": 411.05963521759986
-                    },
-                    "orientation": "Anticlockwise",
-                    "start": {
-                        "x": -716.6040871937836,
-                        "y": 411.0607078461311
+                        "x": -716.6040871746171,
+                        "y": 507.8005754959452
                     },
                     "type": "CircularArc"
                 },
@@ -306,8 +252,8 @@
                         "y": -319.21726196560013
                     },
                     "start": {
-                        "x": -716.6040873376,
-                        "y": 411.05963521759986
+                        "x": -716.6040871737491,
+                        "y": 507.7994305899166
                     },
                     "type": "LineSegment"
                 },

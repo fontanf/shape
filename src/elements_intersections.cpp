@@ -186,25 +186,52 @@ std::vector<Point> shape::compute_line_circle_intersections(
         const Point& circle_center,
         LengthDbl circle_radius)
 {
+    // Each branch below first computes the foot of the perpendicular from
+    // the circle's center to the line: the line's closest point to the
+    // circle, and the midpoint of the two intersections whenever there are
+    // two. If it lies on the circle (point_on_circle, i.e. at the
+    // point-equality tolerance), the line stays within that tolerance of
+    // the circle everywhere between the two intersections: they are the same
+    // point, the line is tangent to the circle, and the foot is returned as
+    // the single intersection.
+    //
+    // Comparing the two computed intersections directly would not work: at
+    // a tangency, they are a double root, and the rounding error of the
+    // coordinates alone (a few 'epsilon' times their magnitude) moves the
+    // line enough to separate them by several times the point-equality
+    // tolerance once the radius exceeds ~30 (e.g. ~2e-6 for a radius of ~46
+    // at coordinates of ~100, see fontanf/packingsolver#595). Reported as
+    // two distinct proper intersections, they make the arc and the line
+    // share a sub-tolerance edge between them instead of touching at a
+    // point, which corrupts boolean operations downstream.
+    //
+    // Conversely, a line within the tolerance of the circle between two
+    // genuinely distinct crossings (a short chord of a large circle, or a
+    // longer one of a nearly tangent line, e.g. a crossing 0.0023 from the
+    // tangent point of a radius-4 arc, see fontanf/packingsolver#574) is
+    // treated as tangent too: at the library's precision, the two elements
+    // coincide between the two crossings.
     std::vector<Point> points;
 
     if (line_point_1.x == line_point_2.x) {
+        Point foot = {line_point_1.x, circle_center.y};
+        if (point_on_circle(foot, circle_center, circle_radius))
+            return {foot};
         LengthDbl dx = line_point_1.x - circle_center.x;
         LengthDbl diff = circle_radius * circle_radius - dx * dx;
-        if (strictly_lesser(diff, 0))
-            return {};
         if (diff < 0)
-            diff = 0;
+            return {};
         LengthDbl v = std::sqrt(diff);
         points.push_back({line_point_1.x, circle_center.y + v});
         points.push_back({line_point_1.x, circle_center.y - v});
     } else if (line_point_1.y == line_point_2.y) {
+        Point foot = {circle_center.x, line_point_1.y};
+        if (point_on_circle(foot, circle_center, circle_radius))
+            return {foot};
         LengthDbl dy = line_point_1.y - circle_center.y;
         LengthDbl diff = circle_radius * circle_radius - dy * dy;
-        if (strictly_lesser(diff, 0))
-            return {};
         if (diff < 0)
-            diff = 0;
+            return {};
         LengthDbl v = std::sqrt(diff);
         points.push_back({circle_center.x + v, line_point_1.y});
         points.push_back({circle_center.x - v, line_point_1.y});
@@ -222,8 +249,7 @@ std::vector<Point> shape::compute_line_circle_intersections(
         // true, exact double root (see fontanf/packingsolver#574).
         // Translating first keeps every intermediate term at the scale of
         // the circle itself (~radius), not the scale of its position in
-        // the world, which removes the cancellation at its source: the
-        // same tangency above now resolves to bit-identical roots.
+        // the world.
         Point p1 = {line_point_1.x - circle_center.x, line_point_1.y - circle_center.y};
         Point p2 = {line_point_2.x - circle_center.x, line_point_2.y - circle_center.y};
         LengthDbl line_a = p1.y - p2.y;
@@ -231,11 +257,14 @@ std::vector<Point> shape::compute_line_circle_intersections(
         LengthDbl c_prime = p2.x * p1.y - p1.x * p2.y;
         LengthDbl rsq = circle_radius * circle_radius;
         LengthDbl denom = line_a * line_a + line_b * line_b;
-        if (strictly_lesser(rsq * denom, c_prime * c_prime))
-            return {};
+        Point foot = {
+            circle_center.x + line_a * c_prime / denom,
+            circle_center.y + line_b * c_prime / denom};
+        if (point_on_circle(foot, circle_center, circle_radius))
+            return {foot};
         LengthDbl discriminant = rsq * denom - c_prime * c_prime;
         if (discriminant < 0)
-            discriminant = 0;
+            return {};
         LengthDbl sqrt_disc = std::sqrt(discriminant);
         LengthDbl eta_1 = (line_a * c_prime + line_b * sqrt_disc) / denom;
         LengthDbl eta_2 = (line_a * c_prime - line_b * sqrt_disc) / denom;
@@ -248,21 +277,6 @@ std::vector<Point> shape::compute_line_circle_intersections(
         if (point_on_circle(point_2, circle_center, circle_radius))
             points.push_back(point_2);
     }
-
-    // Collapse to a single tangent point when the two computed points
-    // coincide, at the standard point-equality tolerance (not a threshold
-    // derived from the circle's own geometry -- see
-    // fontanf/packingsolver#574 for why that goes wrong at different
-    // radii). With coordinates translated relative to the circle's center
-    // above, a genuine tangency's discriminant reliably computes as exactly
-    // zero or slightly negative (clamped to zero), making point_1 and
-    // point_2 bit-identical -- but compute_line_arc_intersections still
-    // needs this collapsed to a single entry: it uses
-    // computed_points.size() == 1 (vs. 2) to decide whether a surviving
-    // point is an 'improper' (tangency) or 'proper' (crossing)
-    // intersection, so two identical points must not be reported as two.
-    if (points.size() == 2 && equal(points[0], points[1]))
-        return {0.5 * (points[0] + points[1])};
 
     return points;
 }
@@ -315,9 +329,10 @@ std::vector<Point> shape::compute_circle_circle_intersections(
     }
 
     // Collapse to a single tangent point when the two computed points
-    // coincide -- see the identical check (and why it's still needed even
-    // with numerically stable, translated-coordinate roots) in
-    // compute_line_circle_intersections (fontanf/packingsolver#574).
+    // coincide, since callers use the number of returned points to tell a
+    // tangency from a crossing (fontanf/packingsolver#574). See
+    // compute_line_circle_intersections for the tangency criterion used
+    // there instead (fontanf/packingsolver#595).
     if (points.size() == 2 && equal(points[0], points[1]))
         return {0.5 * (points[0] + points[1])};
 
