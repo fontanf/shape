@@ -910,11 +910,72 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
     return {shape};
 }
 
+namespace
+{
+
+// True iff 'shape' has no meaningful area -- a numerical artifact of
+// splitting an (essentially) degenerate self-intersecting shape, not real
+// geometry. Compares the square root of the area, not the area itself:
+// equal() et al.'s fixed absolute tolerance is calibrated for length-scale
+// quantities (see the identical std::sqrt(...) in convex_hull's own area
+// sanity check), and area, being a length squared, can carry noise far
+// above that tolerance even for a shape that is genuinely degenerate --
+// comparing it directly would make this check both too strict (rejecting a
+// coordinate-scale-appropriate sliver of area right at the tolerance
+// boundary) and too loose (missing a larger-magnitude, but still purely
+// noise-driven, area at bigger coordinate scales).
+bool is_degenerate(const ShapeWithHoles& shape)
+{
+    AreaDbl area = shape.shape.compute_area();
+    return area <= 0.0 || !strictly_greater(std::sqrt(area), 0.0);
+}
+
+}
+
 MultiShapeWithHoles shape::fix_self_intersections(
         const ShapeWithHoles& shape)
 {
     //std::cout << "fix_self_intersections" << std::endl;
     //Writer().add_shape_with_holes(shape).write_json("fix_self_intersections_input.json");
+
+    // fix_self_intersections and compute_union's own Union cleanup pass
+    // call each other; below, dropping degenerate pieces before recursing
+    // into compute_union() for them is meant to guarantee this terminates,
+    // but that comparison is a near-the-tolerance floating-point judgment
+    // call, and this codebase has already hit real, platform-dependent
+    // (e.g. FMA fusion differing between x86-64 and AArch64) differences in
+    // results this close to the noise floor for the exact same input (see
+    // offset_test.cpp's expected_output_variants) -- confirmed directly:
+    // enabling FMA contraction on this exact fuzz-found input changes which
+    // pieces bridge_touching_holes() produces entirely. Cap the recursion
+    // depth as a hard backstop so a case that dodges the heuristic below on
+    // some platform/compiler fails cleanly instead of overflowing the
+    // stack.
+    static thread_local int recursion_depth = 0;
+    struct RecursionDepthGuard
+    {
+        RecursionDepthGuard(int& depth): depth(depth) { ++depth; }
+        ~RecursionDepthGuard() { --depth; }
+        int& depth;
+    } recursion_depth_guard(recursion_depth);
+    if (recursion_depth > 256) {
+        throw std::runtime_error(
+                FUNC_SIGNATURE + ": "
+                "recursion depth exceeded; the shape's self-intersections "
+                "don't appear to converge.");
+    }
+
+    // Mirror the per-piece check in the loop below, for 'shape' itself:
+    // compute_union()'s own Union cleanup pass calls back into
+    // fix_self_intersections() unconditionally, without going through that
+    // loop, so a degenerate shape can reach here directly -- confirmed via
+    // instrumented tracing (a ~1e-12-area shape reached this exact entry
+    // point that way). Left unfiltered, its own bridge_touching_holes()
+    // call could split it into equally-degenerate pieces and cycle forever,
+    // the same as if it had arrived through the loop below.
+    if (is_degenerate(shape))
+        return {};
+
     std::vector<ShapeWithHoles> shapes = bridge_touching_holes(shape).shapes_with_holes;
     if (shapes.size() == 1)
         return {{shape}};
@@ -922,6 +983,16 @@ MultiShapeWithHoles shape::fix_self_intersections(
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
             ++shape_pos) {
+        // See is_degenerate()'s comment. Splitting a degenerate shape can,
+        // for some inputs, repeatedly reassemble into the exact same
+        // degenerate shape (found via fuzzing: bridge_touching_holes kept
+        // splitting a ~1e-12-area 7-element self-intersecting shape into
+        // the same two ~1e-12-area pieces every time), so recursing into
+        // compute_union here (whose own Union cleanup pass calls back into
+        // fix_self_intersections) never terminates. Drop degenerate pieces
+        // instead of recursing into them.
+        if (is_degenerate(shapes[shape_pos]))
+            continue;
         MultiShapeWithHoles u = compute_union({shapes[shape_pos]});
         if (!u.shapes_with_holes.empty())
             output.shapes_with_holes.push_back(u.shapes_with_holes.front());
