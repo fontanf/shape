@@ -9,7 +9,6 @@ target_sources(Shape_shape PRIVATE
     convex_partition.cpp
     basic_shapes.cpp
     clean.cpp
-    extract_borders.cpp
     trapezoidation.cpp
     intersection_tree.cpp
     equalize.cpp
