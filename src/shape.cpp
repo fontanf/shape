@@ -472,11 +472,13 @@ int shape::counter_clockwise(
         const Point& point_2,
         const Point& point_3)
 {
+    if (point_on_line(point_3, point_1, point_2))
+        return 0;
     AreaDbl area = (point_2.x - point_1.x) * (point_3.y - point_1.y)
         - (point_2.y - point_1.y) * (point_3.x - point_1.x);
-    if (strictly_greater(area, 0)) {
+    if (area > 0) {
         return -1;
-    } else if (strictly_lesser(area, 0)) {
+    } else if (area < 0) {
         return 1;
     }
     return 0;
