@@ -62,6 +62,17 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 0}, {1, 0}, {0, 0, 1}, {0, 1}}),
                 true,
                 {},
+            }, {
+                // (-1, 1e-9) is collinear, within the tolerance, with the
+                // lowest point (0, 0) and (10, 0), but on the left of
+                // (0, 0). With (0, 0) as the pivot, it was sorted as if it
+                // were on its right, and, depending on the implementation of
+                // std::sort, dropped from the hull. The pivot is now the
+                // leftmost of the lowest points within the tolerance (and
+                // (0, 0) is kept: it is, exactly, a left turn).
+                build_shape({{0, 0}, {10, 0}, {10, 10}, {-1, 10}, {-1, 1e-9}}),
+                false,
+                build_shape({{-1, 1e-9}, {0, 0}, {10, 0}, {10, 10}, {-1, 10}}),
             },
         }),
         [](const testing::TestParamInfo<ConvexHullTest::ParamType>& info) {

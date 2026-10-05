@@ -31,13 +31,18 @@ Shape shape::convex_hull(
     if (shape.elements.size() < 3)
         return shape;
 
+    // The pivot is the leftmost of the points with the least y, with the
+    // same tolerance as the collinearity checks of 'counter_clockwise', so
+    // that no other point is collinear with the pivot on its left.
+    LengthDbl least_y = std::numeric_limits<LengthDbl>::infinity();
+    for (const ShapeElement& shape_element: shape.elements)
+        least_y = (std::min)(least_y, shape_element.start.y);
     Point point_least_y = {
         std::numeric_limits<LengthDbl>::infinity(),
         std::numeric_limits<LengthDbl>::infinity()};
     for (const ShapeElement& shape_element: shape.elements) {
-        if (point_least_y.y > shape_element.start.y
-                || (point_least_y.y == shape_element.start.y
-                    && point_least_y.x > shape_element.start.x)) {
+        if (equal(shape_element.start.y, least_y)
+                && point_least_y.x > shape_element.start.x) {
             point_least_y = shape_element.start;
         }
     }
