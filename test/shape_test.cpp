@@ -646,6 +646,100 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+enum class AxialSymmetry
+{
+    IdentityLine,
+    XAxis,
+    YAxis,
+};
+
+struct ShapeElementAxialSymmetryTestParams
+{
+    ShapeElement element;
+    AxialSymmetry axial_symmetry;
+    ShapeElement expected_output;
+};
+
+void PrintTo(const ShapeElementAxialSymmetryTestParams& params, std::ostream* os)
+{
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "axial_symmetry " << (int)params.axial_symmetry << "\n";
+    *os << "expected_output " << params.expected_output.to_string() << "\n";
+}
+
+class ShapeElementAxialSymmetryTest: public testing::TestWithParam<ShapeElementAxialSymmetryTestParams> { };
+
+TEST_P(ShapeElementAxialSymmetryTest, ShapeElementAxialSymmetry)
+{
+    ShapeElementAxialSymmetryTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    ShapeElement output;
+    switch (test_params.axial_symmetry) {
+    case AxialSymmetry::IdentityLine:
+        output = test_params.element.axial_symmetry_identity_line();
+        break;
+    case AxialSymmetry::XAxis:
+        output = test_params.element.axial_symmetry_x_axis();
+        break;
+    case AxialSymmetry::YAxis:
+        output = test_params.element.axial_symmetry_y_axis();
+        break;
+    }
+    std::cout << "output " << output.to_string() << std::endl;
+    EXPECT_TRUE(equal(output, test_params.expected_output));
+}
+
+// The image of an element is reversed (its start is the image of the end of
+// the element), so that the image of a shape keeps its orientation. The image
+// of a circular arc must be the same portion of the image of its circle, not
+// its complement.
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeElementAxialSymmetryTest,
+        testing::ValuesIn(std::vector<ShapeElementAxialSymmetryTestParams>{
+            {   // Line segment, y axis.
+                build_line_segment({0, 0}, {2, 1}),
+                AxialSymmetry::YAxis,
+                build_line_segment({-2, 1}, {0, 0}),
+            }, {  // Line segment, x axis.
+                build_line_segment({0, 0}, {2, 1}),
+                AxialSymmetry::XAxis,
+                build_line_segment({2, -1}, {0, 0}),
+            }, {  // Line segment, identity line.
+                build_line_segment({0, 0}, {2, 1}),
+                AxialSymmetry::IdentityLine,
+                build_line_segment({1, 2}, {0, 0}),
+            }, {  // Anticlockwise quarter arc (0° to 90°), y axis: 90° to 180°.
+                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                AxialSymmetry::YAxis,
+                build_circular_arc({0, 1}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+            }, {  // Anticlockwise quarter arc (0° to 90°), x axis: -90° to 0°.
+                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                AxialSymmetry::XAxis,
+                build_circular_arc({0, -1}, {1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+            }, {  // Anticlockwise quarter arc (0° to 90°), identity line: itself.
+                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                AxialSymmetry::IdentityLine,
+                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+            }, {  // Clockwise arc (90° to 0°) not centered on the origin, y axis.
+                build_circular_arc({1, 3}, {2, 2}, {1, 2}, ShapeElementOrientation::Clockwise),
+                AxialSymmetry::YAxis,
+                build_circular_arc({-2, 2}, {-1, 3}, {-1, 2}, ShapeElementOrientation::Clockwise),
+            }, {  // Clockwise arc (90° to 0°) not centered on the origin, x axis.
+                build_circular_arc({1, 3}, {2, 2}, {1, 2}, ShapeElementOrientation::Clockwise),
+                AxialSymmetry::XAxis,
+                build_circular_arc({2, -2}, {1, -3}, {1, -2}, ShapeElementOrientation::Clockwise),
+            }, {  // Clockwise arc (90° to 0°) not centered on the origin, identity line.
+                build_circular_arc({1, 3}, {2, 2}, {1, 2}, ShapeElementOrientation::Clockwise),
+                AxialSymmetry::IdentityLine,
+                build_circular_arc({2, 2}, {3, 1}, {2, 1}, ShapeElementOrientation::Clockwise),
+            },
+        }),
+        [](const testing::TestParamInfo<ShapeElementAxialSymmetryTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
+
+
 struct ShapeIsConvexTestParams
 {
     Shape shape;
