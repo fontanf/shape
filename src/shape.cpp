@@ -925,7 +925,8 @@ ShapeElement ShapeElement::axial_symmetry_identity_line() const
     element_out.start = this->end.axial_symmetry_identity_line();
     element_out.end = this->start.axial_symmetry_identity_line();
     element_out.center = this->center.axial_symmetry_identity_line();
-    element_out.orientation = opposite(this->orientation);
+    // The symmetry reverses the orientation of the arc, and swapping its
+    // start and end reverses it back: the orientation is unchanged.
     return element_out;
 }
 
@@ -935,7 +936,8 @@ ShapeElement ShapeElement::axial_symmetry_x_axis() const
     element_out.start = end.axial_symmetry_x_axis();
     element_out.end = start.axial_symmetry_x_axis();
     element_out.center = center.axial_symmetry_x_axis();
-    element_out.orientation = opposite(this->orientation);
+    // The symmetry reverses the orientation of the arc, and swapping its
+    // start and end reverses it back: the orientation is unchanged.
     return element_out;
 }
 
@@ -945,7 +947,8 @@ ShapeElement ShapeElement::axial_symmetry_y_axis() const
     element_out.start = end.axial_symmetry_y_axis();
     element_out.end = start.axial_symmetry_y_axis();
     element_out.center = center.axial_symmetry_y_axis();
-    element_out.orientation = opposite(this->orientation);
+    // The symmetry reverses the orientation of the arc, and swapping its
+    // start and end reverses it back: the orientation is unchanged.
     return element_out;
 }
 
