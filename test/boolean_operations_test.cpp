@@ -595,6 +595,8 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "014.json").string()),
             ComputeBooleanIntersectionTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "015.json").string()),
+            ComputeBooleanIntersectionTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "intersection" / "016.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeBooleanIntersectionTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
