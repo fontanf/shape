@@ -586,6 +586,17 @@ INSTANTIATE_TEST_SUITE_P(
                 build_circle(1).elements.front(),
                 build_circular_arc({0, 1}, {0, 1}, {0, 0}, ShapeElementOrientation::Full),
                 {{build_circle(1).elements.front()}, {}, {}},
+            }, {  // Arcs of the same circle of radius 100, the second one
+                // starting 5e-7 rad (5e-5 along the circle) after the end of
+                // the first one: no intersection.
+                build_circular_arc({100, 0}, {0, 100}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                build_circular_arc({100 * cos(M_PI / 2 + 5e-7), 100 * sin(M_PI / 2 + 5e-7)}, {-100, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {{}, {}, {}},
+            }, {  // Same, the second one starting at the end of the first
+                // one.
+                build_circular_arc({100, 0}, {0, 100}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                build_circular_arc({0, 100}, {-100, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {{}, {{0, 100}}, {}},
             }
         }),
         [](const testing::TestParamInfo<ComputeIntersectionsTest::ParamType>& info) {
