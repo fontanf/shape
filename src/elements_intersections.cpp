@@ -470,8 +470,8 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
             computed_points_valid[1] = false;
     }
     // Line contains arc start.
-    if (!(arc.start == line.start)
-            && !(arc.start == line.end)
+    if (!equal(arc.start, line.start)
+            && !equal(arc.start, line.end)
             && point_on_line(arc.start, line.start, line.end)) {
         end_points.push_back(arc.start);
         if (computed_points.size() >= 1 && equal(computed_points[0], arc.start))
@@ -480,8 +480,8 @@ ShapeElementIntersectionsOutput compute_line_arc_intersections(
             computed_points_valid[1] = false;
     }
     // Line contains arc end.
-    if (!(arc.end == line.start)
-            && !(arc.end == line.end)
+    if (!equal(arc.end, line.start)
+            && !equal(arc.end, line.end)
             && !(arc.end == arc.start)
             && point_on_line(arc.end, line.start, line.end)) {
         end_points.push_back(arc.end);
@@ -632,8 +632,8 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
             computed_points_valid[1] = false;
     }
     // Circle 2 contains arc 1 start.
-    if (!(arc.start == arc_2.start)
-            && !(arc.start == arc_2.end)
+    if (!equal(arc.start, arc_2.start)
+            && !equal(arc.start, arc_2.end)
             && point_on_circle(arc.start, arc_2.center, radius_2)) {
         end_points.push_back(arc.start);
         if (computed_points.size() >= 1 && equal(computed_points[0], arc.start))
@@ -642,8 +642,8 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
             computed_points_valid[1] = false;
     }
     // Circle 2 contains arc 1 end.
-    if (!(arc.end == arc_2.start)
-            && !(arc.end == arc_2.end)
+    if (!equal(arc.end, arc_2.start)
+            && !equal(arc.end, arc_2.end)
             && !(arc.end == arc.start)
             && point_on_circle(arc.end, arc_2.center, radius_2)) {
         end_points.push_back(arc.end);
