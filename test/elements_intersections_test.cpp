@@ -559,6 +559,17 @@ INSTANTIATE_TEST_SUITE_P(
                 build_circular_arc({-63.077696444092282, -8.3521535536657154}, {-48.43027484673857, -45.486558052427071}, {111.7531979246358, 39.152750952232367}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({-61.310228807601433, -7.9171224525300019}, {-46.841759559404466, -44.597843763747171}, {6.7731239787950699, -2.2559486933318951}, ShapeElementOrientation::Anticlockwise),
                 {{}, {{-56.779877603404827, -27.324012137915233}}, {}},
+            }, {  // Concentric arcs of radius 100 and 100 + 1e-7: same circle
+                // within the tolerance, the squares of the radii differ by
+                // 2e-5.
+                build_circular_arc({100, 0}, {0, 100}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                build_circular_arc({(100 + 1e-7) * sqrt(2) / 2, (100 + 1e-7) * sqrt(2) / 2}, {-(100 + 1e-7) * sqrt(2) / 2, (100 + 1e-7) * sqrt(2) / 2}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {{build_circular_arc({100 * sqrt(2) / 2, 100 * sqrt(2) / 2}, {0, 100}, {0, 0}, ShapeElementOrientation::Anticlockwise)}, {}, {}},
+            }, {  // Concentric arcs of radius 0.01 and 0.01004: different
+                // circles, the squares of the radii differ by 8e-7.
+                build_circular_arc({0.01, 0}, {0, 0.01}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                build_circular_arc({0.01004 * sqrt(2) / 2, 0.01004 * sqrt(2) / 2}, {-0.01004 * sqrt(2) / 2, 0.01004 * sqrt(2) / 2}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {{}, {}, {}},
             }
         }),
         [](const testing::TestParamInfo<ComputeIntersectionsTest::ParamType>& info) {
