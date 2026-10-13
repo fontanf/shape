@@ -1519,8 +1519,19 @@ ShapePoint Shape::find_point_between(
     }
 
     const ShapeElement& element_1 = this->elements[point_1.element_pos];
-    if (point_1.element_pos == point_2.element_pos) {
+    if (point_1.element_pos == point_2.element_pos
+            && strictly_lesser(
+                element_1.length(point_1.point),
+                element_1.length(point_2.point))) {
         return {point_1.element_pos, element_1.find_point_between(point_1.point, point_2.point)};
+    }
+
+    // From here, the points between point_1 and point_2 go through the end
+    // of the element of point_1.
+    if (this->elements.size() == 1) {
+        // The shape is a full circle; go through its start.
+        ShapeElement arc = element_1.extract(point_1.point, point_2.point);
+        return {point_1.element_pos, arc.middle()};
     } else if (!equal(point_1.point, element_1.end)) {
         return {point_1.element_pos, element_1.end};
     } else {
