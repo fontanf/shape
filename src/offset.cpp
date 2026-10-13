@@ -561,6 +561,8 @@ std::vector<Shape> shape::deflate(
     if (shape_orig.is_circle()) {
         Shape shape = shape_orig;
         ShapeElement& element = shape.elements[0];
+        if (!strictly_greater(element.radius(), offset))
+            return {};
         LengthDbl radius = element.radius() - offset;
         element.start = {element.center.x + radius, element.center.y};
         element.end = element.start;
