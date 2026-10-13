@@ -1,0 +1,11 @@
+{
+  "description": "Circle deflated by an offset equal to its radius: the output is empty",
+  "shape": {
+    "type": "circle",
+    "radius": 1
+  },
+  "offset": 1,
+  "expected_output": [],
+  "write_json": false,
+  "write_svg": false
+}
