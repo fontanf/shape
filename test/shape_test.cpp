@@ -11,6 +11,7 @@
 #include <boost/filesystem.hpp>
 
 #include <fstream>
+#include <sstream>
 
 
 using namespace shape;
@@ -1401,6 +1402,65 @@ INSTANTIATE_TEST_SUITE_P(
             },
         }),
         [](const testing::TestParamInfo<ShapeToSvgPathTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
+
+struct ShapeWriteSvgTestParams
+{
+    Shape shape;
+};
+
+void PrintTo(const ShapeWriteSvgTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+}
+
+class ShapeWriteSvgTest: public testing::TestWithParam<ShapeWriteSvgTestParams> { };
+
+/** Count the occurrences of 'pattern' in the file 'file_path'. */
+Counter count_occurrences(
+        const std::string& file_path,
+        const std::string& pattern)
+{
+    std::ifstream file(file_path);
+    std::stringstream ss;
+    ss << file.rdbuf();
+    std::string content = ss.str();
+    Counter number_of_occurrences = 0;
+    for (std::string::size_type pos = content.find(pattern);
+            pos != std::string::npos;
+            pos = content.find(pattern, pos + 1)) {
+        number_of_occurrences++;
+    }
+    return number_of_occurrences;
+}
+
+TEST_P(ShapeWriteSvgTest, ShapeWriteSvg)
+{
+    ShapeWriteSvgTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    std::string file_path = testing::TempDir() + "shape_write_svg_test.svg";
+
+    test_params.shape.write_svg(file_path);
+    EXPECT_EQ(count_occurrences(file_path, "<path"), 1);
+    EXPECT_EQ(count_occurrences(file_path, "<path d=\"M"), 1);
+
+    for (const ShapeElement& element: test_params.shape.elements) {
+        element.write_svg(file_path);
+        EXPECT_EQ(count_occurrences(file_path, "<path"), 1);
+        EXPECT_EQ(count_occurrences(file_path, "<path d=\"M"), 1);
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeWriteSvgTest,
+        testing::ValuesIn(std::vector<ShapeWriteSvgTestParams>{
+            {build_shape({{0, 0}, {1, 0}, {1, 1}})},
+            {build_shape({{-1, 0}, {1, 0}, {0, 0, 1}})},
+            {build_circle(1)},
+        }),
+        [](const testing::TestParamInfo<ShapeWriteSvgTest::ParamType>& info) {
             return std::to_string(info.index);
         });
 
