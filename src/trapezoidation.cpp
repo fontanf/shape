@@ -162,12 +162,18 @@ std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
     return res;
 }
 
-}
-
-std::vector<GeneralizedTrapezoid> shape::trapezoidation(
-        const ShapeWithHoles& shape_orig)
+/**
+ * Compute the trapezoidation of a shape.
+ *
+ * 'check_input' is false for the parts of a shape processed recursively:
+ * bridging holes touching the outline can give parts whose outline touches
+ * itself, which are not valid shapes but are supported.
+ */
+std::vector<GeneralizedTrapezoid> trapezoidation(
+        const ShapeWithHoles& shape_orig,
+        bool check_input)
 {
-    if (!shape_orig.check()) {
+    if (check_input && !shape_orig.check()) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "invalid input shape.");
@@ -191,6 +197,19 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
     // deflated-away shape produces no output.
     if (bridged.shapes_with_holes.empty())
         return {};
+    // Holes touching the outline at several points can split the shape into
+    // several parts, which are processed separately.
+    if (bridged.shapes_with_holes.size() > 1) {
+        std::vector<GeneralizedTrapezoid> trapezoids;
+        for (const ShapeWithHoles& shape: bridged.shapes_with_holes) {
+            std::vector<GeneralizedTrapezoid> shape_trapezoids = trapezoidation(shape, false);
+            trapezoids.insert(
+                    trapezoids.end(),
+                    shape_trapezoids.begin(),
+                    shape_trapezoids.end());
+        }
+        return trapezoids;
+    }
     ShapeWithHoles shape = bridged.shapes_with_holes.front();
     //std::cout << shape.to_string(0) << std::endl;
 
@@ -994,4 +1013,12 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
 
     //std::cout << "polygon_trapezoidation end" << std::endl;
     return trapezoids;
+}
+
+}
+
+std::vector<GeneralizedTrapezoid> shape::trapezoidation(
+        const ShapeWithHoles& shape)
+{
+    return ::trapezoidation(shape, true);
 }
