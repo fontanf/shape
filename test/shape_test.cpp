@@ -312,11 +312,17 @@ struct ShapeElementMiddleTestParams
 {
     ShapeElement circular_arc;
     Point expected_middle;
+
+    /** Points between which the middle is computed; the start and the end of
+     * the element if empty. */
+    std::vector<Point> points = {};
 };
 
 void PrintTo(const ShapeElementMiddleTestParams& params, std::ostream* os)
 {
     *os << "circular_arc\n" << params.circular_arc.to_string() << "\n";
+    for (const Point& point: params.points)
+        *os << "point " << point.to_string() << "\n";
     *os << "expected_middle\n" << params.expected_middle.to_string() << "\n";
 }
 
@@ -327,7 +333,9 @@ TEST_P(ShapeElementMiddleTest, ShapeElementMiddle)
     ShapeElementMiddleTestParams test_params = GetParam();
     PrintTo(test_params, &std::cout);
 
-    Point middle = test_params.circular_arc.middle();
+    Point middle = (test_params.points.empty())?
+        test_params.circular_arc.middle():
+        test_params.circular_arc.middle(test_params.points[0], test_params.points[1]);
     std::cout << "computed_middle" << std::endl;
     std::cout << middle.to_string() << std::endl;
 
@@ -356,6 +364,25 @@ INSTANTIATE_TEST_SUITE_P(
             }, {
                 build_shape({{-1, 0}, {0, 0, -1}, {0, 1}}, true).elements.front(),
                 {- sqrt(2) / 2, sqrt(2) / 2}
+            }, {
+                build_shape({{0, 1}, {0, 0, 1}, {1, 0}}, true).elements.front(),
+                {-1, 0},
+                {{0, 1}, {0, -1}},
+            }, {
+                build_shape({{1, 0}, {0, 0, -1}, {0, 1}}, true).elements.front(),
+                {0, -1},
+                {{1, 0}, {-1, 0}},
+            }, {
+                build_shape({{1, 0}, {0, 0, -1}, {0, 1}}, true).elements.front(),
+                {-sqrt(2) / 2, -sqrt(2) / 2},
+                {{0, -1}, {-1, 0}},
+            }, {
+                build_circle(1).elements.front(),
+                {-1, 0},
+            }, {
+                build_circle(1).elements.front(),
+                {0, -1},
+                {{-1, 0}, {1, 0}},
             }
         }),
         [](const testing::TestParamInfo<ShapeElementMiddleTest::ParamType>& info) {
