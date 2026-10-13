@@ -526,6 +526,13 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
         // with the tolerance would be too strict for large radii and too
         // loose for small ones.
         if (point_on_circle(arc_2.start, arc.center, arc.radius())) {
+            // A full circle overlaps the whole other arc. It can't be
+            // processed like the other arcs below, since it starts and ends
+            // at the same point.
+            if (arc.orientation == ShapeElementOrientation::Full)
+                return {{arc_2}, {}, {}};
+            if (arc_2.orientation == ShapeElementOrientation::Full)
+                return {{arc}, {}, {}};
             if (equal(arc.start, arc_2.start)
                     && equal(arc.end, arc_2.end)) {
                 if (arc.orientation == arc_2.orientation) {
