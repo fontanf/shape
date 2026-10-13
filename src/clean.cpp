@@ -199,20 +199,32 @@ Shape shape::remove_backtracks(
     if (shape.elements.size() == 1)
         return shape;
 
+    // The output elements are used as a stack, so that removing a backtrack
+    // reveals the backtrack around it, if any.
     Shape output;
     output.is_path = shape.is_path;
-    for (ElementPos element_pos = 0;
-            element_pos < (ElementPos)shape.elements.size();
-            ++element_pos) {
-        const ShapeElement& element = shape.elements[element_pos];
-        const ShapeElement& element_next = (element_pos + 1 != shape.elements.size())?
-            shape.elements[element_pos + 1]:
-            shape.elements[0];
-        if (equal(element, element_next.reverse())) {
-            element_pos++;
+    for (const ShapeElement& element: shape.elements) {
+        if (!output.elements.empty()
+                && equal(output.elements.back(), element.reverse())) {
+            output.elements.pop_back();
             continue;
         }
         output.elements.push_back(element);
+    }
+
+    // For a closed shape, remove the backtracks across its start.
+    if (!shape.is_path) {
+        ElementPos number_of_elements_removed_at_start = 0;
+        while ((ElementPos)output.elements.size() - number_of_elements_removed_at_start >= 2
+                && equal(
+                    output.elements[number_of_elements_removed_at_start],
+                    output.elements.back().reverse())) {
+            number_of_elements_removed_at_start++;
+            output.elements.pop_back();
+        }
+        output.elements.erase(
+                output.elements.begin(),
+                output.elements.begin() + number_of_elements_removed_at_start);
     }
 
     return output;
