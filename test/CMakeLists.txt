@@ -20,7 +20,8 @@ target_sources(Shape_shape_test PRIVATE
     convex_partition_test.cpp
     basic_shapes_test.cpp
     rasterization_test.cpp
-    no_fit_polygon_test.cpp)
+    no_fit_polygon_test.cpp
+    writer_test.cpp)
 target_include_directories(Shape_shape_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(Shape_shape_test
