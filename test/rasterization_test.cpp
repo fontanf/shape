@@ -162,11 +162,18 @@ TEST_P(RasterizationTest, Rasterization)
     }
 
     // The union of all cells' exact shape parts must reconstruct the
-    // original shape.
+    // original shape. Its elements may be split differently (for example a
+    // full circle is reconstructed as several circular arcs), so it is
+    // compared geometrically.
     MultiShapeWithHoles cells_union = cells_to_shapes(
             grid, test_params.cell_width, test_params.cell_height);
     ASSERT_EQ(cells_union.shapes_with_holes.size(), 1);
-    EXPECT_TRUE(equal(cells_union.shapes_with_holes.front(), test_params.shape));
+    EXPECT_TRUE(equal(
+                cells_union.shapes_with_holes.front().compute_area(),
+                test_params.shape.compute_area()));
+    EXPECT_TRUE(compute_symmetric_difference(
+                cells_union.shapes_with_holes.front(),
+                test_params.shape).shapes_with_holes.empty());
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -237,6 +244,18 @@ INSTANTIATE_TEST_SUITE_P(
                 "LargeCell",
                 {{build_shape({{1.0, 1.0}, {4.0, 1.0}, {4.0, 4.0}, {1.0, 4.0}})}, {}},
                 10.0, 10.0,
+            },
+            {  // Shape made of a single full circle.
+                "Circle",
+                {build_circle(2).shift(0.5, 0.5)},
+                1,
+                1,
+            },
+            {  // Hole made of a single full circle.
+                "SquareWithCircularHole",
+                {build_rectangle(-4, 4, -4, 4), {build_circle(2).shift(0.5, 0.5)}},
+                1,
+                1,
             },
             // Non-unit cell dimensions.
             {  // Rectangle with 2x3 cells.
