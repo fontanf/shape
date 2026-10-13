@@ -57,6 +57,13 @@ std::vector<ShapeElement> shape::approximate_circular_arc_by_line_segments(
     }
     if (angle >= M_PI && number_of_line_segments < 3)
         number_of_line_segments = 3;
+    // For a full circle, 3 line segments would give two tangents at opposite
+    // points of the circle, which are parallel, or a single point of the
+    // circle opposite to the start.
+    if (circular_arc.orientation == ShapeElementOrientation::Full
+            && number_of_line_segments < 4) {
+        number_of_line_segments = 4;
+    }
     //std::cout << "number_of_line_segments " << number_of_line_segments << std::endl;
 
     // Vertices either lie on the circle ('on_circle'), or at the
@@ -169,6 +176,13 @@ std::vector<Shape> compute_circular_arc_extras_outer(
     } else if (angle >= M_PI && number_of_line_segments < 3) {
         number_of_line_segments = 3;
     }
+    // For a full circle, 3 line segments would give two tangents at opposite
+    // points of the circle, which are parallel, or a single point of the
+    // circle opposite to the start.
+    if (circular_arc.orientation == ShapeElementOrientation::Full
+            && number_of_line_segments < 4) {
+        number_of_line_segments = 4;
+    }
 
     std::vector<Shape> output;
     Point point_far_0 = circular_arc.start + (circular_arc.start - circular_arc.center);
@@ -278,6 +292,13 @@ std::vector<Shape> compute_circular_arc_extras_inner(
     //std::cout << "number_of_line_segments " << number_of_line_segments << std::endl;
     if (angle >= M_PI && number_of_line_segments < 3)
         number_of_line_segments = 3;
+    // For a full circle, 3 line segments would give two tangents at opposite
+    // points of the circle, which are parallel, or a single point of the
+    // circle opposite to the start.
+    if (circular_arc.orientation == ShapeElementOrientation::Full
+            && number_of_line_segments < 4) {
+        number_of_line_segments = 4;
+    }
 
     std::vector<Shape> output;
     Point point_far_0 = circular_arc.start + (circular_arc.start - circular_arc.center);
