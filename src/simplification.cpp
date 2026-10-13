@@ -693,17 +693,25 @@ std::vector<ShapeWithHoles> shape::simplify(
             shape_pos < (ShapePos)shapes.size();
             ++shape_pos) {
         const SimplifyInputShape& shape = shapes[shape_pos];
-        for (ElementPos element_pos = 0;
-                element_pos < (ElementPos)shape.shape.shape.elements.size();
-                ++element_pos) {
-            const ShapeElement& element = shape.shape.shape.elements[element_pos];
-            if (element.type == ShapeElementType::CircularArc) {
-                throw std::invalid_argument(
-                        FUNC_SIGNATURE + ": "
-                        "all shape elements must be line segments; "
-                        "shape_pos: " + std::to_string(shape_pos) + "; "
-                        "element_pos: " + std::to_string(element_pos) + "; "
-                        "element: " + element.to_string() + ".");
+        for (ShapePos hole_pos = -1;
+                hole_pos < (ShapePos)shape.shape.holes.size();
+                ++hole_pos) {
+            const Shape& shape_or_hole = (hole_pos == -1)?
+                shape.shape.shape:
+                shape.shape.holes[hole_pos];
+            for (ElementPos element_pos = 0;
+                    element_pos < (ElementPos)shape_or_hole.elements.size();
+                    ++element_pos) {
+                const ShapeElement& element = shape_or_hole.elements[element_pos];
+                if (element.type == ShapeElementType::CircularArc) {
+                    throw std::invalid_argument(
+                            FUNC_SIGNATURE + ": "
+                            "all shape elements must be line segments; "
+                            "shape_pos: " + std::to_string(shape_pos) + "; "
+                            "hole_pos: " + std::to_string(hole_pos) + "; "
+                            "element_pos: " + std::to_string(element_pos) + "; "
+                            "element: " + element.to_string() + ".");
+                }
             }
         }
         if (!shape.shape.shape.check()) {

@@ -333,3 +333,42 @@ INSTANTIATE_TEST_SUITE_P(
         [](const testing::TestParamInfo<TryRoundCornerTest::ParamType>& info) {
             return info.param.name;
         });
+
+
+struct SimplifyInvalidInputTestParams
+{
+    std::string name;
+    std::vector<SimplifyInputShape> shapes;
+};
+
+void PrintTo(const SimplifyInvalidInputTestParams& params, std::ostream* os)
+{
+    *os << "shapes (" << params.shapes.size() << ")\n";
+    for (const SimplifyInputShape& shape: params.shapes)
+        *os << "- " << shape.shape.to_string(2) << "\n";
+}
+
+class SimplifyInvalidInputTest: public testing::TestWithParam<SimplifyInvalidInputTestParams> { };
+
+TEST_P(SimplifyInvalidInputTest, SimplifyInvalidInput)
+{
+    SimplifyInvalidInputTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    EXPECT_THROW(simplify(test_params.shapes, 10), std::invalid_argument);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        SimplifyInvalidInputTest,
+        testing::ValuesIn(std::vector<SimplifyInvalidInputTestParams>{
+            {
+                "CircularArcInShape",
+                {{{build_shape({{0, 0}, {20, 0}, {20, 20}, {10, 20}, {10, 10, 1}, {0, 20}}), {}}, 1}},
+            }, {
+                "CircularArcInHole",
+                {{{build_rectangle(0, 20, 0, 20), {build_shape({{4, 4}, {7, 4}, {7, 5}, {6, 5}, {5, 5, 1}, {4, 5}})}}, 1}},
+            },
+        }),
+        [](const testing::TestParamInfo<SimplifyInvalidInputTest::ParamType>& info) {
+            return info.param.name;
+        });
