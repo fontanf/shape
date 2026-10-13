@@ -1,0 +1,83 @@
+{
+  "description": "Circle made of two circular arcs meeting tangentially",
+  "shape": {
+    "type": "general",
+    "elements": [
+      {
+        "type": "CircularArc",
+        "start": {
+          "x": 1,
+          "y": 0
+        },
+        "end": {
+          "x": -1,
+          "y": 0
+        },
+        "center": {
+          "x": 0,
+          "y": 0
+        },
+        "orientation": "Anticlockwise"
+      },
+      {
+        "type": "CircularArc",
+        "start": {
+          "x": -1,
+          "y": 0
+        },
+        "end": {
+          "x": 1,
+          "y": 0
+        },
+        "center": {
+          "x": 0,
+          "y": 0
+        },
+        "orientation": "Anticlockwise"
+      }
+    ]
+  },
+  "offset": 0.5,
+  "expected_output": [
+    {
+      "elements": [
+        {
+          "center": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": -0.5,
+            "y": 0.0
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": 0.5,
+            "y": 0.0
+          },
+          "type": "CircularArc"
+        },
+        {
+          "center": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 0.5,
+            "y": 0.0
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": -0.5,
+            "y": 0.0
+          },
+          "type": "CircularArc"
+        }
+      ],
+      "is_path": false,
+      "type": "general"
+    }
+  ],
+  "write_json": false,
+  "write_svg": false
+}

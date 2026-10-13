@@ -252,7 +252,7 @@ ShapeWithHoles shape::inflate(
                     element_prev.reverse().normal(element_prev.end),
                     element.normal(element.start));
 
-            if (angle >= M_PI) {
+            if (strictly_greater(angle, M_PI)) {
                 Point point_prev = element_prev.end + offset * element_prev.normal(element_prev.end);
                 Point point_curr = element.start + offset * element.normal(element.start);
                 ShapeWithHoles sector;
@@ -319,7 +319,7 @@ ShapeWithHoles shape::inflate(
                         element_prev.reverse().normal(element_prev.end),
                         element.normal(element.start));
 
-                if (angle <= M_PI) {
+                if (strictly_lesser(angle, M_PI)) {
                     Point point_prev = element_prev.end - offset * element_prev.normal(element_prev.end);
                     Point point_curr = element.start - offset * element.normal(element.start);
                     ShapeWithHoles sector;
@@ -422,7 +422,7 @@ ShapeWithHoles shape::inflate(
         //std::cout << "angle " << angle << std::endl;
 
         if (!shape.is_path) {
-            if (angle >= M_PI) {
+            if (strictly_greater(angle, M_PI)) {
                 Point point_prev = element_prev.end + offset * element_prev.normal(element_prev.end);
                 Point point_curr = element.start + offset * element.normal(element.start);
                 ShapeWithHoles sector;
@@ -602,7 +602,7 @@ std::vector<Shape> shape::deflate(
                 element_prev.reverse().normal(element_prev.end),
                 element.normal(element.start));
 
-        if (angle <= M_PI) {
+        if (strictly_lesser(angle, M_PI)) {
             Point point_prev = element_prev.end - offset * element_prev.normal(element_prev.end);
             Point point_curr = element.start - offset * element.normal(element.start);
             ShapeWithHoles sector;
