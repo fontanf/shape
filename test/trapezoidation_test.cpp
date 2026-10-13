@@ -362,6 +362,42 @@ INSTANTIATE_TEST_SUITE_P(
                     GeneralizedTrapezoid(0, 3, 0, 13, 0, 12.5),
                 },
                 "TouchingHoleRightDecreasing",
+            }, {
+                // The hole touches the outline on both sides and splits the
+                // shape into two parts.
+                {
+                    build_shape({{0, 0}, {6, 0}, {6, 6}, {0, 6}}),
+                    {build_shape({{0, 3}, {3, 1}, {6, 3}, {3, 5}})}
+                }, {
+                    GeneralizedTrapezoid(0, 1, 0, 6, 0, 6),
+                    GeneralizedTrapezoid(1, 3, 0, 3, 0, 0),
+                    GeneralizedTrapezoid(1, 3, 3, 6, 6, 6),
+                    GeneralizedTrapezoid(3, 5, 0, 0, 0, 3),
+                    GeneralizedTrapezoid(3, 5, 6, 6, 3, 6),
+                    GeneralizedTrapezoid(5, 6, 0, 6, 0, 6),
+                },
+                "HoleSplittingShape",
+            }, {
+                // The hole touching the outline on both sides splits the
+                // shape into two parts, and the outline of the bottom one
+                // touches itself where the other hole touches the outline.
+                {
+                    build_shape({{0, 0}, {6, 0}, {6, 6}, {0, 6}}),
+                    {
+                        build_shape({{0, 3}, {3, 2}, {6, 3}, {3, 4}}),
+                        build_shape({{3, 0}, {4, 1}, {2, 1}}),
+                    }
+                }, {
+                    GeneralizedTrapezoid(0, 1, 0, 3, 0, 2),
+                    GeneralizedTrapezoid(0, 1, 3, 6, 4, 6),
+                    GeneralizedTrapezoid(1, 2, 0, 6, 0, 6),
+                    GeneralizedTrapezoid(2, 3, 0, 3, 0, 0),
+                    GeneralizedTrapezoid(2, 3, 3, 6, 6, 6),
+                    GeneralizedTrapezoid(3, 4, 0, 0, 0, 3),
+                    GeneralizedTrapezoid(3, 4, 6, 6, 3, 6),
+                    GeneralizedTrapezoid(4, 6, 0, 6, 0, 6),
+                },
+                "HoleSplittingShapeTouchingAtPoint",
             },
             // Regression test for a crash found via random fuzzing of the
             // library, reached through no_fit_polygon() ->
