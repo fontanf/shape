@@ -1339,6 +1339,45 @@ INSTANTIATE_TEST_SUITE_P(
             return std::to_string(info.index);
         });
 
+struct ShapeToSvgPathTestParams
+{
+    Shape shape;
+    std::string expected_svg_path;
+};
+
+void PrintTo(const ShapeToSvgPathTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "expected SVG path " << params.expected_svg_path << "\n";
+}
+
+class ShapeToSvgPathTest: public testing::TestWithParam<ShapeToSvgPathTestParams> { };
+
+TEST_P(ShapeToSvgPathTest, ShapeToSvgPath)
+{
+    ShapeToSvgPathTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    std::string svg_path = test_params.shape.to_svg_path();
+    std::cout << "SVG path " << svg_path << std::endl;
+    EXPECT_EQ(svg_path, test_params.expected_svg_path);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeToSvgPathTest,
+        testing::ValuesIn(std::vector<ShapeToSvgPathTestParams>{
+            {  // 0. Closed shape.
+                build_shape({{0, 0}, {1, 0}, {1, 1}}),
+                "M0.000000,-0.000000L1.000000,-0.000000L1.000000,-1.000000L0.000000,-0.000000Z",
+            }, {  // 1. Open path.
+                build_path({{0, 0}, {1, 0}, {1, 1}}),
+                "M0.000000,-0.000000L1.000000,-0.000000L1.000000,-1.000000",
+            },
+        }),
+        [](const testing::TestParamInfo<ShapeToSvgPathTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
+
 TEST(ShapeWithHolesCheckTest, RejectsHoleNotContainedInOuterShape)
 {
     // Both the outer shape and the hole individually pass Shape::check(),
