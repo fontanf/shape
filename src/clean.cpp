@@ -108,7 +108,9 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
         const ShapeElement& element_prev = shape.elements[element_prev_pos];
         const ShapeElement& element_cur = shape.elements[element_cur_pos];
         bool useless = false;
-        if (element_cur.type == ShapeElementType::LineSegment
+        // The first element of a path is not preceded by its last element.
+        if (!(shape.is_path && element_cur_pos == 0)
+                && element_cur.type == ShapeElementType::LineSegment
                 && element_prev.type == ShapeElementType::LineSegment) {
             //std::cout << "element_prev  " << element_prev_pos << " " << element_prev.to_string() << std::endl;
             //std::cout << "element_cur   " << element_cur_pos << " " << element_cur.to_string() << std::endl;

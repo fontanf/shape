@@ -53,6 +53,54 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct RemoveAlignedVerticesTestParams
+{
+    std::string name;
+    Shape shape;
+    Shape expected_shape;
+};
+
+void PrintTo(const RemoveAlignedVerticesTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "expected_shape " << params.expected_shape.to_string(0) << "\n";
+}
+
+class RemoveAlignedVerticesTest: public testing::TestWithParam<RemoveAlignedVerticesTestParams> { };
+
+TEST_P(RemoveAlignedVerticesTest, RemoveAlignedVertices)
+{
+    RemoveAlignedVerticesTestParams test_params = GetParam();
+    Shape cleaned_shape = remove_aligned_vertices(test_params.shape).second;
+    std::cout << cleaned_shape.to_string(1) << std::endl;
+    EXPECT_EQ(cleaned_shape.is_path, test_params.expected_shape.is_path);
+    EXPECT_EQ(test_params.expected_shape, cleaned_shape);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        ,
+        RemoveAlignedVerticesTest,
+        testing::ValuesIn(std::vector<RemoveAlignedVerticesTestParams>{
+            {
+                "AlignedVertexShape",
+                build_shape({{0, 0}, {1, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+            }, {
+                "AlignedVertexPath",
+                build_path({{0, 0}, {1, 1}, {2, 0}, {3, 0}, {4, 0}, {5, 1}}),
+                build_path({{0, 0}, {1, 1}, {2, 0}, {4, 0}, {5, 1}}),
+            }, {
+                // The first element of a path is not preceded by its last
+                // element, even if they are aligned.
+                "PathStartAlignedWithEnd",
+                build_path({{0, 0}, {1, 0}, {1, 1}, {-2, 0}, {-1, -1}}),
+                build_path({{0, 0}, {1, 0}, {1, 1}, {-2, 0}, {-1, -1}}),
+            }}),
+        [](const testing::TestParamInfo<RemoveAlignedVerticesTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
 struct FlattenArcsTestParams
 {
     std::string name;
