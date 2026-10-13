@@ -651,7 +651,22 @@ INSTANTIATE_TEST_SUITE_P(
         Shape,
         ComputeBooleanIntersectionMultiShapeTest,
         testing::ValuesIn(std::vector<ComputeBooleanIntersectionMultiShapeTestParams>{
-            {  // Two groups; one group has two disjoint pieces, only parts of
+            {  // A piece of the first group is strictly inside the second
+               // group, which touches the other piece of the first group. The
+               // region between them is not inside the first group.
+                "PieceStrictlyInsideOtherGroup",
+                {
+                    MultiShapeWithHoles{{
+                        {build_rectangle(4, 8, 5, 6)},
+                        {build_rectangle(1, 3, 4, 5)},
+                    }}, MultiShapeWithHoles{{
+                        {build_rectangle(0, 4, 2, 6)},
+                    }},
+                },
+                {
+                    {build_rectangle(1, 3, 4, 5)},
+                },
+            }, {  // Two groups; one group has two disjoint pieces, only parts of
                // which overlap the other group.
                 "TwoGroupsWithDisjointPieces",
                 {

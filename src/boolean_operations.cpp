@@ -40,6 +40,12 @@ struct SplittedElement
     ShapePos orig_shape_id = -1;
 
     bool original_direction = true;
+
+    /**
+     * Whether the element is part of a bridge between two components; such
+     * an element is not on the boundary of its original shape.
+     */
+    bool is_component_bridge = false;
 };
 
 bool operator==(
@@ -93,6 +99,8 @@ struct ComputeSplittedElementsOutput
 struct ElementToSplit
 {
     ShapePos orig_shape_id = -1;
+
+    bool is_component_bridge = false;
 };
 
 struct ComponentBridge
@@ -132,10 +140,10 @@ ComponentBridge find_component_bridge(
     }
 
     // Find the AABB of the outer component to bound the ray.
-    // Also pick a shape from the outer component for orig_shape_id: the bridge
-    // starts at the outer boundary, so it must be attributed to the outer
-    // (base) shape so that face traversal correctly marks the donut face as
-    // "inside the base" rather than "inside the subtractor".
+    // Also pick a shape from the outer component for orig_shape_id, so that
+    // the bridge belongs to the outer component. The bridge is not on the
+    // boundary of this shape, so it is not used to decide which shapes a face
+    // is inside.
     LengthDbl outer_x_min = std::numeric_limits<LengthDbl>::infinity();
     for (ShapePos shape_pos = 0;
             shape_pos < (ShapePos)shapes.size();
@@ -219,6 +227,7 @@ void bridge_components(
     {
         ElementToSplit element_info;
         element_info.orig_shape_id = bridge.orig_shape_id;
+        element_info.is_component_bridge = true;
         elements_info.push_back(element_info);
     }
     elements_intersections.push_back({});
@@ -688,6 +697,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 SplittedElement new_element;
                 new_element.element = e;
                 new_element.orig_shape_id = shape_pos;
+                new_element.is_component_bridge = elements_info[element_pos].is_component_bridge;
                 new_element.original_direction = true;
                 output.components_splitted_elements[component_id].push_back(new_element);
 
@@ -716,6 +726,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 SplittedElement new_element;
                 new_element.element = extracted;
                 new_element.orig_shape_id = shape_pos;
+                new_element.is_component_bridge = elements_info[element_pos].is_component_bridge;
                 new_element.original_direction = true;
                 output.components_splitted_elements[component_id].push_back(new_element);
 
@@ -732,6 +743,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             SplittedElement new_element;
             new_element.element = element;
             new_element.orig_shape_id = elements_info[element_pos].orig_shape_id;
+            new_element.is_component_bridge = elements_info[element_pos].is_component_bridge;
             new_element.original_direction = true;
             output.components_splitted_elements[component_id].push_back(new_element);
 
@@ -914,6 +926,7 @@ BooleanOperationGraph compute_graph(
         SplittedElement splitted_element_reversed;
         splitted_element_reversed.element = splitted_element.element.reverse();
         splitted_element_reversed.orig_shape_id = splitted_element.orig_shape_id;
+        splitted_element_reversed.is_component_bridge = splitted_element.is_component_bridge;
         splitted_element_reversed.original_direction = !splitted_element.original_direction;
         splitted_elements.push_back(splitted_element_reversed);
         graph.arcs.push_back(arc_reversed);
@@ -1210,7 +1223,8 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 #endif
             face.elements.push_back(element_cur);
             element_is_processed[element_cur_pos] = 1;
-            if (splitted_element_cur.original_direction) {
+            if (splitted_element_cur.original_direction
+                    && !splitted_element_cur.is_component_bridge) {
                 ShapePos pos = cse_output.shape_component_ids.position(splitted_element_cur.orig_shape_id);
                 is_inside[pos] = 1;
             }
