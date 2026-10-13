@@ -1,0 +1,110 @@
+{
+  "description": "Square with a hole made of a full circle",
+  "shapes": [
+    {
+      "type": "rectangle",
+      "width": 10,
+      "height": 10,
+      "holes": [
+        {
+          "type": "circle",
+          "x": 5,
+          "y": 5,
+          "radius": 2
+        }
+      ]
+    }
+  ],
+  "expected_output": [
+    {
+      "elements": [
+        {
+          "end": {
+            "x": 0.0,
+            "y": 10.0
+          },
+          "start": {
+            "x": 10.0,
+            "y": 10.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 10.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 10.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 10.0,
+            "y": 10.0
+          },
+          "start": {
+            "x": 10.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        }
+      ],
+      "holes": [
+        {
+          "elements": [
+            {
+              "center": {
+                "x": 5.0,
+                "y": 5.0
+              },
+              "end": {
+                "x": 7.0,
+                "y": 5.0
+              },
+              "orientation": "Anticlockwise",
+              "start": {
+                "x": 3.0,
+                "y": 5.0
+              },
+              "type": "CircularArc"
+            },
+            {
+              "center": {
+                "x": 5.0,
+                "y": 5.0
+              },
+              "end": {
+                "x": 3.0,
+                "y": 5.0
+              },
+              "orientation": "Anticlockwise",
+              "start": {
+                "x": 7.0,
+                "y": 5.0
+              },
+              "type": "CircularArc"
+            }
+          ],
+          "is_path": false,
+          "type": "general"
+        }
+      ],
+      "is_path": false,
+      "type": "general"
+    }
+  ]
+}

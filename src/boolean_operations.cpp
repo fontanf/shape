@@ -301,6 +301,26 @@ ComputeSplittedElementsOutput compute_splitted_elements(
                 }
                 if (hole_pos == (ShapePos)shape.holes.size()) {
                     elements.push_back(element);
+                } else if (element.type == ShapeElementType::CircularArc
+                        && element.orientation == ShapeElementOrientation::Full) {
+                    // Reversing a full circle doesn't change its orientation,
+                    // and full circles are split into anticlockwise arcs. So
+                    // a hole made of a full circle is split here into two
+                    // clockwise half circles.
+                    Point antipode = 2 * element.center - element.start;
+                    elements.push_back(build_circular_arc(
+                                element.start,
+                                antipode,
+                                element.center,
+                                ShapeElementOrientation::Clockwise));
+                    ElementToSplit element_info;
+                    element_info.orig_shape_id = shape_pos;
+                    elements_info.push_back(element_info);
+                    elements.push_back(build_circular_arc(
+                                antipode,
+                                element.start,
+                                element.center,
+                                ShapeElementOrientation::Clockwise));
                 } else {
                     elements.push_back(element.reverse());
                 }
