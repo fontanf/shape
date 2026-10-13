@@ -245,6 +245,20 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "approximation" / "approximate_shape_by_line_segments" / "0.json").string()),
             ApproximateShapeByLineSegmentsTestParams::read_json(
                     (fs::path("data") / "tests" / "approximation" / "approximate_shape_by_line_segments" / "1.json").string()),
+            {
+                // The tangents of the clockwise arc cross the bottom edge, so
+                // the approximation falls back to removing the regions
+                // between the arc and its tangents from the shape. Two
+                // triangles of the same area remain, and the first one is
+                // returned.
+                "ClockwiseArcInnerCrossingEdge",
+                build_shape({{-2, 0.5}, {2, 0.5}, {2, 1}, {0, 5, -1}, {-2, 1}}),
+                100,
+                false,
+                {
+                    build_shape({{-1, 0.5}, {-2, 1}, {-2, 0.5}}),
+                },
+            },
         }),
         [](const testing::TestParamInfo<ApproximateShapeByLineSegmentsTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
