@@ -139,6 +139,12 @@ INSTANTIATE_TEST_SUITE_P(
                 build_line_segment({0, 0}, {0, 1}),
                 build_line_segment({0, 1}, {0, 2}),
                 {{}, {{0, 1}}, {}},
+            }, {  // Line segments meeting at a shallow angle: the lines
+                // intersect at (0, 0), outside the second segment, whose
+                // start is on the first one within the tolerance.
+                build_line_segment({0, 0}, {1000, 0.002}),
+                build_line_segment({0.4, 0}, {1000, 0}),
+                {{}, {{0.4, 0}}, {}},
             }, {  // Non-intersecting line segment and circular arc.
                 build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_line_segment({2, 0}, {2, 2}),
@@ -375,9 +381,12 @@ INSTANTIATE_TEST_SUITE_P(
                 build_circular_arc({51.130975182528729, 829.6176194763832}, {51.134905264313737, 829.56991617580513}, {50.953023770521156, 829.57894523801747}, ShapeElementOrientation::Clockwise),
                 {{}, {}, {}},
             }, {
+                // The start of the second segment is on the first one within
+                // the point tolerance (0.89e-6 and 0.78e-6 from its projection,
+                // 1.18e-6 from the line).
                 build_line_segment({601.37341963972028, 787.90014458433279}, {599.81295754503253, 789.68144089516204}),
                 build_line_segment({599.81361560058599, 789.68068792578129}, {599.85618600878911, 789.63197742871091}),
-                {{}, {}, {}},
+                {{}, {{599.81361560058599, 789.68068792578129}}, {}},
             }, {
                 build_line_segment({601.37341963972028, 787.90014458433279}, {599.81295754503253, 789.68144089516204}),
                 build_line_segment({599.87775316406248, 789.73674077636724}, {599.81361560058599, 789.68068792578129}),
