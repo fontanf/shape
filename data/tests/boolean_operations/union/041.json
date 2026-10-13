@@ -1,0 +1,95 @@
+{
+  "description": "Annulus: a circle with a hole made of a full circle",
+  "shapes": [
+    {
+      "type": "circle",
+      "radius": 2,
+      "holes": [
+        {
+          "type": "circle",
+          "radius": 1
+        }
+      ]
+    }
+  ],
+  "expected_output": [
+    {
+      "elements": [
+        {
+          "center": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": -2.0,
+            "y": 0.0
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": 2.0,
+            "y": 0.0
+          },
+          "type": "CircularArc"
+        },
+        {
+          "center": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "end": {
+            "x": 2.0,
+            "y": 0.0
+          },
+          "orientation": "Anticlockwise",
+          "start": {
+            "x": -2.0,
+            "y": 0.0
+          },
+          "type": "CircularArc"
+        }
+      ],
+      "holes": [
+        {
+          "elements": [
+            {
+              "center": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "end": {
+                "x": 1.0,
+                "y": 0.0
+              },
+              "orientation": "Anticlockwise",
+              "start": {
+                "x": -1.0,
+                "y": 0.0
+              },
+              "type": "CircularArc"
+            },
+            {
+              "center": {
+                "x": 0.0,
+                "y": 0.0
+              },
+              "end": {
+                "x": -1.0,
+                "y": 0.0
+              },
+              "orientation": "Anticlockwise",
+              "start": {
+                "x": 1.0,
+                "y": 0.0
+              },
+              "type": "CircularArc"
+            }
+          ],
+          "is_path": false,
+          "type": "general"
+        }
+      ],
+      "is_path": false,
+      "type": "general"
+    }
+  ]
+}
