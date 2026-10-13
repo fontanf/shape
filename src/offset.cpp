@@ -291,6 +291,9 @@ ShapeWithHoles shape::inflate(
         const Shape& hole = shape.holes[hole_pos];
 
         if (hole.is_circle()) {
+            // Add the annulus between the hole and the deflated hole.
+            ShapeWithHoles annulus;
+            annulus.shape = hole;
             Shape circle = hole;
             ShapeElement& element = circle.elements[0];
             LengthDbl radius_orig = element.radius();
@@ -298,8 +301,9 @@ ShapeWithHoles shape::inflate(
                 LengthDbl radius = radius_orig - offset;
                 element.start = {element.center.x + radius, element.center.y};
                 element.end = element.start;
-                union_input.push_back({circle});
+                annulus.holes.push_back(circle);
             }
+            union_input.push_back(annulus);
         } else {
             ElementPos element_prev_pos = hole.elements.size() - 1;
             const ShapeElement& element_prev = hole.elements[element_prev_pos];
