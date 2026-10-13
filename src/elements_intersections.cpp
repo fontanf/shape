@@ -426,6 +426,16 @@ ShapeElementIntersectionsOutput compute_line_line_intersections(
 
     if (line1.contains(p.second) && line2.contains(p.second))
         return {{}, {}, {p.second}};
+
+    // For lines meeting at a shallow angle, the intersection point of the
+    // lines can be outside the segments while an endpoint of a segment is on
+    // the other one within the tolerance.
+    for (const Point& point: {line1.start, line1.end})
+        if (line2.contains(point))
+            return {{}, {point}, {}};
+    for (const Point& point: {line2.start, line2.end})
+        if (line1.contains(point))
+            return {{}, {point}, {}};
     return {};
 }
 
