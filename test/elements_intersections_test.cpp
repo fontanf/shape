@@ -589,6 +589,22 @@ INSTANTIATE_TEST_SUITE_P(
                 build_circular_arc({0.01, 0}, {0, 0.01}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_circular_arc({0.01004 * sqrt(2) / 2, 0.01004 * sqrt(2) / 2}, {-0.01004 * sqrt(2) / 2, 0.01004 * sqrt(2) / 2}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 {{}, {}, {}},
+            }, {  // Full circle and an arc of the same circle.
+                build_circle(1).elements.front(),
+                build_circular_arc({0, 1}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {{build_circular_arc({0, 1}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise)}, {}, {}},
+            }, {  // Same, in the other order.
+                build_circular_arc({0, 1}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                build_circle(1).elements.front(),
+                {{build_circular_arc({0, 1}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise)}, {}, {}},
+            }, {  // Full circle and a clockwise arc of the same circle.
+                build_circle(1).elements.front(),
+                build_circular_arc({0, 1}, {1, 0}, {0, 0}, ShapeElementOrientation::Clockwise),
+                {{build_circular_arc({0, 1}, {1, 0}, {0, 0}, ShapeElementOrientation::Clockwise)}, {}, {}},
+            }, {  // Full circles starting at different points.
+                build_circle(1).elements.front(),
+                build_circular_arc({0, 1}, {0, 1}, {0, 0}, ShapeElementOrientation::Full),
+                {{build_circle(1).elements.front()}, {}, {}},
             }
         }),
         [](const testing::TestParamInfo<ComputeIntersectionsTest::ParamType>& info) {
