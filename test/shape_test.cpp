@@ -1173,6 +1173,16 @@ INSTANTIATE_TEST_SUITE_P(
                 {1, {4, 3}},
                 {1, {4, 1}},
                 build_path({{4, 3}, {4, 4}, {0, 4}, {0, 0}, {4, 0}, {4, 1}}),
+            }, {
+                build_circle(1),
+                {0, {1, 0}},
+                {0, {0, 1}},
+                build_path({{1, 0}, {0, 0, 1}, {0, 1}}),
+            }, {
+                build_circle(1),
+                {0, {0, 1}},
+                {0, {1, 0}},
+                build_path({{0, 1}, {0, 0, 1}, {1, 0}}),
             },
         }),
         [](const testing::TestParamInfo<ShapeExtractPathTest::ParamType>& info) {
@@ -1333,6 +1343,10 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{-1, 0}, {1, 0}, {0, 0, 1}}),
                 {1, {0, 1}}, {0, {0, 0}},
                 -1, 0, 0, 1,
+            }, {  // 13. Quarter of a full circle.
+                build_circle(1),
+                {0, {1, 0}}, {0, {0, 1}},
+                0, 0, 1, 1,
             },
         }),
         [](const testing::TestParamInfo<ShapeComputeMinMaxTest::ParamType>& info) {

@@ -438,7 +438,7 @@ ShapeElement ShapeElement::extract(
             element.start = start_point;
             element.end = end_point;
             return element;
-        } else if (!equal(this->start, this->end)) {
+        } else if (!equal(start_point, end_point)) {
             ShapeElement element = *this;
             element.orientation = ShapeElementOrientation::Anticlockwise;
             element.start = start_point;
@@ -1674,11 +1674,15 @@ Shape Shape::extract_path(
             path.elements.push_back(this->elements[pos]);
         }
         // Last partial element: from start of its element to point_end.point.
+        // The start is checked first since a full circle starts and ends at
+        // the same point.
         const ShapeElement& element_end = this->elements[point_end.element_pos];
-        if (equal(point_end.point, element_end.end)) {
-            path.elements.push_back(element_end);
-        } else if (!equal(point_end.point, element_end.start)) {
-            path.elements.push_back(element_end.extract(element_end.start, point_end.point));
+        if (!equal(point_end.point, element_end.start)) {
+            if (equal(point_end.point, element_end.end)) {
+                path.elements.push_back(element_end);
+            } else {
+                path.elements.push_back(element_end.extract(element_end.start, point_end.point));
+            }
         }
     }
 
