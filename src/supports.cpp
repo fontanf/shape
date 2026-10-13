@@ -45,6 +45,15 @@ ShapeSupports shape::compute_shape_supports(
         }
     }
 
+    // Parts are split where the boundary is concave seen from the material.
+    // Since consecutive elements of a part go in the same horizontal
+    // direction, this depends on the order of their slopes, which is reversed
+    // for holes since the material is on the other side of the boundary.
+    auto is_concave = [is_hole](LengthDbl slope_prev, LengthDbl slope)
+    {
+        return (!is_hole)? (slope < slope_prev): (slope > slope_prev);
+    };
+
     int current_status = 0;
     Shape current_support;
     LengthDbl slope_prev = 0.0;
@@ -119,7 +128,7 @@ ShapeSupports shape::compute_shape_supports(
                     continue;
                 }
 
-                if (slope < slope_prev) {
+                if (is_concave(slope_prev, slope)) {
                     if (!current_support.elements.empty()) {
                         if (!is_hole) {
                             supports.supporting_parts.push_back(current_support);
@@ -183,7 +192,7 @@ ShapeSupports shape::compute_shape_supports(
                     continue;
                 }
 
-                if (slope < slope_prev) {
+                if (is_concave(slope_prev, slope)) {
                     if (!current_support.elements.empty()) {
                         if (!is_hole) {
                             supports.supported_parts.push_back(current_support);

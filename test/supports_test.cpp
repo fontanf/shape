@@ -169,9 +169,23 @@ INSTANTIATE_TEST_SUITE_P(
                     build_shape({{0, 0}, {40, 20}}, true),
                 }, {
                     build_shape({{50, -10}, {-10, -10}}, true),
-                    build_shape({{40, 40}, {10, 40}, {0, 0}}, true),
+                    build_shape({{40, 40}, {10, 40}}, true),
+                    build_shape({{10, 40}, {0, 0}}, true),
                 },
                 "SquareWithTiltedHole",
+            }, {
+                {
+                    build_rectangle(-1, 5, -1, 5),
+                    {build_shape({{0, 1}, {1, 1}, {2, 0}, {3, 1}, {4, 1}, {4, 3}, {0, 3}})},
+                }, {
+                    build_shape({{-1, 5}, {5, 5}}, true),
+                    build_shape({{0, 1}, {1, 1}, {2, 0}}, true),
+                    build_shape({{2, 0}, {3, 1}, {4, 1}}, true),
+                }, {
+                    build_shape({{5, -1}, {-1, -1}}, true),
+                    build_shape({{4, 3}, {0, 3}}, true),
+                },
+                "SquareWithValleyHole",
             }}),
         [](const testing::TestParamInfo<IrregularComputeShapeSupportsTest::ParamType>& info) {
             return info.param.name;
