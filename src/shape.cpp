@@ -846,8 +846,12 @@ std::string ShapeElement::to_svg() const
             s += "L";
         } else {
             LengthDbl radius = this->radius();
+            // 'theta' is measured anticlockwise with the y-axis flipped, so it is
+            // the clockwise angle from the start to the end of the arc.
             Angle theta = angle_radian(start - center, end - center);
-            int large_arc_flag = (theta > M_PI)? 0: 1;
+            Angle arc_angle = (this->orientation == ShapeElementOrientation::Anticlockwise)?
+                2 * M_PI - theta: theta;
+            int large_arc_flag = (arc_angle > M_PI)? 1: 0;
             int sweep_flag = (this->orientation == ShapeElementOrientation::Anticlockwise)? 0: 1;
             s += "A" + std::to_string(radius) + ","
                 + std::to_string(radius) + ",0,"
@@ -1956,8 +1960,12 @@ std::string Shape::to_svg_path() const
                 s += "L";
             } else {
                 LengthDbl radius = element.radius();
+                // 'theta' is measured anticlockwise with the y-axis flipped, so it is
+                // the clockwise angle from the start to the end of the arc.
                 Angle theta = angle_radian(start - center, end - center);
-                int large_arc_flag = (theta > M_PI)? 0: 1;
+                Angle arc_angle = (element.orientation == ShapeElementOrientation::Anticlockwise)?
+                    2 * M_PI - theta: theta;
+                int large_arc_flag = (arc_angle > M_PI)? 1: 0;
                 int sweep_flag = (element.orientation == ShapeElementOrientation::Anticlockwise)? 0: 1;
                 s += "A" + std::to_string(radius) + ","
                     + std::to_string(radius) + ",0,"
