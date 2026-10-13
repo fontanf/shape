@@ -480,6 +480,21 @@ INSTANTIATE_TEST_SUITE_P(
                 build_shape({{0, 0}, {2, 0}, {1, 2}}),
                 build_circular_segment({0, 0}, 1.5, 0, 170),
                 "TriangleAndWideSegment",
+            }, {  // Disk made of quarter arcs, with the floating-point noise of
+                  // cos(pi / 2) on its bottom point: the tangent there is just
+                  // below the direction (1, 0).
+                build_shape({{1, 0}, {0, 0, 1}, {0, 1}, {0, 0, 1}, {-1, 0}, {0, 0, 1}, {-1e-16, -1}, {0, 0, 1}}),
+                build_rectangle(0, 2, 0, 2),
+                "NoisyDiskAndSquare",
+            }, {
+                build_shape({{1, 0}, {0, 0, 1}, {0, 1}, {0, 0, 1}, {-1, 0}, {0, 0, 1}, {-1e-16, -1}, {0, 0, 1}}),
+                build_shape({{-1, 2}, {3, -2}, {3, 2}}),
+                "NoisyDiskAndTriangle",
+            }, {  // Same as orbiting shape, with the noise on its top point,
+                  // whose negated tangent is just below the direction (1, 0).
+                build_rectangle(0, 2, 0, 2),
+                build_shape({{1, 0}, {0, 0, 1}, {1e-16, 1}, {0, 0, 1}, {-1, 0}, {0, 0, 1}, {0, -1}, {0, 0, 1}}),
+                "SquareAndNoisyDisk",
             },
         }),
         [](const testing::TestParamInfo<NoFitPolygonArcOracleTest::ParamType>& info) {

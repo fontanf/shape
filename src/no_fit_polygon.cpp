@@ -35,7 +35,18 @@ bool direction_strictly_lesser(
 {
     if (equal(direction_1.x, direction_2.x) && equal(direction_1.y, direction_2.y))
         return false;
-    return strictly_lesser_angle(direction_1, direction_2);
+    // strictly_lesser_angle has its branch cut at the direction (1, 0): a
+    // direction just below it, such as the tangent (1, -1e-16) of an arc
+    // starting at the bottom of a circle, is the greatest one instead of
+    // being tied with the smallest one. Such a direction is moved onto the
+    // branch cut, so that it compares like (1, 0).
+    auto snap = [](const Point& direction)
+    {
+        if (direction.x > 0 && equal(direction.y, 0.0))
+            return Point{direction.x, 0.0};
+        return direction;
+    };
+    return strictly_lesser_angle(snap(direction_1), snap(direction_2));
 }
 
 /**
