@@ -520,10 +520,12 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
     std::cout << "recompute_center_1 " << arc.recompute_center().to_string() << std::endl;
     std::cout << "recompute_center_2 " << arc_2.recompute_center().to_string() << std::endl;
 #endif
-    LengthDbl rsq = squared_distance(arc.center, arc.start);
-    LengthDbl r2sq = squared_distance(arc_2.center, arc_2.start);
     if (equal(arc.center, arc_2.center)) {
-        if (equal(rsq, r2sq)) {
+        // The arcs are on the same circle if a point of the second one is on
+        // the circle of the first one. Comparing the squares of their radii
+        // with the tolerance would be too strict for large radii and too
+        // loose for small ones.
+        if (point_on_circle(arc_2.start, arc.center, arc.radius())) {
             if (equal(arc.start, arc_2.start)
                     && equal(arc.end, arc_2.end)) {
                 if (arc.orientation == arc_2.orientation) {
