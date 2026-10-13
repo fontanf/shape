@@ -1141,6 +1141,61 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct ShapeWithHolesFindPointStrictlyInsideTestParams
+{
+    std::string name;
+    ShapeWithHoles shape;
+};
+
+void PrintTo(const ShapeWithHolesFindPointStrictlyInsideTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+}
+
+class ShapeWithHolesFindPointStrictlyInsideTest: public testing::TestWithParam<ShapeWithHolesFindPointStrictlyInsideTestParams> { };
+
+TEST_P(ShapeWithHolesFindPointStrictlyInsideTest, ShapeWithHolesFindPointStrictlyInside)
+{
+    ShapeWithHolesFindPointStrictlyInsideTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    Point output = test_params.shape.find_point_strictly_inside();
+    std::cout << "output " << output.to_string() << std::endl;
+    EXPECT_TRUE(test_params.shape.contains(output, true));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeWithHolesFindPointStrictlyInsideTest,
+        testing::ValuesIn(std::vector<ShapeWithHolesFindPointStrictlyInsideTestParams>{
+            {
+                "Rectangle",
+                {build_rectangle(2, 4), {}},
+            }, {
+                "RectangleWithHole",
+                {build_rectangle(0, 10, 0, 10), {build_rectangle(2, 8, 2, 8)}},
+            }, {
+                "CircleWithCircularHole",
+                {build_circle(2), {build_circle(1)}},
+            }, {
+                // The ray at y = 1 is tangent to the bottom of the circular
+                // arc, at (2, 1).
+                "TangentArc",
+                {build_shape({{8, 0}, {10, 0}, {10, 2}, {0, 2}, {0, 1.5}, {1.5, 1.5}, {2, 1.5, 1}, {2.5, 1.5}, {8, 1.5}}), {}},
+            }, {
+                // The ray at y = 5 is tangent to the circular hole, at (5, 5).
+                "TangentHole",
+                {build_rectangle(0, 10, 0, 10), {build_shape({{6, 6}, {5, 6, 1}, {4, 6}, {5, 6, 1}})}},
+            }, {
+                // The ray at y = 5 runs along the bottom edge of the hole.
+                "RayAlongHoleEdge",
+                {build_rectangle(0, 10, 0, 10), {build_rectangle(2, 8, 5, 8)}},
+            },
+        }),
+        [](const testing::TestParamInfo<ShapeWithHolesFindPointStrictlyInsideTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
 struct ShapeExtractPathTestParams
 {
     Shape shape;

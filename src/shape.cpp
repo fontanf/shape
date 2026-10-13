@@ -2283,61 +2283,77 @@ Point ShapeWithHoles::find_point_strictly_inside() const
     for (Counter k = 2; k < 8; ++k) {
         for (Counter k2 = 1; k2 < k; ++k2) {
             LengthDbl y = aabb.y_min + (aabb.y_max - aabb.y_min) * k2 / k;
-            Point point_min_1 = {
-                std::numeric_limits<LengthDbl>::infinity(),
-                std::numeric_limits<LengthDbl>::infinity()};
-            Point point_min_2 = {
-                std::numeric_limits<LengthDbl>::infinity(),
-                std::numeric_limits<LengthDbl>::infinity()};
-            ShapeElement ray;
-            ray.type = ShapeElementType::LineSegment;
-            ray.start.x = aabb.x_min - 1;
-            ray.start.y = y;
-            ray.end.x = aabb.x_max + 1;
-            ray.end.y = y;
+
+            // Every touch of the boundary at this height (see
+            // ShapeElement::ray_crossings), crossing or not: a candidate
+            // gap must be bounded by two touches with nothing else between
+            // them, so its interior cannot coincide with any boundary
+            // feature (a reflex vertex, an arc tangent to this height, ...).
+            std::vector<RayCrossing> touches;
+            // Horizontal edges lying exactly along this height: every point
+            // in such an interval is on the boundary regardless of
+            // ray-casting parity, so no candidate gap may overlap one.
+            std::vector<std::pair<LengthDbl, LengthDbl>> forbidden_intervals;
             for (ShapePos shape_pos = -1;
                     shape_pos < (ShapePos)this->holes.size();
                     ++shape_pos) {
                 const Shape& shape = (shape_pos == -1)?
                     this->shape:
                     this->holes[shape_pos];
-                for (ElementPos element_pos = 0;
-                        element_pos < shape.elements.size();
-                        ++element_pos) {
-                    const ShapeElement& element = shape.elements[element_pos];
-                    ShapeElementIntersectionsOutput intersections = compute_intersections(ray, element);
-                    for (const ShapeElement& overlapping_part: intersections.overlapping_parts) {
-                        const Point& intersection = (overlapping_part.start.x < overlapping_part.end.x)?
-                            overlapping_part.start:
-                            overlapping_part.end;
-                        if (!strictly_lesser(point_min_1.x, intersection.x)) {
-                            point_min_2 = intersection;
-                            point_min_1 = intersection;
-                        } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
-                            point_min_2 = intersection;
-                        }
-                    }
-                    for (const Point& intersection: intersections.improper_intersections) {
-                        if (!strictly_lesser(point_min_1.x, intersection.x)) {
-                            point_min_2 = point_min_1;
-                            point_min_1 = intersection;
-                        } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
-                            point_min_2 = intersection;
-                        }
-                    }
-                    for (const Point& intersection: intersections.proper_intersections) {
-                        if (!strictly_lesser(point_min_1.x, intersection.x)) {
-                            point_min_2 = point_min_1;
-                            point_min_1 = intersection;
-                        } else if (!strictly_lesser(point_min_2.x, intersection.x)) {
-                            point_min_2 = intersection;
-                        }
+                for (const ShapeElement& element: shape.elements) {
+                    for (const RayCrossing& touch: element.ray_crossings(y))
+                        touches.push_back(touch);
+                    LengthDbl x_min, x_max;
+                    if (element.ray_horizontal_extent(y, x_min, x_max)) {
+                        forbidden_intervals.push_back({x_min, x_max});
+                        touches.push_back({x_min, false});
+                        touches.push_back({x_max, false});
                     }
                 }
             }
-            if (equal(point_min_1.x, point_min_2.x))
-                continue;
-            return {(point_min_1.x + point_min_2.x) / 2, y};
+            std::sort(
+                    touches.begin(),
+                    touches.end(),
+                    [](const RayCrossing& touch_1, const RayCrossing& touch_2)
+                    { return touch_1.x < touch_2.x; });
+
+            // Walk the touches left to right, merging those at the same x
+            // and keeping a running parity that flips at every genuine
+            // crossing: the gap that follows a cluster is strictly inside
+            // the shape exactly when that parity is odd there, unless it
+            // falls inside a forbidden interval.
+            bool inside = false;
+            for (ElementPos cluster_start = 0;
+                    cluster_start < (ElementPos)touches.size(); ) {
+                ElementPos cluster_end = cluster_start;
+                bool flips = false;
+                while (cluster_end < (ElementPos)touches.size()
+                        && equal(touches[cluster_end].x, touches[cluster_start].x)) {
+                    if (touches[cluster_end].is_crossing)
+                        flips = !flips;
+                    ++cluster_end;
+                }
+                if (flips)
+                    inside = !inside;
+
+                if (inside && cluster_end < (ElementPos)touches.size()) {
+                    LengthDbl x_left = touches[cluster_start].x;
+                    LengthDbl x_right = touches[cluster_end].x;
+                    LengthDbl mid = (x_left + x_right) / 2;
+                    bool forbidden = false;
+                    for (const auto& interval: forbidden_intervals) {
+                        if (!strictly_lesser(mid, interval.first)
+                                && !strictly_greater(mid, interval.second)) {
+                            forbidden = true;
+                            break;
+                        }
+                    }
+                    if (!forbidden)
+                        return {mid, y};
+                }
+
+                cluster_start = cluster_end;
+            }
         }
     }
     return this->shape.elements.front().start;
