@@ -282,16 +282,22 @@ Point ShapeElement::middle(
         point.y = (point_1.y + point_2.y) / 2;
         return point;
     } case ShapeElementType::CircularArc: {
-        if (this->orientation == ShapeElementOrientation::Anticlockwise) {
+        if (this->orientation == ShapeElementOrientation::Clockwise) {
+            Angle angle = angle_radian(
+                    point_2 - this->center,
+                    point_1 - this->center);
+            return point_2.rotate_radians(this->center, angle / 2.);
+        } else {
             Angle angle = angle_radian(
                     point_1 - this->center,
                     point_2 - this->center);
+            // On a full circle, the middle between a point and itself is the
+            // opposite point.
+            if (this->orientation == ShapeElementOrientation::Full
+                    && equal(point_1, point_2)) {
+                angle = 2 * M_PI;
+            }
             return point_1.rotate_radians(this->center, angle / 2.);
-        } else {
-            Angle angle = angle_radian(
-                this->end - this->center,
-                this->start - this->center);
-            return point_2.rotate_radians(this->center, angle / 2.);
         }
     }
     }
