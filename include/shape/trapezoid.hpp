@@ -354,6 +354,7 @@ public:
             {
                 double a_left = 1.0 / trapezoid.a_left_;
                 LengthDbl b_left = trapezoid.y_bottom() - a_left * trapezoid.x_bottom_left();
+                bool intersects = true;
                 LengthDbl x = 0;
                 LengthDbl y = 0;
                 if (trapezoid.a_left() == 0) {
@@ -365,8 +366,12 @@ public:
                 } else if (equal(b, b_left)) {
                     x = trapezoid.x_top_left();
                     y = trapezoid.y_top();
+                } else {
+                    // Parallel sides which are not on the same line.
+                    intersects = false;
                 }
-                if (strictly_greater(x, p.x)
+                if (intersects
+                        && strictly_greater(x, p.x)
                         && !strictly_lesser(y, trapezoid.y_bottom())
                         && !strictly_greater(y, trapezoid.y_top())) {
                     //std::cout << "left:"
@@ -381,6 +386,7 @@ public:
             {
                 double a_right = 1.0 / trapezoid.a_right_;
                 LengthDbl b_right = trapezoid.y_bottom() - a_right * trapezoid.x_bottom_right();
+                bool intersects = true;
                 LengthDbl x = 0;
                 LengthDbl y = 0;
                 if (trapezoid.a_right() == 0) {
@@ -392,6 +398,9 @@ public:
                 } else if (equal(b, b_right)) {
                     x = trapezoid.x_top_right();
                     y = trapezoid.y_top();
+                } else {
+                    // Parallel sides which are not on the same line.
+                    intersects = false;
                 }
                 //std::cout << "right:"
                 //    << " b " << b
@@ -403,7 +412,8 @@ public:
                 //    << " x_shift " << x - p.x
                 //    << " y_shift " << y - p.y
                 //    << std::endl;
-                if (strictly_greater(x, p.x)
+                if (intersects
+                        && strictly_greater(x, p.x)
                         && !strictly_lesser(y, trapezoid.y_bottom())
                         && !strictly_greater(y, trapezoid.y_top())) {
                     x_shift = std::max(x_shift, x - p.x);
@@ -453,6 +463,7 @@ public:
             {
                 double a_left = 1.0 / a_left_;
                 LengthDbl b_left = y_bottom() - a_left * x_bottom_left();
+                bool intersects = true;
                 LengthDbl x = 0;
                 LengthDbl y = 0;
                 if (a_left_ == 0) {
@@ -464,13 +475,17 @@ public:
                 } else if (equal(b, b_left)) {
                     x = x_top_left();
                     y = y_top();
+                } else {
+                    // Parallel sides which are not on the same line.
+                    intersects = false;
                 }
                 //std::cout << "left:"
                 //    << " x " << x
                 //    << " x_shift " << p.x - x
                 //    << " y_shift " << p.y - y
                 //    << std::endl;
-                if (strictly_lesser(x, p.x)
+                if (intersects
+                        && strictly_lesser(x, p.x)
                         && !strictly_lesser(y, y_bottom())
                         && !strictly_greater(y, y_top())) {
                     x_shift = std::max(x_shift, p.x - x);
@@ -481,6 +496,7 @@ public:
             {
                 double a_right = 1.0 / a_right_;
                 LengthDbl b_right = y_bottom() - a_right * x_bottom_right();
+                bool intersects = true;
                 LengthDbl x = 0;
                 LengthDbl y = 0;
                 if (a_right_ == 0) {
@@ -492,13 +508,17 @@ public:
                 } else if (equal(b, b_right)) {
                     x = x_top_right();
                     y = y_top();
+                } else {
+                    // Parallel sides which are not on the same line.
+                    intersects = false;
                 }
                 //std::cout << "right:"
                 //    << " x " << x
                 //    << " x_shift " << p.x - x
                 //    << " y_shift " << p.y - y
                 //    << std::endl;
-                if (strictly_lesser(x, p.x)
+                if (intersects
+                        && strictly_lesser(x, p.x)
                         && !strictly_lesser(y, y_bottom())
                         && !strictly_greater(y, y_top())) {
                     x_shift = std::max(x_shift, p.x - x);
