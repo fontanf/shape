@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <fstream>
 
 using namespace shape;
@@ -36,7 +37,10 @@ TEST_P(WriterWriteJsonTest, WriterWriteJson)
 {
     WriterWriteJsonTestParams test_params = GetParam();
     PrintTo(test_params, &std::cout);
-    std::string file_path = testing::TempDir() + "writer_write_json_test.json";
+    // Each test case uses its own file, since they may run in parallel.
+    std::string test_name = testing::UnitTest::GetInstance()->current_test_info()->name();
+    std::replace(test_name.begin(), test_name.end(), '/', '_');
+    std::string file_path = testing::TempDir() + "writer_write_json_test_" + test_name + ".json";
 
     Writer writer;
     for (const Point& point: test_params.points)
