@@ -1386,6 +1386,18 @@ INSTANTIATE_TEST_SUITE_P(
             }, {  // 1. Open path.
                 build_path({{0, 0}, {1, 0}, {1, 1}}),
                 "M0.000000,-0.000000L1.000000,-0.000000L1.000000,-1.000000",
+            }, {  // 2. Anticlockwise quarter circle.
+                build_path({{1, 0}, {0, 0, 1}, {0, 1}}),
+                "M1.000000,-0.000000A1.000000,1.000000,0,0,0,0.000000,-1.000000",
+            }, {  // 3. Anticlockwise three quarters of a circle.
+                build_path({{0, 1}, {0, 0, 1}, {1, 0}}),
+                "M0.000000,-1.000000A1.000000,1.000000,0,1,0,1.000000,-0.000000",
+            }, {  // 4. Clockwise quarter circle.
+                build_path({{0, 1}, {0, 0, -1}, {1, 0}}),
+                "M0.000000,-1.000000A1.000000,1.000000,0,0,1,1.000000,-0.000000",
+            }, {  // 5. Clockwise three quarters of a circle.
+                build_path({{1, 0}, {0, 0, -1}, {0, 1}}),
+                "M1.000000,-0.000000A1.000000,1.000000,0,1,1,0.000000,-1.000000",
             },
         }),
         [](const testing::TestParamInfo<ShapeToSvgPathTest::ParamType>& info) {
