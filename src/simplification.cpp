@@ -16,6 +16,25 @@ using namespace shape;
 namespace
 {
 
+/**
+ * Whether the end of 'element' is aligned with the start of 'element' and the
+ * end of 'element_next', that is, removing it moves the boundary by less than
+ * the tolerance. Comparing the angle at this vertex with pi isn't enough: a
+ * small angle can still move the boundary by much more than the tolerance
+ * along long elements.
+ */
+bool is_vertex_aligned(
+        const ShapeElement& element,
+        const ShapeElement& element_next)
+{
+    Point direction = element_next.end - element.start;
+    LengthDbl length = norm(direction);
+    if (length == 0.0)
+        return false;
+    LengthDbl distance = std::abs(cross_product(direction, element.end - element.start)) / length;
+    return !strictly_greater(distance, 0.0);
+}
+
 struct ApproximatedElementKey
 {
     ShapePos approximated_shape_pos = -1;
@@ -138,8 +157,7 @@ AreaDbl compute_approximation_cost(
 
     if (shape.outer) {
         // Outer approximation.
-        //if (angle_next == M_PI) {
-        if (equal(angle_next, M_PI)) {
+        if (is_vertex_aligned(element.element, element_next.element)) {
             return 0.0;
         } else if (angle_next > M_PI) {
             if (angle_prev > M_PI) {
@@ -193,8 +211,7 @@ AreaDbl compute_approximation_cost(
         }
     } else {
         // Inner approximation.
-        //if (angle_next == M_PI) {
-        if (equal(angle_next, M_PI)) {
+        if (is_vertex_aligned(element.element, element_next.element)) {
             return 0.0;
         } else if (angle_next < M_PI) {
             if (angle_prev < M_PI) {
@@ -265,8 +282,7 @@ void apply_approximation(
 
     if (shape.outer) {
         // Outer approximation.
-        //if (angle_next == M_PI) {
-        if (equal(angle_next, M_PI)) {
+        if (is_vertex_aligned(element.element, element_next.element)) {
             element_next.element.start = element.element.start;
         } else if (angle_next > M_PI) {
             if (angle_prev > M_PI) {
@@ -322,8 +338,7 @@ void apply_approximation(
         }
     } else {
         // Inner approximation.
-        //if (angle_next == M_PI) {
-        if (equal(angle_next, M_PI)) {
+        if (is_vertex_aligned(element.element, element_next.element)) {
             element_next.element.start = element.element.start;
         } else if (angle_next < M_PI) {
             if (angle_prev < M_PI) {

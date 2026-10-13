@@ -1,4 +1,5 @@
 #include "shape/simplification.hpp"
+#include "shape/boolean_operations.hpp"
 
 #include <gtest/gtest.h>
 
@@ -370,5 +371,77 @@ INSTANTIATE_TEST_SUITE_P(
             },
         }),
         [](const testing::TestParamInfo<SimplifyInvalidInputTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
+struct SimplifyTestParams
+{
+    std::string name;
+    Shape shape;
+    AreaDbl maximum_approximation_area;
+    ElementPos expected_number_of_elements;
+};
+
+void PrintTo(const SimplifyTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "maximum_approximation_area " << params.maximum_approximation_area << "\n";
+}
+
+class SimplifyTest: public testing::TestWithParam<SimplifyTestParams> { };
+
+TEST_P(SimplifyTest, Simplify)
+{
+    SimplifyTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    std::vector<ShapeWithHoles> output = simplify(
+            {{{test_params.shape}, 1}},
+            test_params.maximum_approximation_area);
+    ASSERT_EQ(output.size(), 1);
+    std::cout << "output " << output.front().to_string(1) << std::endl;
+
+    EXPECT_EQ((ElementPos)output.front().shape.elements.size(), test_params.expected_number_of_elements);
+    // The simplified shape contains the shape, and its area is greater by at
+    // most the maximum approximation area.
+    AreaDbl area_outside = 0.0;
+    for (const ShapeWithHoles& part: compute_difference(ShapeWithHoles{test_params.shape}, output.front()).shapes_with_holes)
+        area_outside += part.compute_area();
+    EXPECT_TRUE(equal(area_outside, 0.0));
+    EXPECT_FALSE(strictly_greater(
+                output.front().compute_area() - test_params.shape.compute_area(),
+                test_params.maximum_approximation_area));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        SimplifyTest,
+        testing::ValuesIn(std::vector<SimplifyTestParams>{
+            {
+                // Notches of area 1 are filled within the maximum
+                // approximation area (simplify stops once the shape has at
+                // most 8 elements).
+                "Notches",
+                build_shape({
+                        {0, 0}, {20, 0}, {20, 10},
+                        {17, 10}, {16, 9}, {15, 10},
+                        {11, 10}, {10, 9}, {9, 10},
+                        {5, 10}, {4, 9}, {3, 10},
+                        {0, 10}}),
+                2.5,
+                8,
+            }, {
+                // The vertices (500, 0) and (600, 100.0001) are almost
+                // aligned with their neighbors, but removing them would move
+                // the boundary inwards by much more than the tolerance along
+                // these long elements. Only the vertices exactly aligned with
+                // their neighbors are removed.
+                "AlmostAlignedVertices",
+                build_shape({{0, 0}, {500, 0}, {1000, 0.0004}, {1000, 100}, {800, 100}, {600, 100.0001}, {400, 100}, {200, 100}, {100, 100}, {0, 100}}),
+                0,
+                8,
+            },
+        }),
+        [](const testing::TestParamInfo<SimplifyTest::ParamType>& info) {
             return info.param.name;
         });
