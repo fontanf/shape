@@ -87,6 +87,41 @@ INSTANTIATE_TEST_SUITE_P(
                 {build_shape({{1, 0}, {2, 0}, {3, 3}, {0, 3}})},
                 {GeneralizedTrapezoid(0, 3, 1, 2, 0, 3)},
                 "Trapezoid2",
+            }, {
+                // Holes touching each other at a vertex.
+                {
+                    build_shape({{0, 0}, {6, 0}, {6, 6}, {0, 6}}),
+                    {
+                        build_shape({{1, 1}, {3, 1}, {3, 3}}),
+                        build_shape({{3, 3}, {5, 3}, {5, 5}}),
+                    }
+                }, {
+                    GeneralizedTrapezoid(0, 1, 0, 6, 0, 6),
+                    GeneralizedTrapezoid(1, 3, 0, 1, 0, 3),
+                    GeneralizedTrapezoid(1, 3, 3, 6, 3, 6),
+                    GeneralizedTrapezoid(3, 5, 0, 3, 0, 5),
+                    GeneralizedTrapezoid(3, 5, 5, 6, 5, 6),
+                    GeneralizedTrapezoid(5, 6, 0, 6, 0, 6),
+                },
+                "HolesTouchingAtVertex",
+            }, {
+                // Holes touching each other along an edge.
+                {
+                    build_shape({{0, 0}, {6, 0}, {6, 6}, {0, 6}}),
+                    {
+                        build_shape({{1, 1}, {3, 1}, {3, 3}, {1, 3}}),
+                        build_shape({{3, 2}, {5, 2}, {5, 4}, {3, 4}}),
+                    }
+                }, {
+                    GeneralizedTrapezoid(0, 1, 0, 6, 0, 6),
+                    GeneralizedTrapezoid(1, 2, 0, 1, 0, 1),
+                    GeneralizedTrapezoid(1, 2, 3, 6, 3, 6),
+                    GeneralizedTrapezoid(2, 3, 0, 1, 0, 1),
+                    GeneralizedTrapezoid(2, 4, 5, 6, 5, 6),
+                    GeneralizedTrapezoid(3, 4, 0, 3, 0, 3),
+                    GeneralizedTrapezoid(4, 6, 0, 6, 0, 6),
+                },
+                "HolesTouchingAlongEdge",
             }, {  // Triangle3
                 {build_shape({{4, 0}, {1, 3}, {0, 1}})},
                 {
