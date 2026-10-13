@@ -563,37 +563,39 @@ ShapeElementIntersectionsOutput compute_arc_arc_intersections(
             Point arc1e = (arc.orientation == ShapeElementOrientation::Anticlockwise)? arc.end: arc.start;
             Point arc2s = (arc_2.orientation == ShapeElementOrientation::Anticlockwise)? arc_2.start: arc_2.end;
             Point arc2e = (arc_2.orientation == ShapeElementOrientation::Anticlockwise)? arc_2.end: arc_2.start;
-            Point ref = arc1s - arc.center;
 #ifdef ELEMENTS_INTERSECTIONS_ENABLE_DEBUG
             std::cout << "arc1s " << arc1s.to_string() << std::endl;
             std::cout << "arc1e " << arc1e.to_string() << std::endl;
             std::cout << "arc2s " << arc2s.to_string() << std::endl;
             std::cout << "arc2e " << arc2e.to_string() << std::endl;
 #endif
-            Angle angle_1e = angle_radian(ref, arc1e - arc.center);
-            Angle angle_2s = angle_radian(ref, arc2s - arc.center);
-            Angle angle_2e = angle_radian(ref, arc2e - arc.center);
-#ifdef ELEMENTS_INTERSECTIONS_ENABLE_DEBUG
-            std::cout << "angle_1e " << angle_1e << std::endl;
-            std::cout << "angle_2s " << angle_2s << std::endl;
-            std::cout << "angle_2e " << angle_2e << std::endl;
-#endif
-            if (strictly_greater(angle_2e, angle_2s)) {
-                if (strictly_greater(angle_2s, angle_1e)) {
+            // The positions of the endpoints are compared by checking which
+            // ones are on the other arc, so that the tolerance is the same as
+            // for the points.
+            ShapeElement arc_1_anticlockwise = build_circular_arc(arc1s, arc1e, arc.center, ShapeElementOrientation::Anticlockwise);
+            ShapeElement arc_2_anticlockwise = build_circular_arc(arc2s, arc2e, arc.center, ShapeElementOrientation::Anticlockwise);
+            bool arc2s_on_arc_1 = arc_1_anticlockwise.contains(arc2s);
+            bool arc2e_on_arc_1 = arc_1_anticlockwise.contains(arc2e);
+            // Whether arc 2 goes past the start of arc 1 (possibly ending
+            // there).
+            bool arc_2_goes_past_arc1s = arc_2_anticlockwise.contains(arc1s)
+                && !equal(arc1s, arc2s);
+            if (!arc_2_goes_past_arc1s) {
+                if (!arc2s_on_arc_1) {
                     return {};
-                } else if (strictly_greater(angle_2e, angle_1e)) {
+                } else if (!arc2e_on_arc_1) {
                     if (equal(arc2s, arc1e)) {
                         return {{}, {arc2s}, {}};
                     } else {
                         return {{build_circular_arc(arc2s, arc1e, arc.center, ShapeElementOrientation::Anticlockwise)}, {}, {}};
                     }
                 } else {
-                    return {{build_circular_arc(arc2s, arc2e, arc.center, ShapeElementOrientation::Anticlockwise)}, {}, {}};
+                    return {{arc_2_anticlockwise}, {}, {}};
                 }
             } else {
-                if (strictly_greater(angle_2e, angle_1e)) {
-                    return {{build_circular_arc(arc1s, arc1e, arc.center, ShapeElementOrientation::Anticlockwise)}, {}, {}};
-                } else if (strictly_greater(angle_2s, angle_1e)) {
+                if (!arc2e_on_arc_1) {
+                    return {{arc_1_anticlockwise}, {}, {}};
+                } else if (!arc2s_on_arc_1) {
                     if (equal(arc1s, arc2e)) {
                         return {{}, {arc1s}, {}};
                     } else {
