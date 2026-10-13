@@ -40,11 +40,13 @@ TEST_P(IntersectionTreeTest, IntersectionTree)
             test_params.elements,
             test_params.points);
 
-    for (const auto& p: test_params.test_shapes) {
-        IntersectionTree::IntersectOutput intersections = intersection_tree.intersect(p.first, test_params.strict);
+    auto check_intersections = [](
+            const IntersectionTree::IntersectOutput& intersections,
+            const IntersectionTree::IntersectOutput& expected_intersections)
+    {
         // Check shapes.
-        EXPECT_EQ(intersections.shape_ids.size(), p.second.shape_ids.size());
-        for (ShapePos expected_shape_pos: p.second.shape_ids) {
+        EXPECT_EQ(intersections.shape_ids.size(), expected_intersections.shape_ids.size());
+        for (ShapePos expected_shape_pos: expected_intersections.shape_ids) {
             EXPECT_NE(std::find(
                         intersections.shape_ids.begin(),
                         intersections.shape_ids.end(),
@@ -52,8 +54,8 @@ TEST_P(IntersectionTreeTest, IntersectionTree)
                     intersections.shape_ids.end());
         }
         // Check elements.
-        EXPECT_EQ(intersections.element_ids.size(), p.second.element_ids.size());
-        for (ElementPos expected_element_pos: p.second.element_ids) {
+        EXPECT_EQ(intersections.element_ids.size(), expected_intersections.element_ids.size());
+        for (ElementPos expected_element_pos: expected_intersections.element_ids) {
             EXPECT_NE(std::find(
                         intersections.element_ids.begin(),
                         intersections.element_ids.end(),
@@ -61,15 +63,22 @@ TEST_P(IntersectionTreeTest, IntersectionTree)
                     intersections.element_ids.end());
         }
         // Check points.
-        EXPECT_EQ(intersections.point_ids.size(), p.second.point_ids.size());
-        for (ElementPos expected_point_pos: p.second.point_ids) {
+        EXPECT_EQ(intersections.point_ids.size(), expected_intersections.point_ids.size());
+        for (ElementPos expected_point_pos: expected_intersections.point_ids) {
             EXPECT_NE(std::find(
                         intersections.point_ids.begin(),
                         intersections.point_ids.end(),
                         expected_point_pos),
                     intersections.point_ids.end());
         }
-    }
+    };
+
+    for (const auto& p: test_params.test_shapes)
+        check_intersections(intersection_tree.intersect(p.first, test_params.strict), p.second);
+    for (const auto& p: test_params.test_elements)
+        check_intersections(intersection_tree.intersect(p.first, test_params.strict), p.second);
+    for (const auto& p: test_params.test_points)
+        check_intersections(intersection_tree.intersect(p.first, test_params.strict), p.second);
 
     std::vector<std::pair<ShapePos, ShapePos>> intersecting_shapes = intersection_tree.compute_intersecting_shapes(test_params.strict);
     EXPECT_EQ(intersecting_shapes.size(), test_params.expected_intersecting_shapes.size());
@@ -102,6 +111,30 @@ INSTANTIATE_TEST_SUITE_P(
                 {}, {}, {},
                 {}, {},
                 "Square",
+            }, {
+                {}, {build_line_segment({0, 0}, {2, 2})}, {},
+                true,
+                {},
+                {
+                    {build_line_segment({0, 2}, {2, 0}), {{}, {0}, {}}},
+                    {build_line_segment({2, 2}, {3, 0}), {{}, {}, {}}},
+                    {build_line_segment({3, 0}, {4, 2}), {{}, {}, {}}},
+                },
+                {},
+                {}, {},
+                "ElementStrict",
+            }, {
+                {}, {build_line_segment({0, 0}, {2, 2})}, {},
+                false,
+                {},
+                {
+                    {build_line_segment({0, 2}, {2, 0}), {{}, {0}, {}}},
+                    {build_line_segment({2, 2}, {3, 0}), {{}, {0}, {}}},
+                    {build_line_segment({3, 0}, {4, 2}), {{}, {}, {}}},
+                },
+                {},
+                {}, {},
+                "ElementNotStrict",
             //}, {
             //    {{build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}), {}}, {}, {}},
             //    true,
