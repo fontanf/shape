@@ -511,7 +511,7 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     if (strict) {
         for (ElementPos element_id: potentially_intersecting_elements_) {
             ShapeElementIntersectionsOutput intersections = compute_intersections(this->element(element_id), element);
-            if (!intersections.improper_intersections.empty())
+            if (!intersections.proper_intersections.empty())
                 output.element_ids.push_back(element_id);
         }
     } else {
@@ -519,7 +519,7 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
             ShapeElementIntersectionsOutput intersections = compute_intersections(this->element(element_id), element);
             if (!intersections.overlapping_parts.empty()
                     || !intersections.improper_intersections.empty()
-                    || !intersections.improper_intersections.empty()) {
+                    || !intersections.proper_intersections.empty()) {
                 output.element_ids.push_back(element_id);
             }
         }
