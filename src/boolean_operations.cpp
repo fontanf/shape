@@ -1484,12 +1484,6 @@ std::vector<ShapeWithHoles> compute_boolean_operation(
                 num_groups = group_id + 1;
     }
 
-    if (boolean_operation == BooleanOperation::SymmetricDifference
-            && num_shapes_1 == 1) {
-        if (cse_output.shape_component_ids.number_of_values() > 1)
-            return output;
-    }
-
     // For each connected component.
     for (ComponentId component_id = 0;
             component_id < (ShapePos)shapes.size();
