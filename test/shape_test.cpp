@@ -10,6 +10,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 
@@ -1466,7 +1467,10 @@ TEST_P(ShapeWriteSvgTest, ShapeWriteSvg)
 {
     ShapeWriteSvgTestParams test_params = GetParam();
     PrintTo(test_params, &std::cout);
-    std::string file_path = testing::TempDir() + "shape_write_svg_test.svg";
+    // Each test case uses its own file, since they may run in parallel.
+    std::string test_name = testing::UnitTest::GetInstance()->current_test_info()->name();
+    std::replace(test_name.begin(), test_name.end(), '/', '_');
+    std::string file_path = testing::TempDir() + "shape_write_svg_test_" + test_name + ".svg";
 
     test_params.shape.write_svg(file_path);
     EXPECT_EQ(count_occurrences(file_path, "<path"), 1);
