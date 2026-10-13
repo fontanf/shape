@@ -1089,11 +1089,15 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
 
     std::vector<ShapeWithHoles> component_shapes;
     std::vector<ShapePos> component_group_ids;
+    // For the difference and the symmetric difference, whether each shape of
+    // the component is from the first operand.
+    std::vector<uint8_t> component_is_shapes_1;
     for (auto it = cse_output.shape_component_ids.begin(component_id);
             it != cse_output.shape_component_ids.end(component_id);
             ++it) {
         component_shapes.push_back(shapes[*it]);
         component_group_ids.push_back(group_ids.empty()? *it: group_ids[*it]);
+        component_is_shapes_1.push_back(*it < num_shapes_1);
     }
     ShapePos component_num_groups = group_ids.empty()? (ShapePos)shapes.size(): num_groups;
     IntersectionTree intersection_tree(component_shapes, {}, {});
@@ -1336,16 +1340,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             for (ShapePos shape_pos = 0;
                     shape_pos < (ShapePos)component_shapes.size();
                     ++shape_pos) {
-                bool is_in_shapes_1 = false;
-                for (ShapePos shape_1_pos = 0;
-                        shape_1_pos < num_shapes_1;
-                        ++shape_1_pos) {
-                    if (shape_pos == cse_output.shape_component_ids.position(shape_1_pos)) {
-                        is_in_shapes_1 = true;
-                        break;
-                    }
-                }
-                if (is_in_shapes_1)
+                if (component_is_shapes_1[shape_pos])
                     continue;
                 if (is_inside[shape_pos]) {
                     ok = false;
@@ -1367,14 +1362,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             bool inside_shapes_1 = false;
             bool inside_shapes_2 = false;
             for (ShapePos shape_pos: intersection_output.shape_ids) {
-                bool is_shapes_1_pos = false;
-                for (ShapePos i = 0; i < num_shapes_1; ++i) {
-                    if (shape_pos == cse_output.shape_component_ids.position(i)) {
-                        is_shapes_1_pos = true;
-                        break;
-                    }
-                }
-                if (is_shapes_1_pos) inside_shapes_1 = true;
+                if (component_is_shapes_1[shape_pos]) inside_shapes_1 = true;
                 else inside_shapes_2 = true;
             }
             if (inside_shapes_1 && !inside_shapes_2) {
@@ -1394,14 +1382,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
                     ++shape_pos) {
                 if (!is_inside[shape_pos])
                     continue;
-                bool is_shapes_1_pos = false;
-                for (ShapePos i = 0; i < num_shapes_1; ++i) {
-                    if (shape_pos == cse_output.shape_component_ids.position(i)) {
-                        is_shapes_1_pos = true;
-                        break;
-                    }
-                }
-                if (is_shapes_1_pos) fast_inside_1 = true;
+                if (component_is_shapes_1[shape_pos]) fast_inside_1 = true;
                 else fast_inside_2 = true;
             }
             if (fast_inside_1 && fast_inside_2)
@@ -1414,14 +1395,7 @@ std::vector<ShapeWithHoles> compute_boolean_operation_component(
             bool inside_shapes_1 = false;
             bool inside_shapes_2 = false;
             for (ShapePos shape_pos: intersection_output.shape_ids) {
-                bool is_shapes_1_pos = false;
-                for (ShapePos i = 0; i < num_shapes_1; ++i) {
-                    if (shape_pos == cse_output.shape_component_ids.position(i)) {
-                        is_shapes_1_pos = true;
-                        break;
-                    }
-                }
-                if (is_shapes_1_pos) inside_shapes_1 = true;
+                if (component_is_shapes_1[shape_pos]) inside_shapes_1 = true;
                 else inside_shapes_2 = true;
             }
             if (inside_shapes_1 != inside_shapes_2) {
