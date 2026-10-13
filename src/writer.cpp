@@ -189,6 +189,12 @@ void Writer::write_json(const std::string& file_path) const
     }
 
     nlohmann::json json;
+    for (ElementPos point_pos = 0;
+            point_pos < (ElementPos)this->points_.size();
+            ++point_pos) {
+        json["points"][point_pos] = this->points_[point_pos].point.to_json();
+        json["points"][point_pos]["label"] = this->points_[point_pos].label;
+    }
     for (ElementPos element_pos = 0;
             element_pos < (ShapePos)this->elements_.size();
             ++element_pos) {

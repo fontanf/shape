@@ -158,6 +158,23 @@ with open(args.path, 'r') as f:
                     color='black',
                     size=1)))
 
+    # Plot points.
+    if "points" in j:
+        for point_pos, point in enumerate(j["points"]):
+            legend_name = (
+                    point["label"]
+                    if "label" in point.keys() and point["label"] != ""
+                    else f"Point {point_pos}")
+            fig.add_trace(go.Scatter(
+                x=[point["x"]],
+                y=[point["y"]],
+                name=legend_name,
+                showlegend=True,
+                mode="markers",
+                marker=dict(
+                    color='black',
+                    size=6)))
+
 
 # Plot.
 fig.update_layout(
