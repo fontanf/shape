@@ -232,6 +232,14 @@ INSTANTIATE_TEST_SUITE_P(
                 },
                 1.0, 1.0,
             },
+            {  // Hole crossing no vertical grid line.
+                "HoleInSingleColumn",
+                {
+                    build_rectangle(0, 4, 0, 4),
+                    {build_rectangle(1.2, 1.8, 1.2, 2.8)},
+                },
+                1.0, 1.0,
+            },
             // Large cell: entire shape fits within a single cell.
             {  // Rectangle much smaller than the cell.
                 "LargeCell",

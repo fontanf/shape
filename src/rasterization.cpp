@@ -106,8 +106,20 @@ void fill_columns_intersections(
     for (const ShapePoint& point: intersection_points)
         std::cout << point.element_pos << " " << point.point.to_string() << std::endl;
 #endif
-    if (intersection_points.empty())
+    if (intersection_points.empty()) {
+        // The shape crosses no vertical grid line, so it lies inside a single
+        // column, where all its rows are border rows. The region above it is
+        // the same as the region around it: inside the shape for a hole,
+        // outside for an outline.
+        AxisAlignedBoundingBox aabb = shape.compute_min_max();
+        CellId cell = find_cell(cell_width, cell_height, {aabb.x_min, aabb.y_min});
+        ColumnIntersection column_intersection;
+        column_intersection.y_min = aabb.y_min;
+        column_intersection.y_max = aabb.y_max;
+        column_intersection.is_above_inside = is_hole;
+        column_intersections[cell.column - column_intersections_offset].push_back(column_intersection);
         return;
+    }
     // Sort intersection points by their length on the element.
     std::sort(
             intersection_points.begin(),
