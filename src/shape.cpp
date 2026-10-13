@@ -1961,8 +1961,8 @@ std::string Shape::to_svg_path() const
                     + std::to_string(sweep_flag) + ",";
             }
         }
-        s += std::to_string(elements.front().start.x)
-            + "," + std::to_string(-(elements.front().start.y));
+        s += std::to_string(elements.back().end.x)
+            + "," + std::to_string(-(elements.back().end.y));
         if (!this->is_path)
             s += "Z";
     }
