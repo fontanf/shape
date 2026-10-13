@@ -155,6 +155,16 @@ INSTANTIATE_TEST_SUITE_P(
                 build_line_segment({15, 0}, {35, 0}),
                 build_circular_arc({2.5, -9.682458365518542}, {2.5, 9.682458365518542}, {5, 0}, ShapeElementOrientation::Clockwise),
                 {{}, {}, {}},
+            }, {  // Line segment starting at the start of the arc, within
+                // the tolerance: a single improper intersection.
+                build_line_segment({1 + 5e-7, 0}, {2, 0}),
+                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {{}, {{1, 0}}, {}},
+            }, {  // Arcs starting at the same point, within the tolerance: a
+                // single improper intersection.
+                build_circular_arc({1, 0}, {0, 1}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                build_circular_arc({1 + 5e-7, 0}, {2, 1 - 5e-7}, {2, 0}, ShapeElementOrientation::Clockwise),
+                {{}, {{1, 0}}, {}},
             }, {  // Intersecting line segment and circular arc.
                 build_circular_arc({1, 0}, {-1, 0}, {0, 0}, ShapeElementOrientation::Anticlockwise),
                 build_line_segment({0, 0}, {0, 2}),
