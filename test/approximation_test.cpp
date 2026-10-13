@@ -103,6 +103,53 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct ApproximatePathByLineSegmentsTestParams
+{
+    Shape path;
+    LengthDbl segment_length;
+    Shape expected_output;
+};
+
+void PrintTo(const ApproximatePathByLineSegmentsTestParams& params, std::ostream* os)
+{
+    *os << "path " << params.path.to_string(0) << "\n";
+    *os << "segment_length " << params.segment_length << "\n";
+    *os << "expected_output " << params.expected_output.to_string(0) << "\n";
+}
+
+class ApproximatePathByLineSegmentsTest: public testing::TestWithParam<ApproximatePathByLineSegmentsTestParams> { };
+
+TEST_P(ApproximatePathByLineSegmentsTest, ApproximatePathByLineSegments)
+{
+    ApproximatePathByLineSegmentsTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    Shape output = approximate_path_by_line_segments(
+            test_params.path,
+            test_params.segment_length);
+    std::cout << "output " << output.to_string(0) << std::endl;
+
+    EXPECT_EQ(output.is_path, test_params.expected_output.is_path);
+    EXPECT_TRUE(equal(output, test_params.expected_output));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ApproximatePathByLineSegmentsTest,
+        testing::ValuesIn(std::vector<ApproximatePathByLineSegmentsTestParams>{
+            {  // 0. Line segments only.
+                build_path({{0, 0}, {1, 0}, {1, 1}}),
+                10,
+                build_path({{0, 0}, {1, 0}, {1, 1}}),
+            }, {  // 1. Line segment and circular arc.
+                build_path({{-1, 0}, {1, 0}, {0, 0, 1}, {0, 1}}),
+                10,
+                build_path({{-1, 0}, {1, 0}, {1, 1}, {0, 1}}),
+            },
+        }),
+        [](const testing::TestParamInfo<ApproximatePathByLineSegmentsTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
+
 struct ApproximateShapeByLineSegmentsTestParams
 {
     std::string name;

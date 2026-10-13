@@ -423,6 +423,7 @@ Shape shape::approximate_path_by_line_segments(
     path = flatten_arcs(path);
 
     Shape path_new;
+    path_new.is_path = true;
 
     for (const ShapeElement& element: path.elements) {
         switch (element.type) {
