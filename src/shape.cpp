@@ -889,12 +889,7 @@ void ShapeElement::write_svg(
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     file << s;
 
-    file << "<path d=\"" << to_svg() << "\""
-        << " stroke=\"black\""
-        << " stroke-width=\"0.1\""
-        << " fill=\"blue\""
-        << " fill-opacity=\"0.2\""
-        << "/>" << std::endl;
+    file << to_svg();
 
     file << "</svg>" << std::endl;
 }
@@ -2013,12 +2008,7 @@ void Shape::write_svg(
         + "\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\n";
     file << s;
 
-    file << "<path d=\"" << to_svg() << "\""
-        << " stroke=\"black\""
-        << " stroke-width=\"0.1\""
-        << " fill=\"blue\""
-        << " fill-opacity=\"0.2\""
-        << "/>" << std::endl;
+    file << to_svg("blue");
 
     file << "</svg>" << std::endl;
 }
