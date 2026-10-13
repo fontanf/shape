@@ -49,8 +49,8 @@ TEST_P(ApproximateCircularArcByLineSegmentsTest, ApproximateCircularArcByLineSeg
     for (const ShapeElement& line_segment: line_segments)
         std::cout << line_segment.to_string() << std::endl;
 
-    ASSERT_EQ(line_segments.size(), test_params.number_of_line_segments);
-    for (ElementPos pos = 0; pos < test_params.number_of_line_segments; ++pos) {
+    ASSERT_EQ(line_segments.size(), test_params.expected_line_segments.size());
+    for (ElementPos pos = 0; pos < (ElementPos)line_segments.size(); ++pos) {
         //std::cout << std::setprecision (15) << line_segments[pos].start.x << std::endl;
         EXPECT_TRUE(equal(line_segments[pos], test_params.expected_line_segments[pos]));
     }
@@ -96,6 +96,22 @@ INSTANTIATE_TEST_SUITE_P(
                 3,
                 false,
                 build_shape({{1, 0}, {0.585786437626905, 0}, {0, 0.585786437626905}, {0, 1}}, true).elements,
+            }, {
+                // A full circle requires at least 4 line segments: the
+                // triangle circumscribed to the circle, through its start.
+                "Full1SegOuter",
+                build_circle(1).elements.front(),
+                1,
+                true,
+                build_shape({{1, 0}, {1, sqrt(3)}, {-2, 0}, {1, -sqrt(3)}}).elements,
+            }, {
+                // A full circle requires at least 4 line segments: the
+                // triangle inscribed in the circle.
+                "Full1SegInner",
+                build_circle(1).elements.front(),
+                1,
+                false,
+                build_shape({{1, 0}, {-0.5, sqrt(3) / 2}, {-0.5, -sqrt(3) / 2}}).elements,
             }
         }),
         [](const testing::TestParamInfo<ApproximateCircularArcByLineSegmentsTest::ParamType>& info) {
@@ -239,6 +255,24 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
                 {
                     build_shape({{1, 0}, {0, 1}, {0, 0}}),
+                },
+            },
+            {
+                "CircleOuter",
+                build_circle(1),
+                10,
+                true,
+                {
+                    build_shape({{1, 0}, {1, sqrt(3)}, {-2, 0}, {1, -sqrt(3)}}),
+                },
+            },
+            {
+                "CircleInner",
+                build_circle(1),
+                10,
+                false,
+                {
+                    build_shape({{1, 0}, {-0.5, sqrt(3) / 2}, {-0.5, -sqrt(3) / 2}}),
                 },
             },
             ApproximateShapeByLineSegmentsTestParams::read_json(
