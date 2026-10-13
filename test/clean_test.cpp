@@ -100,6 +100,60 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct RemoveBacktracksTestParams
+{
+    std::string name;
+    Shape shape;
+    Shape expected_shape;
+};
+
+void PrintTo(const RemoveBacktracksTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "expected_shape " << params.expected_shape.to_string(0) << "\n";
+}
+
+class RemoveBacktracksTest: public testing::TestWithParam<RemoveBacktracksTestParams> { };
+
+TEST_P(RemoveBacktracksTest, RemoveBacktracks)
+{
+    RemoveBacktracksTestParams test_params = GetParam();
+    Shape output_shape = remove_backtracks(test_params.shape);
+    std::cout << output_shape.to_string(1) << std::endl;
+    EXPECT_EQ(output_shape.is_path, test_params.expected_shape.is_path);
+    EXPECT_EQ(test_params.expected_shape, output_shape);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        ,
+        RemoveBacktracksTest,
+        testing::ValuesIn(std::vector<RemoveBacktracksTestParams>{
+            {
+                "Backtrack",
+                build_shape({{0, 0}, {2, 0}, {3, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+            }, {
+                // The last element is the reverse of the first one.
+                "BacktrackAcrossStart",
+                build_shape({{-1, 0}, {0, 0}, {1, 0}, {0, 1}, {0, 0}}),
+                build_shape({{0, 0}, {1, 0}, {0, 1}}),
+            }, {
+                // Removing a backtrack reveals another one.
+                "NestedBacktracks",
+                build_shape({{0, 0}, {2, 0}, {3, 0}, {4, 0}, {3, 0}, {2, 0}, {2, 2}, {0, 2}}),
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
+            }, {
+                // The last element of a path is not followed by its first
+                // element.
+                "PathEndingWithReverseOfFirstElement",
+                build_path({{0, 0}, {1, 0}, {1, 1}, {2, 1}, {1, 0}, {0, 0}}),
+                build_path({{0, 0}, {1, 0}, {1, 1}, {2, 1}, {1, 0}, {0, 0}}),
+            }}),
+        [](const testing::TestParamInfo<RemoveBacktracksTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
 struct CleanExtremeSlopesOuterTestParams
 {
     std::string name;
