@@ -1,0 +1,149 @@
+{
+  "description": "Two holes sharing an edge, one of them with an edge on the boundary of the other shape: the common edge of the holes must not make the region of a hole inside the shape",
+  "shapes": [
+    {
+      "type": "rectangle",
+      "width": 6,
+      "height": 6,
+      "holes": [
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 3,
+              "y": 4
+            },
+            {
+              "x": 4,
+              "y": 4
+            },
+            {
+              "x": 4,
+              "y": 5
+            }
+          ]
+        },
+        {
+          "type": "polygon",
+          "vertices": [
+            {
+              "x": 4,
+              "y": 4
+            },
+            {
+              "x": 5,
+              "y": 5
+            },
+            {
+              "x": 4,
+              "y": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "rectangle",
+      "x": -1,
+      "y": -1,
+      "width": 8,
+      "height": 6
+    }
+  ],
+  "expected_output": [
+    {
+      "elements": [
+        {
+          "end": {
+            "x": 5.0,
+            "y": 5.0
+          },
+          "start": {
+            "x": 6.0,
+            "y": 5.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 4.0,
+            "y": 4.0
+          },
+          "start": {
+            "x": 5.0,
+            "y": 5.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 3.0,
+            "y": 4.0
+          },
+          "start": {
+            "x": 4.0,
+            "y": 4.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 4.0,
+            "y": 5.0
+          },
+          "start": {
+            "x": 3.0,
+            "y": 4.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 0.0,
+            "y": 5.0
+          },
+          "start": {
+            "x": 4.0,
+            "y": 5.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 5.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 6.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 6.0,
+            "y": 5.0
+          },
+          "start": {
+            "x": 6.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        }
+      ],
+      "is_path": false,
+      "type": "general"
+    }
+  ]
+}
