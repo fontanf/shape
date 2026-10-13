@@ -215,48 +215,91 @@ std::vector<GeneralizedTrapezoid> trapezoidation(
     ShapeWithHoles shape = bridged.shapes_with_holes.front();
     //std::cout << shape.to_string(0) << std::endl;
 
-    // Holes touching each other at a point are not supported by the sweep
-    // below. In this case, the shape is cut by a horizontal line through
-    // this point: in each part, the holes touch the outline there instead,
-    // which is handled by bridge_touching_holes.
+    // Holes touching each other, or an outline touching itself (which
+    // happens when holes touching the outline at different points are
+    // bridged), are not supported by the sweep below. In this case, the shape
+    // is cut by a horizontal line through a point where they touch: in each
+    // part, the holes or the parts of the outline touch the outline at this
+    // point instead, which is handled by bridge_touching_holes. A point at
+    // the bottom or at the top of the shape can't be used, since it would
+    // leave the shape unchanged.
     {
-        std::vector<ShapeElement> holes_elements;
-        std::vector<ShapePos> holes_elements_hole_pos;
-        for (ShapePos hole_pos = 0;
-                hole_pos < (ShapePos)shape.holes.size();
-                ++hole_pos) {
-            for (const ShapeElement& element: shape.holes[hole_pos].elements) {
-                holes_elements.push_back(element);
-                holes_elements_hole_pos.push_back(hole_pos);
+        AxisAlignedBoundingBox aabb = shape.compute_min_max();
+        std::vector<ShapeElement> elements;
+        std::vector<ShapePos> elements_shape_pos;
+        std::vector<ElementPos> elements_element_pos;
+        for (ShapePos shape_pos = -1;
+                shape_pos < (ShapePos)shape.holes.size();
+                ++shape_pos) {
+            const Shape& current_shape = (shape_pos == -1)?
+                shape.shape:
+                shape.holes[shape_pos];
+            for (ElementPos element_pos = 0;
+                    element_pos < (ElementPos)current_shape.elements.size();
+                    ++element_pos) {
+                elements.push_back(current_shape.elements[element_pos]);
+                elements_shape_pos.push_back(shape_pos);
+                elements_element_pos.push_back(element_pos);
             }
         }
-        IntersectionTree intersection_tree({}, holes_elements, {});
+        IntersectionTree intersection_tree({}, elements, {});
         for (const ElementElementIntersection& intersection:
                 intersection_tree.compute_intersecting_elements(false)) {
-            if (holes_elements_hole_pos[intersection.element_id_1]
-                    == holes_elements_hole_pos[intersection.element_id_2]) {
-                continue;
-            }
-            Point point = (!intersection.intersections.improper_intersections.empty())?
-                intersection.intersections.improper_intersections.front():
-                (!intersection.intersections.proper_intersections.empty())?
-                intersection.intersections.proper_intersections.front():
-                intersection.intersections.overlapping_parts.front().start;
-            AxisAlignedBoundingBox aabb = shape.compute_min_max();
-            std::vector<GeneralizedTrapezoid> trapezoids;
-            for (const Shape& half_plane: {
-                    build_rectangle(aabb.x_min - 1, aabb.x_max + 1, aabb.y_min - 1, point.y),
-                    build_rectangle(aabb.x_min - 1, aabb.x_max + 1, point.y, aabb.y_max + 1)}) {
-                MultiShapeWithHoles parts = compute_intersection(shape, {half_plane});
-                for (const ShapeWithHoles& part: parts.shapes_with_holes) {
-                    std::vector<GeneralizedTrapezoid> part_trapezoids = trapezoidation(part, false);
-                    trapezoids.insert(
-                            trapezoids.end(),
-                            part_trapezoids.begin(),
-                            part_trapezoids.end());
+            ShapePos shape_pos = elements_shape_pos[intersection.element_id_1];
+            if (shape_pos == elements_shape_pos[intersection.element_id_2]) {
+                // Elements of the same hole only touch the elements next to
+                // them. Elements of the outline next to each other touch at
+                // their common vertex.
+                if (shape_pos != -1)
+                    continue;
+                ElementPos number_of_elements = shape.shape.elements.size();
+                ElementPos element_pos_1 = elements_element_pos[intersection.element_id_1];
+                ElementPos element_pos_2 = elements_element_pos[intersection.element_id_2];
+                if ((element_pos_1 + 1) % number_of_elements == element_pos_2
+                        || (element_pos_2 + 1) % number_of_elements == element_pos_1) {
+                    continue;
                 }
             }
-            return trapezoids;
+            std::vector<Point> points = intersection.intersections.improper_intersections;
+            points.insert(
+                    points.end(),
+                    intersection.intersections.proper_intersections.begin(),
+                    intersection.intersections.proper_intersections.end());
+            for (const ShapeElement& overlapping_part: intersection.intersections.overlapping_parts) {
+                points.push_back(overlapping_part.start);
+                points.push_back(overlapping_part.end);
+            }
+            const ShapeElement& element_1 = elements[intersection.element_id_1];
+            const ShapeElement& element_2 = elements[intersection.element_id_2];
+            for (const Point& point: points) {
+                if (!strictly_greater(point.y, aabb.y_min)
+                        || !strictly_lesser(point.y, aabb.y_max)) {
+                    continue;
+                }
+                // The sweep supports an outline touching itself at one of
+                // its vertices, but not at a vertex inside one of its
+                // elements.
+                if (shape_pos == -1
+                        && elements_shape_pos[intersection.element_id_2] == -1
+                        && (equal(point, element_1.start) || equal(point, element_1.end))
+                        && (equal(point, element_2.start) || equal(point, element_2.end))) {
+                    continue;
+                }
+                std::vector<GeneralizedTrapezoid> trapezoids;
+                for (const Shape& half_plane: {
+                        build_rectangle(aabb.x_min - 1, aabb.x_max + 1, aabb.y_min - 1, point.y),
+                        build_rectangle(aabb.x_min - 1, aabb.x_max + 1, point.y, aabb.y_max + 1)}) {
+                    MultiShapeWithHoles parts = compute_intersection(shape, {half_plane});
+                    for (const ShapeWithHoles& part: parts.shapes_with_holes) {
+                        std::vector<GeneralizedTrapezoid> part_trapezoids = trapezoidation(part, false);
+                        trapezoids.insert(
+                                trapezoids.end(),
+                                part_trapezoids.begin(),
+                                part_trapezoids.end());
+                    }
+                }
+                return trapezoids;
+            }
         }
     }
 

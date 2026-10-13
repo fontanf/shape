@@ -122,6 +122,26 @@ INSTANTIATE_TEST_SUITE_P(
                     GeneralizedTrapezoid(4, 6, 0, 6, 0, 6),
                 },
                 "HolesTouchingAlongEdge",
+            }, {
+                // Holes touching each other and the outline at points: once
+                // bridged, the outline touches itself inside one of its
+                // elements, at (3, 1).
+                {
+                    build_shape({{0, 0}, {6, 0}, {6, 3}, {0, 3}}),
+                    {
+                        build_shape({{2, 1}, {3, 1}, {3, 2}}),
+                        build_shape({{3, 1}, {4, 1}, {4, 2}}),
+                        build_shape({{4, 2}, {5, 2}, {5, 3}}),
+                    }
+                }, {
+                    GeneralizedTrapezoid(0, 1, 0, 6, 0, 6),
+                    GeneralizedTrapezoid(1, 2, 0, 2, 0, 3),
+                    GeneralizedTrapezoid(1, 2, 3, 3, 3, 4),
+                    GeneralizedTrapezoid(1, 2, 4, 6, 4, 6),
+                    GeneralizedTrapezoid(2, 3, 0, 4, 0, 5),
+                    GeneralizedTrapezoid(2, 3, 5, 6, 5, 6),
+                },
+                "HolesTouchingOutlineInChain",
             }, {  // Triangle3
                 {build_shape({{4, 0}, {1, 3}, {0, 1}})},
                 {
