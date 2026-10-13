@@ -182,6 +182,29 @@ bool shape::intersect(
         return false;
     }
 
+    // A full circle starts and ends at the same point, so its end can't be
+    // used to process it; process each of its halves instead.
+    if (element.type == ShapeElementType::CircularArc
+            && element.orientation == ShapeElementOrientation::Full) {
+        Point antipode = 2 * element.center - element.start;
+        return intersect(
+                shape,
+                build_circular_arc(
+                    element.start,
+                    antipode,
+                    element.center,
+                    ShapeElementOrientation::Anticlockwise),
+                true)
+            || intersect(
+                shape,
+                build_circular_arc(
+                    antipode,
+                    element.start,
+                    element.center,
+                    ShapeElementOrientation::Anticlockwise),
+                true);
+    }
+
     std::vector<Point> intersection_points;
     std::vector<ShapeElement> overlapping_parts;
     std::vector<std::pair<int, ElementPos>> intersections;
@@ -790,6 +813,29 @@ bool shape::intersect(
         if (shape_with_holes.contains(element.start))
             return true;
         return false;
+    }
+
+    // A full circle starts and ends at the same point, so its end can't be
+    // used to process it; process each of its halves instead.
+    if (element.type == ShapeElementType::CircularArc
+            && element.orientation == ShapeElementOrientation::Full) {
+        Point antipode = 2 * element.center - element.start;
+        return intersect(
+                shape_with_holes,
+                build_circular_arc(
+                    element.start,
+                    antipode,
+                    element.center,
+                    ShapeElementOrientation::Anticlockwise),
+                true)
+            || intersect(
+                shape_with_holes,
+                build_circular_arc(
+                    antipode,
+                    element.start,
+                    element.center,
+                    ShapeElementOrientation::Anticlockwise),
+                true);
     }
 
     std::vector<Point> intersection_points;

@@ -212,10 +212,108 @@ INSTANTIATE_TEST_SUITE_P(
                 build_line_segment({1, 1}, {1, 3}),
                 false,
                 false,
+            }, {
+                "SquareCircleInsideStrict",
+                build_rectangle(-2, 2, -2, 2),
+                build_circle(1).elements.front(),
+                true,
+                true,
+            }, {
+                "SquareCircleCrossingStrict",
+                build_rectangle(-2, 2, -2, 2),
+                build_circle(1).shift(2, 0).elements.front(),
+                true,
+                true,
+            }, {
+                "SquareCircleTangentStrict",
+                build_rectangle(-2, 2, -2, 2),
+                build_circle(1).shift(3, 0).elements.front(),
+                true,
+                false,
+            }, {
+                "SquareCircleOutsideStrict",
+                build_rectangle(-2, 2, -2, 2),
+                build_circle(1).shift(10, 0).elements.front(),
+                true,
+                false,
             },
         }),
         [](const testing::TestParamInfo<IntersectShapeShapeElementTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
+        });
+
+
+struct IntersectShapeWithHolesShapeElementTestParams
+{
+    std::string name;
+    ShapeWithHoles shape;
+    ShapeElement element;
+    bool strict = false;
+    bool expected_output;
+};
+
+void PrintTo(const IntersectShapeWithHolesShapeElementTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "strict " << params.strict << "\n";
+    *os << "expected_output " << params.expected_output << "\n";
+}
+
+class IntersectShapeWithHolesShapeElementTest: public testing::TestWithParam<IntersectShapeWithHolesShapeElementTestParams> { };
+
+TEST_P(IntersectShapeWithHolesShapeElementTest, IntersectShapeWithHolesShapeElement)
+{
+    IntersectShapeWithHolesShapeElementTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+
+    bool output = intersect(
+            test_params.shape,
+            test_params.element,
+            test_params.strict);
+    std::cout << "output " << output << std::endl;
+
+    EXPECT_EQ(output, test_params.expected_output);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        IntersectShapeWithHolesShapeElementTest,
+        testing::ValuesIn(std::vector<IntersectShapeWithHolesShapeElementTestParams>{
+            {
+                "SegmentInHoleStrict",
+                {build_rectangle(-4, 4, -4, 4), {build_rectangle(-2, 2, -2, 2)}},
+                build_line_segment({-1, 0}, {1, 0}),
+                true,
+                false,
+            }, {
+                "SegmentCrossingHoleStrict",
+                {build_rectangle(-4, 4, -4, 4), {build_rectangle(-2, 2, -2, 2)}},
+                build_line_segment({-1, 0}, {3, 0}),
+                true,
+                true,
+            }, {
+                "CircleInsideStrict",
+                {build_rectangle(-4, 4, -4, 4), {build_rectangle(-2, 2, -2, 2)}},
+                build_circle(0.5).shift(3, 3).elements.front(),
+                true,
+                true,
+            }, {
+                "CircleInHoleStrict",
+                {build_rectangle(-4, 4, -4, 4), {build_rectangle(-2, 2, -2, 2)}},
+                build_circle(1).elements.front(),
+                true,
+                false,
+            }, {
+                "CircleAroundHoleStrict",
+                {build_rectangle(-4, 4, -4, 4), {build_rectangle(-1, 1, -1, 1)}},
+                build_circle(2).elements.front(),
+                true,
+                true,
+            },
+        }),
+        [](const testing::TestParamInfo<IntersectShapeWithHolesShapeElementTest::ParamType>& info) {
+            return info.param.name;
         });
 
 
