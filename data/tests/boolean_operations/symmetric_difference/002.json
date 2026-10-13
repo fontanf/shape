@@ -1,0 +1,33 @@
+{
+  "description": "Disjoint shapes: the symmetric difference is both shapes",
+  "shapes_1": [
+    {
+      "type": "rectangle",
+      "width": 10,
+      "height": 10
+    }
+  ],
+  "shapes_2": [
+    {
+      "type": "rectangle",
+      "x": 20,
+      "y": 0,
+      "width": 10,
+      "height": 10
+    }
+  ],
+  "expected_output": [
+    {
+      "type": "rectangle",
+      "width": 10,
+      "height": 10
+    },
+    {
+      "type": "rectangle",
+      "x": 20,
+      "y": 0,
+      "width": 10,
+      "height": 10
+    }
+  ]
+}

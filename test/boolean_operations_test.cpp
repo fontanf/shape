@@ -882,6 +882,10 @@ INSTANTIATE_TEST_SUITE_P(
             // implemented" (see the JSON fixture's description).
             ComputeBooleanSymmetricDifferenceTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference" / "001.json").string()),
+            ComputeBooleanSymmetricDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference" / "002.json").string()),
+            ComputeBooleanSymmetricDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference" / "003.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeBooleanSymmetricDifferenceTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
