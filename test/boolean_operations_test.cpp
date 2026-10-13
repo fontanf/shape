@@ -801,6 +801,8 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "boolean_operations" / "difference" / "005.json").string()),
             ComputeBooleanDifferenceTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "difference" / "006.json").string()),
+            ComputeBooleanDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "difference" / "007.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeBooleanDifferenceTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
@@ -890,6 +892,8 @@ INSTANTIATE_TEST_SUITE_P(
                     (fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference" / "002.json").string()),
             ComputeBooleanSymmetricDifferenceTestParams::read_json(
                     (fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference" / "003.json").string()),
+            ComputeBooleanSymmetricDifferenceTestParams::read_json(
+                    (fs::path("data") / "tests" / "boolean_operations" / "symmetric_difference" / "004.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeBooleanSymmetricDifferenceTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();

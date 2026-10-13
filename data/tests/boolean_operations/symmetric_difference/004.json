@@ -1,0 +1,187 @@
+{
+  "description": "Several shapes in the first operand: a shape of the second operand must not be taken for one of the first operand",
+  "shapes_1": [
+    {
+      "type": "rectangle",
+      "x": 0,
+      "y": 0,
+      "width": 2,
+      "height": 2
+    },
+    {
+      "type": "rectangle",
+      "x": 1,
+      "y": 0,
+      "width": 2,
+      "height": 2
+    },
+    {
+      "type": "rectangle",
+      "x": 5,
+      "y": 0,
+      "width": 2,
+      "height": 2
+    }
+  ],
+  "shapes_2": [
+    {
+      "type": "rectangle",
+      "x": 6,
+      "y": 0,
+      "width": 2,
+      "height": 2
+    }
+  ],
+  "expected_output": [
+    {
+      "elements": [
+        {
+          "end": {
+            "x": 0.0,
+            "y": 2.0
+          },
+          "start": {
+            "x": 3.0,
+            "y": 2.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 2.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 3.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 0.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 3.0,
+            "y": 2.0
+          },
+          "start": {
+            "x": 3.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        }
+      ],
+      "is_path": false,
+      "type": "general"
+    },
+    {
+      "elements": [
+        {
+          "end": {
+            "x": 5.0,
+            "y": 2.0
+          },
+          "start": {
+            "x": 6.0,
+            "y": 2.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 5.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 5.0,
+            "y": 2.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 6.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 5.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 6.0,
+            "y": 2.0
+          },
+          "start": {
+            "x": 6.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        }
+      ],
+      "is_path": false,
+      "type": "general"
+    },
+    {
+      "elements": [
+        {
+          "end": {
+            "x": 7.0,
+            "y": 2.0
+          },
+          "start": {
+            "x": 8.0,
+            "y": 2.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 7.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 7.0,
+            "y": 2.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 8.0,
+            "y": 0.0
+          },
+          "start": {
+            "x": 7.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        },
+        {
+          "end": {
+            "x": 8.0,
+            "y": 2.0
+          },
+          "start": {
+            "x": 8.0,
+            "y": 0.0
+          },
+          "type": "LineSegment"
+        }
+      ],
+      "is_path": false,
+      "type": "general"
+    }
+  ]
+}
