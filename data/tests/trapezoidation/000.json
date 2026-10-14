@@ -1,5 +1,5 @@
 {
-    "description": "Regression test for a crash found via random fuzzing of the library with valid shapes, reached through no_fit_polygon() -> decompose_into_basic_shapes() -> compute_convex_partition() -> trapezoidation(). This is the pure-polygon shape decompose_into_basic_shapes() produces internally (after cutting off the original shape's circular segments) before calling trapezoidation() on it. trapezoidation() used to crash: bridge_touching_holes(shape_orig) subtracts each hole that touches the outline from the outline via compute_difference, and for this shape's touching hole that leaves zero shapes (the hole's area consumes the entire outline); trapezoidation() then called .front() on that empty result, segfaulting, instead of treating 'no material left' as a legitimate degenerate case producing no trapezoids (the same way a fully deflated-away shape produces no output from deflate()). expected_output is empty because this is that confirmed-correct degenerate case, not an unknown crash repro.",
+    "description": "Regression test for a crash found via random fuzzing of the library, reached through no_fit_polygon() -> decompose_into_basic_shapes() -> compute_convex_partition() -> trapezoidation(). This is the pure-polygon shape decompose_into_basic_shapes() produces internally (after cutting off the original shape's circular segments) before calling trapezoidation() on it. trapezoidation() used to crash when bridge_touching_holes(shape_orig) returned no shapes. The hole is not entirely inside the outline: about 14% of its area is outside of it, which ShapeWithHoles::check() doesn't detect. bridge_touching_holes subtracts it from the outline, and the trapezoids cover the outline minus the part of the hole inside it (area 29722.3, while compute_area() gives 29349.9 since it subtracts the whole hole). The expected output used to be empty, because compute_line_intersection, with a tolerance on the distance to the line inconsistent with the point tolerance, made the difference empty.",
     "shape": {
         "elements": [
             {
@@ -1147,5 +1147,190 @@
         "is_path": false,
         "type": "general"
     },
-    "expected_output": []
+    "expected_output": [
+        {
+            "x_bottom_left": 452.35957749440684,
+            "x_bottom_right": 630.6062604805311,
+            "x_top_left": 507.75047623656945,
+            "x_top_right": 507.75047623656945,
+            "y_bottom": 631.9786459892385,
+            "y_top": 715.5747049748018
+        },
+        {
+            "x_bottom_left": 455.26622510444275,
+            "x_bottom_right": 651.0116510079694,
+            "x_top_left": 452.35957749440684,
+            "x_top_right": 630.6062604805311,
+            "y_bottom": 618.0939905727067,
+            "y_top": 631.9786459892385
+        },
+        {
+            "x_bottom_left": 461.0197707123602,
+            "x_bottom_right": 645.4990920464285,
+            "x_top_left": 455.26622510444275,
+            "x_top_right": 651.0116510079694,
+            "y_bottom": 590.6100954099743,
+            "y_top": 618.0939905727067
+        },
+        {
+            "x_bottom_left": 463.0017832118632,
+            "x_bottom_right": 517.7071203997075,
+            "x_top_left": 461.0197707123602,
+            "x_top_right": 527.206485482384,
+            "y_bottom": 581.1422946033543,
+            "y_top": 590.6100954099743
+        },
+        {
+            "x_bottom_left": 540.3394114891131,
+            "x_bottom_right": 641.8952719237299,
+            "x_top_left": 527.206485482384,
+            "x_top_right": 645.4990920464285,
+            "y_bottom": 572.64257522042,
+            "y_top": 590.6100954099743
+        },
+        {
+            "x_bottom_left": 477.8397405724025,
+            "x_bottom_right": 496.0456193818172,
+            "x_top_left": 463.0017832118632,
+            "x_top_right": 517.7071203997075,
+            "y_bottom": 559.5527699325121,
+            "y_top": 581.1422946033543
+        },
+        {
+            "x_bottom_left": 482.3973194973996,
+            "x_bottom_right": 491.3017949075813,
+            "x_top_left": 477.8397405724025,
+            "x_top_right": 496.0456193818172,
+            "y_bottom": 554.8247081312512,
+            "y_top": 559.5527699325121
+        },
+        {
+            "x_bottom_left": 484.790551004235,
+            "x_bottom_right": 489.04554291733297,
+            "x_top_left": 482.3973194973996,
+            "x_top_right": 491.3017949075813,
+            "y_bottom": 552.5759531642306,
+            "y_top": 554.8247081312512
+        },
+        {
+            "x_bottom_left": 486.0146518425025,
+            "x_bottom_right": 487.947419600056,
+            "x_top_left": 484.790551004235,
+            "x_top_right": 489.04554291733297,
+            "y_bottom": 551.4814786663461,
+            "y_top": 552.5759531642306
+        },
+        {
+            "x_bottom_left": 486.63342871168794,
+            "x_bottom_right": 487.40599015373266,
+            "x_top_left": 486.0146518425025,
+            "x_top_right": 487.947419600056,
+            "y_bottom": 550.9418482695761,
+            "y_top": 551.4814786663461
+        },
+        {
+            "x_bottom_left": 486.9444804042905,
+            "x_bottom_right": 487.1371996443487,
+            "x_top_left": 486.63342871168794,
+            "x_top_right": 487.40599015373266,
+            "y_bottom": 550.6739508912347,
+            "y_top": 550.9418482695761
+        },
+        {
+            "x_bottom_left": 487.0224156899989,
+            "x_bottom_right": 487.0702032308497,
+            "x_top_left": 486.9444804042905,
+            "x_top_right": 487.1371996443487,
+            "y_bottom": 550.6071770919075,
+            "y_top": 550.6739508912347
+        },
+        {
+            "x_bottom_left": 487.0481293436487,
+            "x_bottom_right": 487.0481293436487,
+            "x_top_left": 487.0224156899989,
+            "x_top_right": 487.0702032308497,
+            "y_bottom": 550.5851765513211,
+            "y_top": 550.6071770919075
+        },
+        {
+            "x_bottom_left": 567.96906781023,
+            "x_bottom_right": 636.0477759934809,
+            "x_top_left": 540.3394114891131,
+            "x_top_right": 641.8952719237299,
+            "y_bottom": 543.4887890690702,
+            "y_top": 572.64257522042
+        },
+        {
+            "x_bottom_left": 513.993831690648,
+            "x_bottom_right": 634.9369308618672,
+            "x_top_left": 567.96906781023,
+            "x_top_right": 636.0477759934809,
+            "y_bottom": 537.9504626126459,
+            "y_top": 543.4887890690702
+        },
+        {
+            "x_bottom_left": 500.66226878381224,
+            "x_bottom_right": 634.4235657836438,
+            "x_top_left": 513.993831690648,
+            "x_top_right": 634.9369308618672,
+            "y_bottom": 535.3909848658253,
+            "y_top": 537.9504626126459
+        },
+        {
+            "x_bottom_left": 497.34400004755605,
+            "x_bottom_right": 634.2806383549602,
+            "x_top_left": 500.66226878381224,
+            "x_top_right": 634.4235657836438,
+            "y_bottom": 534.6783934009133,
+            "y_top": 535.3909848658253
+        },
+        {
+            "x_bottom_left": 497.1368166863726,
+            "x_bottom_right": 634.2715122557887,
+            "x_top_left": 497.34400004755605,
+            "x_top_right": 634.2806383549602,
+            "y_bottom": 534.6328935242456,
+            "y_top": 534.6783934009133
+        },
+        {
+            "x_bottom_left": 497.03323433681686,
+            "x_bottom_right": 634.2669406914497,
+            "x_top_left": 497.1368166863726,
+            "x_top_right": 634.2715122557887,
+            "y_bottom": 534.6101011340144,
+            "y_top": 534.6328935242456
+        },
+        {
+            "x_bottom_left": 496.9814454981808,
+            "x_bottom_right": 634.2646527807411,
+            "x_top_left": 497.03323433681686,
+            "x_top_right": 634.2669406914497,
+            "y_bottom": 534.5986943266685,
+            "y_top": 534.6101011340144
+        },
+        {
+            "x_bottom_left": 496.9380343510662,
+            "x_bottom_right": 634.2627338306808,
+            "x_top_left": 496.9814454981808,
+            "x_top_right": 634.2646527807411,
+            "y_bottom": 534.589127041738,
+            "y_top": 534.5986943266685
+        },
+        {
+            "x_bottom_left": 496.608317135111,
+            "x_bottom_right": 633.6458537740206,
+            "x_top_left": 496.9380343510662,
+            "x_top_right": 634.2627338306808,
+            "y_bottom": 531.5135559823603,
+            "y_top": 534.589127041738
+        },
+        {
+            "x_bottom_left": 485.3740044423002,
+            "x_bottom_right": 485.3740044423002,
+            "x_top_left": 496.608317135111,
+            "x_top_right": 633.6458537740206,
+            "y_bottom": 426.72094789875774,
+            "y_top": 531.5135559823603
+        }
+    ]
 }
