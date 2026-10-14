@@ -43,32 +43,32 @@ std::pair<bool, Point> shape::compute_line_intersection(
     // perpendicular distances first (unaffected by that amplification)
     // ensures such a case snaps to the existing endpoint instead of
     // computing a slightly-off, spuriously "new" point next to it.
-    } else if (equal(dist_1start_2, 0.0)) {
+    } else if (point_on_line(p11, p21, p22)) {
         //std::cout << "h" << std::endl;
-        if (equal(dist_2start_1, 0.0))
+        if (point_on_line(p21, p11, p12))
             return (std::abs(dist_1start_2) < std::abs(dist_2start_1))?
                 std::pair<bool, Point>{true, p11}:
                 std::pair<bool, Point>{true, p21};
-        if (equal(dist_2end_1, 0.0))
+        if (point_on_line(p22, p11, p12))
             return (std::abs(dist_1start_2) < std::abs(dist_2end_1))?
                 std::pair<bool, Point>{true, p11}:
                 std::pair<bool, Point>{true, p22};
         return {true, p11};
-    } else if (equal(dist_1end_2, 0.0)) {
+    } else if (point_on_line(p12, p21, p22)) {
         //std::cout << "i" << std::endl;
-        if (equal(dist_2start_1, 0.0))
+        if (point_on_line(p21, p11, p12))
             return (std::abs(dist_1end_2) < std::abs(dist_2start_1))?
                 std::pair<bool, Point>{true, p12}:
                 std::pair<bool, Point>{true, p21};
-        if (equal(dist_2end_1, 0.0))
+        if (point_on_line(p22, p11, p12))
             return (std::abs(dist_1end_2) < std::abs(dist_2end_1))?
                 std::pair<bool, Point>{true, p12}:
                 std::pair<bool, Point>{true, p22};
         return {true, p12};
-    } else if (equal(dist_2start_1, 0.0)) {
+    } else if (point_on_line(p21, p11, p12)) {
         //std::cout << "j" << std::endl;
         return {true, p21};
-    } else if (equal(dist_2end_1, 0.0)) {
+    } else if (point_on_line(p22, p11, p12)) {
         //std::cout << "k" << std::endl;
         return {true, p22};
     } else if (p11.x == p12.x) {
