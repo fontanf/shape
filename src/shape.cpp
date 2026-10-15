@@ -1535,6 +1535,10 @@ ShapePoint Shape::find_point_between(
         ShapeElement arc = element_1.extract(point_1.point, point_2.point);
         return {point_1.element_pos, arc.middle()};
     } else if (!equal(point_1.point, element_1.end)) {
+        // If point_2 is the end of the element of point_1 (at the start of
+        // the next element), the points between them are on this element.
+        if (equal(point_2.point, element_1.end))
+            return {point_1.element_pos, element_1.find_point_between(point_1.point, element_1.end)};
         return {point_1.element_pos, element_1.end};
     } else {
         ElementPos element_next_pos = (point_1.element_pos + 1) % (ElementPos)this->elements.size();

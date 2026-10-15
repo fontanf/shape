@@ -319,6 +319,13 @@ INSTANTIATE_TEST_SUITE_P(
                 {3, {0, 0}},
                 {1, {1, 0.5}},
                 {0, {0.5, 0}},
+            }, {  // point_2 at the start of the element following the element
+                // of point_1, which is the end of the element of point_1: the
+                // point between them is on the element of point_1, not its end.
+                build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+                {0, {0.5, 0}},
+                {1, {1, 0}},
+                {0, {0.75, 0}},
             },
         }),
         [](const testing::TestParamInfo<ShapeFindPointBetweenTest::ParamType>& info) {
