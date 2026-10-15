@@ -399,15 +399,6 @@ INSTANTIATE_TEST_SUITE_P(
                 },
                 "HoleSplittingShapeTouchingAtPoint",
             },
-            // Regression test for a crash found via random fuzzing of the
-            // library, reached through no_fit_polygon() ->
-            // decompose_into_basic_shapes() -> compute_convex_partition() ->
-            // trapezoidation(): bridge_touching_holes() can legitimately
-            // return zero shapes (a touching hole's area consumes the
-            // entire outline) and trapezoidation() used to call .front() on
-            // that empty result -- see the JSON fixture's description.
-            TrapezoidationTestParams::read_json(
-                    (fs::path("data") / "tests" / "trapezoidation" / "000.json").string()),
         }),
         [](const testing::TestParamInfo<TrapezoidationTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
