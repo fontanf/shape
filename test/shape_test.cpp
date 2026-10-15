@@ -64,6 +64,23 @@ INSTANTIATE_TEST_SUITE_P(
                 {0.00058755222531203799, 0.00073094802962714311},
                 true,
             },
+            // A vector is not strictly lesser than itself, even when the
+            // cross product is computed with a fused multiply-add.
+            {
+                {0.80978762335406329, 0.5867231076603151},
+                {0.80978762335406329, 0.5867231076603151},
+                false,
+            },
+            {
+                {-0.80978762335406329, -0.5867231076603151},
+                {-0.80978762335406329, -0.5867231076603151},
+                false,
+            },
+            {
+                {0.89070897486398548, -0.4545740006827802},
+                {0.89070897486398548, -0.4545740006827802},
+                false,
+            },
         }),
         [](const testing::TestParamInfo<StrictlyLesserAngleTest::ParamType>& info) {
             return std::to_string(info.index);

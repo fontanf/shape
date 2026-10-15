@@ -500,8 +500,10 @@ bool shape::strictly_lesser_angle(
         return false;
     if (vector_1.y == 0 && vector_2.y == 0)
         return (vector_1.x > vector_2.x);
-    LengthDbl v = vector_1.x * vector_2.y - vector_1.y * vector_2.x;
-    return (v > 0);
+    // The products are compared rather than subtracted: with a fused
+    // multiply-add, the difference of the products would be nonzero for two
+    // equal vectors, and a vector could be strictly lesser than itself.
+    return vector_1.x * vector_2.y > vector_1.y * vector_2.x;
 }
 
 bool shape::strictly_greater_angle(
