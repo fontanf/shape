@@ -1667,6 +1667,65 @@ INSTANTIATE_TEST_SUITE_P(
             return info.param.name;
         });
 
+struct ShapeEqualTestParams
+{
+    std::string name;
+    Shape shape_1;
+    Shape shape_2;
+    bool expected_operator_equal;
+    bool expected_equal;
+};
+
+void PrintTo(const ShapeEqualTestParams& params, std::ostream* os)
+{
+    *os << "shape_1 " << params.shape_1.to_string(1) << "\n";
+    *os << "shape_2 " << params.shape_2.to_string(1) << "\n";
+}
+
+class ShapeEqualTest: public testing::TestWithParam<ShapeEqualTestParams> { };
+
+TEST_P(ShapeEqualTest, ShapeEqual)
+{
+    ShapeEqualTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    EXPECT_EQ(test_params.shape_1 == test_params.shape_2, test_params.expected_operator_equal);
+    EXPECT_EQ(equal(test_params.shape_1, test_params.shape_2), test_params.expected_equal);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeEqualTest,
+        testing::ValuesIn(std::vector<ShapeEqualTestParams>{
+            {
+                "RotatedSquare",
+                build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+                build_shape({{1, 1}, {0, 1}, {0, 0}, {1, 0}}),
+                true,
+                true,
+            }, {
+                "ShapeAndPath",
+                build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+                build_path({{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}}),
+                false,
+                false,
+            }, {
+                "RotatedPath",
+                build_path({{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}}),
+                build_path({{1, 1}, {0, 1}, {0, 0}, {1, 0}, {1, 1}}),
+                false,
+                false,
+            }, {
+                "SquareWithinTolerance",
+                build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}),
+                build_shape({{0, 0}, {1 + 1e-7, 0}, {1, 1}, {0, 1}}),
+                false,
+                true,
+            },
+        }),
+        [](const testing::TestParamInfo<ShapeEqualTest::ParamType>& info) {
+            return info.param.name;
+        });
+
 TEST(ShapeWithHolesCheckTest, RejectsHoleNotContainedInOuterShape)
 {
     // Both the outer shape and the hole individually pass Shape::check(),
