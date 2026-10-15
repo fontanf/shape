@@ -2641,7 +2641,10 @@ bool shape::operator==(
         const Shape& shape_1,
         const Shape& shape_2)
 {
-    // First, check if both shapes have the same number of elements.
+    // First, check if both shapes are of the same kind and have the same
+    // number of elements.
+    if (shape_1.is_path != shape_2.is_path)
+        return false;
     if (shape_1.elements.size() != shape_2.elements.size())
         return false;
 
@@ -2655,6 +2658,11 @@ bool shape::operator==(
         }
     }
     if (offset == -1)
+        return false;
+    // A path starts at its first element. A closed shape may start at any of
+    // its elements, but since a valid shape doesn't go through the same
+    // element twice, the element found is the only possible start.
+    if (shape_1.is_path && offset != 0)
         return false;
 
     for (ElementPos element_pos = 0;
@@ -2673,7 +2681,10 @@ bool shape::equal(
         const Shape& shape_1,
         const Shape& shape_2)
 {
-    // First, check if both shapes have the same number of elements.
+    // First, check if both shapes are of the same kind and have the same
+    // number of elements.
+    if (shape_1.is_path != shape_2.is_path)
+        return false;
     if (shape_1.elements.size() != shape_2.elements.size())
         return false;
 
@@ -2687,6 +2698,11 @@ bool shape::equal(
         }
     }
     if (offset == -1)
+        return false;
+    // A path starts at its first element. A closed shape may start at any of
+    // its elements, but since a valid shape doesn't go through the same
+    // element twice, the element found is the only possible start.
+    if (shape_1.is_path && offset != 0)
         return false;
 
     for (ElementPos element_pos = 0;
