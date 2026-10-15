@@ -531,6 +531,10 @@ bool ShapeElement::in_circular_arc_cone(const Point& point) const
     // still matches this->point(l) once clamped iff 'point''s direction was
     // already within [0, this->length()]; if it wasn't, clamping moves
     // this->point(l) away from it, landing on start or end instead.
+    // The center is the apex of the cone, which contains it. It has no
+    // direction from the center to project along.
+    if (equal(point, this->center))
+        return true;
     LengthDbl l = (std::max)(0.0, (std::min)(this->length(), this->length(point)));
     LengthDbl point_distance = distance(this->center, point);
     Point radial_projection = this->center + (this->radius() / point_distance) * (point - this->center);

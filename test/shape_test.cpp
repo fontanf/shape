@@ -566,6 +566,18 @@ INSTANTIATE_TEST_SUITE_P(
         ShapeElement,
         ShapeElementInCircularArcConeTest,
         testing::ValuesIn(std::vector<ShapeElementInCircularArcConeTestParams>{
+            // The center, apex of the cone.
+            {
+                build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
+                {0, 0},
+                true,
+            },
+            // The center, apex of the cone, of a clockwise arc.
+            {
+                build_circular_arc({10, 0}, {0, -10}, {0, 0}, ShapeElementOrientation::Clockwise),
+                {0, 0},
+                true,
+            },
             // The arc's own start point.
             {
                 build_circular_arc({10, 0}, {0, 10}, {0, 0}, ShapeElementOrientation::Anticlockwise),
