@@ -67,12 +67,33 @@ INSTANTIATE_TEST_SUITE_P(
                 // lowest point (0, 0) and (10, 0), but on the left of
                 // (0, 0). With (0, 0) as the pivot, it was sorted as if it
                 // were on its right, and, depending on the implementation of
-                // std::sort, dropped from the hull. The pivot is now the
-                // leftmost of the lowest points within the tolerance (and
-                // (0, 0) is kept: it is, exactly, a left turn).
+                // std::sort, dropped from the hull. The points are now sorted
+                // by their exact angle around (0, 0), and (-1, 1e-9) comes
+                // last.
                 build_shape({{0, 0}, {10, 0}, {10, 10}, {-1, 10}, {-1, 1e-9}}),
                 false,
                 build_shape({{-1, 1e-9}, {0, 0}, {10, 0}, {10, 10}, {-1, 10}}),
+            }, {
+                // The two lowest points are close to each other. The points
+                // were sorted around the lowest one with 'counter_clockwise',
+                // whose collinearity check is not symmetric: a near point can
+                // be on the line through the lowest point and a far point
+                // within the tolerance while the far point isn't on the line
+                // through the lowest point and the near point. The sort was
+                // then inconsistent and the output wasn't convex.
+                build_shape({
+                        {-162.14686580729096, -159.75894183525972},
+                        {-281.52374304048334, -251.03896141876899},
+                        {-281.52374501221811, -251.03896332651928},
+                        {24.499879567359496, -148.94909807684283},
+                        {17.84085330125453, -71.889757366578394},
+                        {160.84969528197314, 162.07757174225461}}),
+                false,
+                build_shape({
+                        {-281.52374501221811, -251.03896332651928},
+                        {24.499879567359496, -148.94909807684283},
+                        {160.84969528197314, 162.07757174225461},
+                        {-281.52374304048334, -251.03896141876899}}),
             },
         }),
         [](const testing::TestParamInfo<ConvexHullTest::ParamType>& info) {

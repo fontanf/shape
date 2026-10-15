@@ -31,18 +31,15 @@ Shape shape::convex_hull(
     if (shape.elements.size() < 3)
         return shape;
 
-    // The pivot is the leftmost of the points with the least y, with the
-    // same tolerance as the collinearity checks of 'counter_clockwise', so
-    // that no other point is collinear with the pivot on its left.
-    LengthDbl least_y = std::numeric_limits<LengthDbl>::infinity();
-    for (const ShapeElement& shape_element: shape.elements)
-        least_y = (std::min)(least_y, shape_element.start.y);
-    Point point_least_y = {
-        std::numeric_limits<LengthDbl>::infinity(),
-        std::numeric_limits<LengthDbl>::infinity()};
+    // The pivot is the leftmost of the points with the least y, compared
+    // exactly, so that the directions from the pivot to all the other points
+    // are in the half-plane in which 'strictly_lesser_angle' orders them by
+    // angle.
+    Point point_least_y = shape.elements.front().start;
     for (const ShapeElement& shape_element: shape.elements) {
-        if (equal(shape_element.start.y, least_y)
-                && point_least_y.x > shape_element.start.x) {
+        if (shape_element.start.y < point_least_y.y
+                || (shape_element.start.y == point_least_y.y
+                    && shape_element.start.x < point_least_y.x)) {
             point_least_y = shape_element.start;
         }
     }
@@ -62,40 +59,40 @@ Shape shape::convex_hull(
                 const Point& point_1,
                 const Point& point_2)
             {
-                int order = counter_clockwise(
-                        point_least_y,
-                        point_1,
-                        point_2);
-                if (order != 0)
-                    return (order == -1);
+                // Compare the angles exactly rather than with
+                // 'counter_clockwise', whose collinearity check is not
+                // symmetric: a far point can be off the line through the
+                // pivot and a near point while the near point is on the line
+                // through the pivot and the far point. The comparison would
+                // then not be a strict weak ordering, and the points would be
+                // sorted wrongly.
+                Point vector_1 = point_1 - point_least_y;
+                Point vector_2 = point_2 - point_least_y;
+                if (strictly_lesser_angle(vector_1, vector_2))
+                    return true;
+                if (strictly_lesser_angle(vector_2, vector_1))
+                    return false;
                 return squared_distance(point_least_y, point_1)
                     < squared_distance(point_least_y, point_2);
             });
 
+    // Graham scan. The turns are checked exactly, consistently with the
+    // order of the points: a check with a tolerance can find that three
+    // points are collinear while the middle one in the angular order isn't
+    // the middle one along the line, and remove a point of the hull.
     std::vector<Point> convex_hull;
     convex_hull.push_back(point_least_y);
-    //std::cout << "push " << point_least_y.to_string() << std::endl;
-    convex_hull.push_back(points[0]);
-    //std::cout << "push " << points[0].to_string() << std::endl;
-    convex_hull.push_back(points[1]);
-    //std::cout << "push " << points[1].to_string() << std::endl;
-
-    for (ElementPos pos = 2; pos < (ElementPos)points.size(); pos++) {
-        //std::cout << "pos " << pos << " / " << points.size() << std::endl;
-        //std::cout << "point " << points[pos].to_string() << std::endl;
-        Point top = convex_hull.back();
-        convex_hull.pop_back();
-        //std::cout << "pop " << top.to_string() << std::endl;
-        while (convex_hull.size() > 1
-                && counter_clockwise(convex_hull.back(), top, points[pos]) != -1) {
-            top = convex_hull.back();
+    for (const Point& point: points) {
+        while (convex_hull.size() > 1) {
+            const Point& point_prev = convex_hull[convex_hull.size() - 2];
+            const Point& point_top = convex_hull.back();
+            Point vector_1 = point_top - point_prev;
+            Point vector_2 = point - point_top;
+            if (vector_1.x * vector_2.y > vector_1.y * vector_2.x)
+                break;
             convex_hull.pop_back();
-            //std::cout << "pop " << top.to_string() << std::endl;
         }
-        convex_hull.push_back(top);
-        //std::cout << "push " << top.to_string() << std::endl;
-        convex_hull.push_back(points[pos]);
-        //std::cout << "push " << points[pos].to_string() << std::endl;
+        convex_hull.push_back(point);
     }
 
     Shape convex_hull_shape;
