@@ -158,17 +158,24 @@ struct SimplifyInputShape
  * cleanup), regardless of how much of 'maximum_approximation_area' remains
  * unspent -- so a caller that only wants shapes above some vertex count
  * approximated at all, and every other shape left untouched, can pass that
- * count here.
+ * count here. It must be at least 3.
+ *
+ * The simplification also stops once the average number of elements per
+ * shape (counting the outlines and the holes as shapes, and each copy of
+ * their elements) is at most 'minimum_average_number_of_elements'. Pass 0 to
+ * only stop on the two criteria above.
  */
 std::vector<ShapeWithHoles> simplify(
         const std::vector<SimplifyInputShape>& shapes,
         AreaDbl maximum_approximation_area,
-        ElementPos minimum_number_of_vertices = 4);
+        ElementPos minimum_number_of_vertices = 4,
+        ElementPos minimum_average_number_of_elements = 8);
 
 void simplify_export_inputs(
         const std::string& file_path,
         const std::vector<SimplifyInputShape>& shapes,
         AreaDbl maximum_approximation_area,
-        ElementPos minimum_number_of_vertices = 4);
+        ElementPos minimum_number_of_vertices = 4,
+        ElementPos minimum_average_number_of_elements = 8);
 
 }

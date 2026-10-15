@@ -335,6 +335,90 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct SimplifyParametersTestParams
+{
+    std::string name;
+    Shape shape;
+    AreaDbl maximum_approximation_area;
+    ElementPos minimum_number_of_vertices;
+    ElementPos minimum_average_number_of_elements;
+    bool expected_invalid_argument;
+    ElementPos expected_number_of_elements;
+};
+
+void PrintTo(const SimplifyParametersTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "maximum_approximation_area " << params.maximum_approximation_area << "\n";
+    *os << "minimum_number_of_vertices " << params.minimum_number_of_vertices << "\n";
+    *os << "minimum_average_number_of_elements " << params.minimum_average_number_of_elements << "\n";
+}
+
+class SimplifyParametersTest: public testing::TestWithParam<SimplifyParametersTestParams> { };
+
+TEST_P(SimplifyParametersTest, SimplifyParameters)
+{
+    SimplifyParametersTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    if (test_params.expected_invalid_argument) {
+        EXPECT_THROW(
+                simplify(
+                    {{{test_params.shape}, 1}},
+                    test_params.maximum_approximation_area,
+                    test_params.minimum_number_of_vertices,
+                    test_params.minimum_average_number_of_elements),
+                std::invalid_argument);
+        return;
+    }
+    std::vector<ShapeWithHoles> output = simplify(
+            {{{test_params.shape}, 1}},
+            test_params.maximum_approximation_area,
+            test_params.minimum_number_of_vertices,
+            test_params.minimum_average_number_of_elements);
+    ASSERT_EQ(output.size(), 1);
+    std::cout << "output " << output.front().to_string(1) << std::endl;
+    EXPECT_EQ((ElementPos)output.front().shape.elements.size(), test_params.expected_number_of_elements);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        SimplifyParametersTest,
+        testing::ValuesIn(std::vector<SimplifyParametersTestParams>{
+            {
+                // The shape has less than 8 elements: it is not simplified
+                // with the default minimum average number of elements.
+                "NotchDefaultMinimumAverageNumberOfElements",
+                build_shape({{0, 0}, {10, 0}, {10, 10}, {6, 10}, {5, 9}, {4, 10}, {0, 10}}),
+                1,
+                4,
+                8,
+                false,
+                7,
+            }, {
+                // Without the minimum average number of elements, the notch
+                // is filled.
+                "NotchNoMinimumAverageNumberOfElements",
+                build_shape({{0, 0}, {10, 0}, {10, 10}, {6, 10}, {5, 9}, {4, 10}, {0, 10}}),
+                1,
+                4,
+                0,
+                false,
+                4,
+            }, {
+                "MinimumNumberOfVerticesTooSmall",
+                build_shape({{0, 0}, {10, 0}, {10, 10}, {6, 10}, {5, 9}, {4, 10}, {0, 10}}),
+                1,
+                2,
+                0,
+                true,
+                0,
+            },
+        }),
+        [](const testing::TestParamInfo<SimplifyParametersTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
 struct SimplifyInvalidInputTestParams
 {
     std::string name;
