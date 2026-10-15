@@ -682,11 +682,20 @@ SmoothArcToLineOutput shape::try_smooth_arc_to_line(
 std::vector<ShapeWithHoles> shape::simplify(
         const std::vector<SimplifyInputShape>& shapes,
         AreaDbl maximum_approximation_area,
-        ElementPos minimum_number_of_vertices)
+        ElementPos minimum_number_of_vertices,
+        ElementPos minimum_average_number_of_elements)
 {
     //std::cout << "shape_simplification " << maximum_approximation_area << std::endl;
     //for (const SimplifyInputShape& shape: shapes)
     //    std::cout << shape.shape.to_string(2) << std::endl;
+
+    // A shape with less than 3 vertices is degenerate.
+    if (minimum_number_of_vertices < 3) {
+        throw std::invalid_argument(
+                FUNC_SIGNATURE + ": "
+                "minimum_number_of_vertices must be >= 3; "
+                "minimum_number_of_vertices: " + std::to_string(minimum_number_of_vertices) + ".");
+    }
 
     // Check that the input doesn't contain any circular arc.
     for (ShapePos shape_pos = 0;
@@ -819,8 +828,10 @@ std::vector<ShapeWithHoles> shape::simplify(
     while (!priority_queue.empty()) {
 
         // Check stop criterion based on average number of element per item.
-        if (total_number_of_elements <= 8 * approximated_shapes.size())
+        if (total_number_of_elements
+                <= minimum_average_number_of_elements * (ElementPos)approximated_shapes.size()) {
             break;
+        }
 
         // Draw highest priority element.
         ElementPos element_key_id = priority_queue.top().first;
@@ -990,7 +1001,8 @@ void shape::simplify_export_inputs(
         const std::string& file_path,
         const std::vector<SimplifyInputShape>& shapes,
         AreaDbl maximum_approximation_area,
-        ElementPos minimum_number_of_vertices)
+        ElementPos minimum_number_of_vertices,
+        ElementPos minimum_average_number_of_elements)
 {
     std::ofstream file{file_path};
     nlohmann::json json;
@@ -1002,5 +1014,6 @@ void shape::simplify_export_inputs(
     }
     json["maximum_approximation_area"] = maximum_approximation_area;
     json["minimum_number_of_vertices"] = minimum_number_of_vertices;
+    json["minimum_average_number_of_elements"] = minimum_average_number_of_elements;
     file << std::setw(4) << json << std::endl;
 }
