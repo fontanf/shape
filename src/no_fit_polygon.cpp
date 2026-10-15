@@ -2,6 +2,7 @@
 
 #include "shape/boolean_operations.hpp"
 #include "shape/clean.hpp"
+#include "shape/equalize.hpp"
 #include "shape/basic_shapes.hpp"
 
 #include <algorithm>
@@ -13,30 +14,21 @@ namespace
 {
 
 /**
- * Same total order as shape::strictly_lesser_angle, but tolerant of the tiny
- * floating-point noise (on the order of 1e-16) that sqrt/trig-derived
- * CircularArc tangent directions carry relative to tangents computed
- * directly from stored points (e.g. a plain edge's direction, or another
- * arc's tangent obtained through a different center/radius). By
- * construction, an edge's direction is exactly equal to the tangent of the
- * arc it leads into (both are the external tangent to that arc's circle),
- * so the two *should* compare equal -- but shape::strictly_lesser_angle's
- * own cross-product test has no tolerance at all (a bare "> 0"), so any
- * nonzero noise gets treated as a strict order instead of a tie. For plain
- * polygons this never bites (both directions are typically bit-identical,
- * being derived from the same stored points via the same arithmetic), but
- * once arcs are involved -- especially for a self-NFP, or any pair of
- * shapes sharing rounded-corner structure -- such near-ties are frequent,
- * and silently corrupt the tie-handling logic below every time one occurs.
+ * Element of one side of the merge, with the tangent directions at its start
+ * and at its end, in output space (negated for the orbiting side).
+ *
+ * The directions of all the elements of both sides are equalized together
+ * (see no_fit_polygon), and then only compared exactly: two directions equal
+ * within the tolerance are exactly equal. They are not recomputed from the
+ * points of the elements: when an arc is split at a direction, both pieces
+ * keep this exact direction at the split point.
  */
-bool direction_strictly_lesser(
-        const Point& direction_1,
-        const Point& direction_2)
+struct DirectedElement
 {
-    if (equal(direction_1.x, direction_2.x) && equal(direction_1.y, direction_2.y))
-        return false;
-    return strictly_lesser_angle(direction_1, direction_2);
-}
+    ShapeElement element;
+    Point start_direction;
+    Point end_direction;
+};
 
 /**
  * Point on a circle (given center, radius, orientation) whose tangent
@@ -69,67 +61,78 @@ Point point_at_tangent_direction(
 }
 
 /**
- * True if 'direction' lies strictly between arc's start and end tangent
- * directions (i.e. strictly inside the open span, not at either endpoint).
+ * True if 'direction' (in output space) lies strictly between the start and
+ * end directions of a circular arc element (i.e. strictly inside the open
+ * span, not at either endpoint).
  *
  * no_fit_polygon requires every arc to span < 180° (see its precondition
  * check), so a direction is strictly inside iff turning CCW from the start
- * tangent to 'direction' is a positive turn, and turning CCW from
- * 'direction' to the end tangent is also a positive turn -- two plain
+ * direction to 'direction' is a positive turn, and turning CCW from
+ * 'direction' to the end direction is also a positive turn -- two plain
  * cross-product sign tests, no wraparound handling needed precisely because
- * the span cannot reach 180°.
+ * the span cannot reach 180°. The directions are equalized, so a direction
+ * equal to the start or end direction is not strictly inside.
  */
-bool direction_strictly_inside_arc(
-        const ShapeElement& arc,
+bool direction_strictly_inside(
+        const DirectedElement& element,
         const Point& direction)
 {
-    Point tangent_start = arc.tangent(arc.start);
-    Point tangent_end = arc.tangent(arc.end);
-    LengthDbl cross_1 = tangent_start.x * direction.y - tangent_start.y * direction.x;
-    LengthDbl cross_2 = direction.x * tangent_end.y - direction.y * tangent_end.x;
-    return strictly_greater(cross_1, 0.0) && strictly_greater(cross_2, 0.0);
+    if (element.element.type != ShapeElementType::CircularArc)
+        return false;
+    // The products are compared rather than subtracted, so that a fused
+    // multiply-add can't make the cross product of two equal directions
+    // nonzero.
+    const Point& start = element.start_direction;
+    const Point& end = element.end_direction;
+    return start.x * direction.y > start.y * direction.x
+        && direction.x * end.y > direction.y * end.x;
 }
 
 /**
  * Split 'arc' into consecutive sub-arc pieces at every direction in
- * 'target_directions' (given in the arc's own local frame) that falls
- * strictly inside its span, ordered along the arc from its own start to its
- * own end. Returns {arc} unchanged if none do.
+ * 'target_directions' (in output space) that falls strictly inside its span,
+ * ordered along the arc from its own start to its own end. Returns {arc}
+ * unchanged if none do.
  */
-std::vector<ShapeElement> split_arc_into_pieces(
-        const ShapeElement& arc,
+std::vector<DirectedElement> split_arc_into_pieces(
+        const DirectedElement& arc,
+        bool negate,
         const std::vector<Point>& target_directions)
 {
-    std::vector<Point> split_points;
+    std::vector<Point> split_directions;
     for (const Point& direction: target_directions)
-        if (direction_strictly_inside_arc(arc, direction))
-            split_points.push_back(point_at_tangent_direction(arc, direction));
-
-    if (split_points.empty())
+        if (direction_strictly_inside(arc, direction))
+            split_directions.push_back(direction);
+    if (split_directions.empty())
         return {arc};
 
+    // Order the directions along the arc, and remove the duplicates.
     std::sort(
-            split_points.begin(),
-            split_points.end(),
-            [&arc](const Point& p1, const Point& p2)
+            split_directions.begin(),
+            split_directions.end(),
+            [&arc](const Point& direction_1, const Point& direction_2)
             {
-                return arc.length(p1) < arc.length(p2);
+                return angle_radian(arc.start_direction, direction_1)
+                    < angle_radian(arc.start_direction, direction_2);
             });
+    split_directions.erase(
+            std::unique(split_directions.begin(), split_directions.end()),
+            split_directions.end());
 
-    std::vector<ShapeElement> pieces;
-    Point piece_start = arc.start;
-    for (const Point& split_point: split_points) {
-        if (equal(piece_start, split_point))
-            continue;
-        pieces.push_back(arc.extract(piece_start, split_point));
-        piece_start = split_point;
+    std::vector<DirectedElement> pieces;
+    DirectedElement remainder = arc;
+    for (const Point& direction: split_directions) {
+        Point local_direction = (negate)? Point{-direction.x, -direction.y}: direction;
+        Point split_point = point_at_tangent_direction(remainder.element, local_direction);
+        DirectedElement piece;
+        piece.element = remainder.element.extract(remainder.element.start, split_point);
+        piece.start_direction = remainder.start_direction;
+        piece.end_direction = direction;
+        pieces.push_back(piece);
+        remainder.element = remainder.element.extract(split_point, remainder.element.end);
+        remainder.start_direction = direction;
     }
-    if (!equal(piece_start, arc.end))
-        pieces.push_back(arc.extract(piece_start, arc.end));
-    // All split points coincided with piece_start (degenerate/duplicate
-    // directions): fall back to the arc unsplit rather than an empty list.
-    if (pieces.empty())
-        return {arc};
+    pieces.push_back(remainder);
     return pieces;
 }
 
@@ -154,67 +157,41 @@ std::vector<ShapeElement> split_arc_into_pieces(
  * becomes current -- permanently missing a split their direction should
  * have triggered.
  *
- * 'negate_self'/'negate_other' select which of 'elements'/'other_elements'
- * is the orbiting side, whose directions get negated for output space (see
- * EdgeCursor below); both direction sets need to end up expressed in each
- * arc's own local frame to be tested/split against it.
+ * The directions of both sides are in output space (see DirectedElement);
+ * 'negate_self' tells whether 'elements' is the orbiting side, whose split
+ * points are computed in its own (non-negated) frame.
  */
-std::vector<ShapeElement> presplit_elements(
-        const std::vector<ShapeElement>& elements,
+std::vector<DirectedElement> presplit_elements(
+        const std::vector<DirectedElement>& elements,
         bool negate_self,
-        const std::vector<ShapeElement>& other_elements,
-        bool negate_other)
+        const std::vector<DirectedElement>& other_elements)
 {
-    bool has_arc = false;
-    for (const ShapeElement& element: elements) {
-        if (element.type == ShapeElementType::CircularArc) {
-            has_arc = true;
-            break;
-        }
-    }
-    if (!has_arc)
-        return elements;
-
-    // Critical directions depend only on other_elements (and the negation
-    // flags), never on which or how many arcs 'elements' itself has, so
-    // they only need computing once and are then reused for every arc
-    // found below.
+    // Critical directions depend only on other_elements, so they only need
+    // computing once and are then reused for every arc found below. They are
+    // already in output space, like the directions of 'elements'.
     std::vector<Point> critical_directions;
-    for (const ShapeElement& other: other_elements) {
-        Point d_start = other.tangent(other.start);
-        if (negate_other)
-            d_start = {-d_start.x, -d_start.y};
-        if (negate_self)
-            d_start = {-d_start.x, -d_start.y};
-        critical_directions.push_back(d_start);
-        if (other.type == ShapeElementType::CircularArc) {
-            Point d_end = other.tangent(other.end);
-            if (negate_other)
-                d_end = {-d_end.x, -d_end.y};
-            if (negate_self)
-                d_end = {-d_end.x, -d_end.y};
-            critical_directions.push_back(d_end);
-        }
+    for (const DirectedElement& other: other_elements) {
+        critical_directions.push_back(other.start_direction);
+        critical_directions.push_back(other.end_direction);
     }
 
-    // Also always split at the global tangent-order minimum direction (1,0)
-    // [negated to (-1,0) in local frame if this is the orbiting side]: if
-    // an arc's span straddles it, the piece starting exactly there needs
+    // Also always split at the global tangent-order minimum direction (1,0):
+    // if an arc's span straddles it, the piece starting exactly there needs
     // to exist so the start-position selection below can find it. Without
     // this, an arc whose span straddles that direction can undercut every
     // other candidate's own start direction (its tangent dips below all of
     // them partway through, past the comparator's wraparound point) without
     // any element actually starting there for the selection to pick.
-    critical_directions.push_back(negate_self? Point{-1.0, 0.0}: Point{1.0, 0.0});
+    critical_directions.push_back(Point{1.0, 0.0});
 
-    std::vector<ShapeElement> result;
+    std::vector<DirectedElement> result;
     result.reserve(elements.size());
-    for (const ShapeElement& element: elements) {
-        if (element.type != ShapeElementType::CircularArc) {
+    for (const DirectedElement& element: elements) {
+        if (element.element.type != ShapeElementType::CircularArc) {
             result.push_back(element);
             continue;
         }
-        for (const ShapeElement& piece: split_arc_into_pieces(element, critical_directions))
+        for (const DirectedElement& piece: split_arc_into_pieces(element, negate_self, critical_directions))
             result.push_back(piece);
     }
     return result;
@@ -229,14 +206,14 @@ std::vector<ShapeElement> presplit_elements(
  */
 struct EdgeCursor
 {
-    const std::vector<ShapeElement>* elements = nullptr;
+    const std::vector<DirectedElement>* elements = nullptr;
     ElementPos next_pos = 0;
     bool negate = false;
 
     // The element currently at the front of the cursor (already popped from
     // 'elements' conceptually; may be a suffix of an original element after
     // a partial consumption). Only meaningful if has_current() is true.
-    ShapeElement current;
+    DirectedElement current;
     bool has_current_ = false;
 
     bool has_current() const { return has_current_; }
@@ -260,17 +237,19 @@ struct EdgeCursor
         }
     }
 
-    /** Tangent direction at the current element's start, in output space (negated for orbiting). */
-    Point start_direction() const
-    {
-        Point t = current.tangent(current.start);
-        return negate? Point{-t.x, -t.y}: t;
-    }
+    /** Equalized direction at the current element's start, in output space. */
+    Point start_direction() const { return current.start_direction; }
 
-    /** Tangent direction at the current element's end, in output space (negated for orbiting). */
-    Point end_direction() const
+    /** Equalized direction at the current element's end, in output space. */
+    Point end_direction() const { return current.end_direction; }
+
+    /**
+     * Exact (not equalized) direction of the current element, in output
+     * space, for a line segment.
+     */
+    Point line_segment_direction() const
     {
-        Point t = current.tangent(current.end);
+        Point t = current.element.end - current.element.start;
         return negate? Point{-t.x, -t.y}: t;
     }
 
@@ -310,9 +289,12 @@ struct EdgeCursor
         Point local_target = negate?
             Point{-target_direction.x, -target_direction.y}:
             target_direction;
-        Point split_point = point_at_tangent_direction(current, local_target);
-        ShapeElement prefix = current.extract(current.start, split_point);
-        current = current.extract(split_point, current.end);
+        Point split_point = point_at_tangent_direction(current.element, local_target);
+        ShapeElement prefix = current.element.extract(current.element.start, split_point);
+        current.element = current.element.extract(split_point, current.element.end);
+        // The remainder starts exactly at the target direction, which is not
+        // recomputed from the split point.
+        current.start_direction = target_direction;
         return prefix;
     }
 };
@@ -335,7 +317,7 @@ void consume_whole(
         std::vector<ShapeElement>& result,
         Point& current_vertex)
 {
-    ShapeElement placed = cursor.place(cursor.current, current_vertex);
+    ShapeElement placed = cursor.place(cursor.current.element, current_vertex);
     append_if_nondegenerate(result, current_vertex, placed);
     cursor.advance();
 }
@@ -353,10 +335,7 @@ void consume_up_to(
         std::vector<ShapeElement>& result,
         Point& current_vertex)
 {
-    if (cursor.current.type == ShapeElementType::CircularArc
-            && direction_strictly_inside_arc(
-                    cursor.current,
-                    cursor.negate? Point{-other_direction.x, -other_direction.y}: other_direction)) {
+    if (direction_strictly_inside(cursor.current, other_direction)) {
         ShapeElement local_prefix = cursor.split_current_at(other_direction);
         ShapeElement placed = cursor.place(local_prefix, current_vertex);
         append_if_nondegenerate(result, current_vertex, placed);
@@ -409,24 +388,24 @@ void handle_arc_arc(
     // Signed (shortest-way) CCW offset of o_start relative to f_start, in
     // (-pi, pi].
     Angle d_start = angle_radian(f_start, o_start);
-    if (strictly_greater(d_start, M_PI))
+    if (d_start > M_PI)
         d_start -= 2.0 * M_PI;
 
     // No overlap: o's span starts at/after f's end (d_start >= f_span), or
     // f's span starts at/after o's end (-d_start >= o_span).
-    if (!strictly_lesser(d_start, f_span)) {
+    if (!(d_start < f_span)) {
         consume_whole(fixed, result, current_vertex);
         return;
     }
-    if (!strictly_lesser(-d_start, o_span)) {
+    if (!(-d_start < o_span)) {
         consume_whole(orbiting, result, current_vertex);
         return;
     }
 
     // Overlap exists. Peel off any lone prefix (at most one side has one:
     // whichever start has the strictly later, i.e. positive-offset, side).
-    bool fixed_has_prefix = strictly_greater(d_start, 0.0);
-    bool orbiting_has_prefix = strictly_lesser(d_start, 0.0);
+    bool fixed_has_prefix = (d_start > 0.0);
+    bool orbiting_has_prefix = (d_start < 0.0);
     Point overlap_start = fixed_has_prefix? o_start: f_start;
     if (fixed_has_prefix)
         consume_up_to(fixed, overlap_start, result, current_vertex);
@@ -437,17 +416,17 @@ void handle_arc_arc(
     // overlap extends (same local/signed reasoning, now relative to the two
     // end directions), splitting off whichever side's remainder is longer.
     Angle d_end = angle_radian(f_end, o_end);
-    if (strictly_greater(d_end, M_PI))
+    if (d_end > M_PI)
         d_end -= 2.0 * M_PI;
-    bool fixed_has_suffix = strictly_lesser(d_end, 0.0);
-    bool orbiting_has_suffix = strictly_greater(d_end, 0.0);
+    bool fixed_has_suffix = (d_end < 0.0);
+    bool orbiting_has_suffix = (d_end > 0.0);
     Point overlap_end = fixed_has_suffix? o_end: f_end;
 
-    ShapeElement fixed_local_piece = fixed.current;
+    ShapeElement fixed_local_piece = fixed.current.element;
     bool fixed_will_advance = !fixed_has_suffix;
     if (fixed_has_suffix)
         fixed_local_piece = fixed.split_current_at(overlap_end);
-    ShapeElement orbiting_local_piece = orbiting.current;
+    ShapeElement orbiting_local_piece = orbiting.current.element;
     bool orbiting_will_advance = !orbiting_has_suffix;
     if (orbiting_has_suffix)
         orbiting_local_piece = orbiting.split_current_at(overlap_end);
@@ -489,11 +468,11 @@ Shape shape::no_fit_polygon(
                 FUNC_SIGNATURE + "; "
                 "orbiting_shape is not convex.");
     }
-    // Every arc must span < 180°: direction_strictly_inside_arc's
+    // Every arc must span < 180°: direction_strictly_inside's
     // two-cross-product membership test and handle_arc_arc's overlap
     // detection both rely on an arc's own start and end tangent directions
     // determining a unique "short way" between them, which stops being true
-    // at or past a half turn (see direction_strictly_inside_arc's and
+    // at or past a half turn (see direction_strictly_inside's and
     // handle_arc_arc's comments). There is no limit on how many such arcs a
     // shape may contain -- e.g. every corner of an inflated convex polygon
     // rounds into its own arc, and all of those are individually well under
@@ -517,6 +496,53 @@ Shape shape::no_fit_polygon(
     check_arc_spans(fixed_shape, "fixed_shape");
     check_arc_spans(orbiting_shape, "orbiting_shape");
 
+    // Tangent directions of the elements of both sides, in output space
+    // (negated for the orbiting side), equalized together with the global
+    // tangent-order minimum direction (1, 0): directions equal within the
+    // tolerance become exactly equal, so that they can then be compared
+    // exactly, like the points in the boolean operations. Otherwise, the
+    // floating-point noise of the tangents of circular arcs (e.g. the tangent
+    // (1, -1e-16) at the bottom of a circle) would put directions that
+    // should be equal on either side of each other, or of the branch cut of
+    // strictly_lesser_angle at (1, 0).
+    std::vector<Point> directions = {{1.0, 0.0}};
+    for (const Shape* shape: {&fixed_shape, &orbiting_shape}) {
+        bool negate = (shape == &orbiting_shape);
+        for (const ShapeElement& element: shape->elements) {
+            Point start_direction = element.tangent(element.start);
+            Point end_direction = element.tangent(element.end);
+            if (negate) {
+                start_direction = {-start_direction.x, -start_direction.y};
+                end_direction = {-end_direction.x, -end_direction.y};
+            }
+            directions.push_back(start_direction);
+            directions.push_back(end_direction);
+        }
+    }
+    std::vector<Point> equalized_directions = equalize_points(directions);
+    // The directions equal to (1, 0) must remain exactly (1, 0), which is
+    // not necessarily the representative chosen by equalize_points.
+    Point first_direction = equalized_directions[0];
+    for (Point& direction: equalized_directions)
+        if (direction == first_direction)
+            direction = {1.0, 0.0};
+    std::vector<DirectedElement> fixed_directed_elements;
+    std::vector<DirectedElement> orbiting_directed_elements;
+    ElementPos direction_pos = 1;
+    for (const Shape* shape: {&fixed_shape, &orbiting_shape}) {
+        std::vector<DirectedElement>& directed_elements = (shape == &fixed_shape)?
+            fixed_directed_elements:
+            orbiting_directed_elements;
+        for (const ShapeElement& element: shape->elements) {
+            DirectedElement directed_element;
+            directed_element.element = element;
+            directed_element.start_direction = equalized_directions[direction_pos];
+            directed_element.end_direction = equalized_directions[direction_pos + 1];
+            direction_pos += 2;
+            directed_elements.push_back(directed_element);
+        }
+    }
+
     // Pre-split each side's arcs (if any), in their original (unrotated)
     // index order, against the other side's critical directions -- see
     // presplit_elements' comment for why this can't be done reactively
@@ -524,18 +550,18 @@ Shape shape::no_fit_polygon(
     // global tangent-order minimum direction. Both calls read from the
     // shapes' own original element lists (not from each other's already-
     // split result) so the two splits don't depend on each other's outcome.
-    std::vector<ShapeElement> fixed_elements = presplit_elements(
-            fixed_shape.elements, false, orbiting_shape.elements, true);
-    std::vector<ShapeElement> orbiting_elements = presplit_elements(
-            orbiting_shape.elements, true, fixed_shape.elements, false);
+    std::vector<DirectedElement> fixed_elements = presplit_elements(
+            fixed_directed_elements, false, orbiting_directed_elements);
+    std::vector<DirectedElement> orbiting_elements = presplit_elements(
+            orbiting_directed_elements, true, fixed_directed_elements);
 
-    // Find the element whose start tangent direction is the global minimum
-    // (per strictly_lesser_angle's total order) among fixed_elements, and
-    // the element whose *negated* start tangent direction is the global
-    // minimum among orbiting_elements. Starting the traced sequence at that
-    // element guarantees every subsequent element's direction increases
-    // monotonically all the way around before wrapping back, exactly once,
-    // to close the loop -- which the merge below relies on.
+    // Find the element whose start direction is the global minimum (per
+    // strictly_lesser_angle's total order) among fixed_elements, and among
+    // orbiting_elements (whose directions are already negated). Starting the
+    // traced sequence at that element guarantees every subsequent element's
+    // direction increases monotonically all the way around before wrapping
+    // back, exactly once, to close the loop -- which the merge below relies
+    // on.
     //
     // For a pure polygon this is equivalent to (and was previously
     // implemented as) picking the bottom-most vertex for fixed_shape / the
@@ -549,53 +575,36 @@ Shape shape::no_fit_polygon(
     // above always splits every arc at the global minimum direction (1, 0)
     // too, guaranteeing there is always an element that starts exactly
     // there for this search to find.
-    ElementPos fixed_start_pos = 0;
-    for (ElementPos fixed_pos = 1;
-            fixed_pos < (ElementPos)fixed_elements.size();
-            ++fixed_pos) {
-        const ShapeElement& element = fixed_elements[fixed_pos];
-        const ShapeElement& best = fixed_elements[fixed_start_pos];
-        if (direction_strictly_lesser(
-                element.tangent(element.start),
-                best.tangent(best.start))) {
-            fixed_start_pos = fixed_pos;
+    auto find_start_pos = [](const std::vector<DirectedElement>& elements)
+    {
+        ElementPos start_pos = 0;
+        for (ElementPos pos = 1; pos < (ElementPos)elements.size(); ++pos) {
+            if (strictly_lesser_angle(
+                        elements[pos].start_direction,
+                        elements[start_pos].start_direction)) {
+                start_pos = pos;
+            }
         }
-    }
-
-    ElementPos orbiting_start_pos = 0;
-    for (ElementPos orbiting_pos = 1;
-            orbiting_pos < (ElementPos)orbiting_elements.size();
-            ++orbiting_pos) {
-        const ShapeElement& element = orbiting_elements[orbiting_pos];
-        const ShapeElement& best = orbiting_elements[orbiting_start_pos];
-        Point element_dir = element.tangent(element.start);
-        Point best_dir = best.tangent(best.start);
-        if (direction_strictly_lesser(
-                Point{-element_dir.x, -element_dir.y},
-                Point{-best_dir.x, -best_dir.y})) {
-            orbiting_start_pos = orbiting_pos;
-        }
-    }
+        return start_pos;
+    };
+    ElementPos fixed_start_pos = find_start_pos(fixed_elements);
+    ElementPos orbiting_start_pos = find_start_pos(orbiting_elements);
 
     // Starting vertex of the NFP: bottom of fixed minus top of orbiting.
-    const Point nfp_start = fixed_elements[fixed_start_pos].start
-        - orbiting_elements[orbiting_start_pos].start;
+    const Point nfp_start = fixed_elements[fixed_start_pos].element.start
+        - orbiting_elements[orbiting_start_pos].element.start;
 
     const ElementPos fixed_num_elements = (ElementPos)fixed_elements.size();
     const ElementPos orbiting_num_elements = (ElementPos)orbiting_elements.size();
 
-    {
-        std::vector<ShapeElement> fixed_elements_rotated(fixed_num_elements);
-        for (ElementPos i = 0; i < fixed_num_elements; ++i)
-            fixed_elements_rotated[i] = fixed_elements[(fixed_start_pos + i) % fixed_num_elements];
-        fixed_elements = std::move(fixed_elements_rotated);
-    }
-    {
-        std::vector<ShapeElement> orbiting_elements_rotated(orbiting_num_elements);
-        for (ElementPos i = 0; i < orbiting_num_elements; ++i)
-            orbiting_elements_rotated[i] = orbiting_elements[(orbiting_start_pos + i) % orbiting_num_elements];
-        orbiting_elements = std::move(orbiting_elements_rotated);
-    }
+    std::rotate(
+            fixed_elements.begin(),
+            fixed_elements.begin() + fixed_start_pos,
+            fixed_elements.end());
+    std::rotate(
+            orbiting_elements.begin(),
+            orbiting_elements.begin() + orbiting_start_pos,
+            orbiting_elements.end());
 
     EdgeCursor fixed_cursor;
     fixed_cursor.elements = &fixed_elements;
@@ -635,8 +644,8 @@ Shape shape::no_fit_polygon(
             continue;
         }
 
-        bool fixed_is_arc = fixed_cursor.current.type == ShapeElementType::CircularArc;
-        bool orbiting_is_arc = orbiting_cursor.current.type == ShapeElementType::CircularArc;
+        bool fixed_is_arc = fixed_cursor.current.element.type == ShapeElementType::CircularArc;
+        bool orbiting_is_arc = orbiting_cursor.current.element.type == ShapeElementType::CircularArc;
 
         if (fixed_is_arc && orbiting_is_arc) {
             handle_arc_arc(fixed_cursor, orbiting_cursor, result, current_vertex);
@@ -646,27 +655,29 @@ Shape shape::no_fit_polygon(
         Point fixed_dir = fixed_cursor.start_direction();
         Point orbiting_dir = orbiting_cursor.start_direction();
 
-        if (direction_strictly_lesser(fixed_dir, orbiting_dir)) {
+        if (strictly_lesser_angle(fixed_dir, orbiting_dir)) {
             consume_up_to(fixed_cursor, orbiting_dir, result, current_vertex);
-        } else if (direction_strictly_lesser(orbiting_dir, fixed_dir)) {
+        } else if (strictly_lesser_angle(orbiting_dir, fixed_dir)) {
             consume_up_to(orbiting_cursor, fixed_dir, result, current_vertex);
         } else if (!fixed_is_arc && !orbiting_is_arc) {
-            // Tied plain edges. direction_strictly_lesser's tolerance is
-            // meant for the floating-point noise of arc tangents, but, on
-            // unit vectors, it also ties plain edges up to ~1e-6 rad apart
-            // that are not parallel. Consuming the fixed one first
-            // regardless would then add them in the wrong order whenever
-            // the orbiting one has the smaller direction, putting the vertex
-            // between them inside the actual Minkowski sum, by up to that
-            // angle times the shorter edge's length (e.g. an edge-length
-            // wrong vertex, and ~7e-5 off the sum, for two edges ~9.5e-7 rad
-            // apart of a self-NFP, see fontanf/packingsolver#598): the
-            // result is not even centrally symmetric anymore. So the exact
-            // directions decide, and the fixed one only goes first if they
+            // Tied plain edges. The equalization of the directions is meant
+            // for the floating-point noise of arc tangents, but, on unit
+            // vectors, it also ties plain edges up to ~1e-6 rad apart that
+            // are not parallel. Consuming the fixed one first regardless
+            // would then add them in the wrong order whenever the orbiting
+            // one has the smaller direction, putting the vertex between them
+            // inside the actual Minkowski sum, by up to that angle times the
+            // shorter edge's length (e.g. an edge-length wrong vertex, and
+            // ~7e-5 off the sum, for two edges ~9.5e-7 rad apart of a
+            // self-NFP, see fontanf/packingsolver#598): the result is not
+            // even centrally symmetric anymore. So the exact directions of
+            // the segments decide, and the fixed one only goes first if they
             // are exactly parallel. (Once consumed, the next element of that
             // side strictly exceeds this tie, so the other one is picked up
             // correctly next.)
-            if (strictly_lesser_angle(orbiting_dir, fixed_dir)) {
+            if (strictly_lesser_angle(
+                        orbiting_cursor.line_segment_direction(),
+                        fixed_cursor.line_segment_direction())) {
                 consume_whole(orbiting_cursor, result, current_vertex);
             } else {
                 consume_whole(fixed_cursor, result, current_vertex);
