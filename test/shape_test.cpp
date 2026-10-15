@@ -1567,6 +1567,87 @@ INSTANTIATE_TEST_SUITE_P(
             return std::to_string(info.index);
         });
 
+struct ShapeWithHolesCheckHolesTestParams
+{
+    std::string name;
+    ShapeWithHoles shape;
+    bool expected_output;
+
+
+    static ShapeWithHolesCheckHolesTestParams read_json(
+            const std::string& file_path,
+            bool expected_output)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        ShapeWithHolesCheckHolesTestParams test_params;
+        test_params.name = fs::path(file_path).stem().string();
+        test_params.shape = ShapeWithHoles::from_json(json["shape"]);
+        test_params.expected_output = expected_output;
+        return test_params;
+    }
+};
+
+void PrintTo(const ShapeWithHolesCheckHolesTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(1) << "\n";
+    *os << "expected_output " << params.expected_output << "\n";
+}
+
+class ShapeWithHolesCheckHolesTest: public testing::TestWithParam<ShapeWithHolesCheckHolesTestParams> { };
+
+TEST_P(ShapeWithHolesCheckHolesTest, ShapeWithHolesCheckHoles)
+{
+    ShapeWithHolesCheckHolesTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    EXPECT_EQ(test_params.shape.check(), test_params.expected_output);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeWithHolesCheckHolesTest,
+        testing::ValuesIn(std::vector<ShapeWithHolesCheckHolesTestParams>{
+            {
+                "HoleInside",
+                {build_rectangle(0, 10, 0, 10), {build_rectangle(2, 8, 2, 8)}},
+                true,
+            }, {
+                "HoleTouchingOutlineAtVertex",
+                {build_rectangle(0, 10, 0, 10), {build_shape({{0, 5}, {5, 2}, {5, 8}})}},
+                true,
+            }, {
+                "HoleTouchingOutlineAlongEdge",
+                {build_rectangle(0, 10, 0, 10), {build_rectangle(0, 2, 2, 4)}},
+                true,
+            }, {
+                // The hole goes out of the outer shape, but the point
+                // strictly inside the hole used to check it is inside the
+                // outer shape.
+                "HoleCrossingOutline",
+                {build_rectangle(0, 10, 0, 10), {build_rectangle(2, 11, 2, 8)}},
+                false,
+            }, {
+                "HoleOutside",
+                {build_rectangle(0, 10, 0, 10), {build_rectangle(12, 14, 2, 8)}},
+                false,
+            },
+            // About 14% of the area of the hole is outside of the outer shape
+            // (formerly a trapezoidation fixture).
+            ShapeWithHolesCheckHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "shape" / "check" / "hole_partially_outside.json").string(),
+                    false),
+        }),
+        [](const testing::TestParamInfo<ShapeWithHolesCheckHolesTest::ParamType>& info) {
+            return info.param.name;
+        });
+
 TEST(ShapeWithHolesCheckTest, RejectsHoleNotContainedInOuterShape)
 {
     // Both the outer shape and the hole individually pass Shape::check(),

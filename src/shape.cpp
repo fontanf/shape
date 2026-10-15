@@ -2,6 +2,7 @@
 
 #include "shape/elements_intersections.hpp"
 #include "shape/shapes_intersections.hpp"
+#include "shape/intersection_tree.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -2176,6 +2177,7 @@ bool ShapeWithHoles::check() const
     if (!this->shape.check())
         return false;
 
+    IntersectionTree outline_tree({}, this->shape.elements, {});
     for (ShapePos hole_pos = 0;
             hole_pos < (ShapePos)this->holes.size();
             ++hole_pos) {
@@ -2191,6 +2193,49 @@ bool ShapeWithHoles::check() const
             std::cout << this->to_string(1) << std::endl;
             std::cout << "hole " << hole_pos << " is not inside the outer shape." << std::endl;
             return false;
+        }
+
+        // If the boundary of the hole doesn't touch the outer boundary, the
+        // hole is entirely inside or entirely outside of the outer shape, and
+        // the check above is enough. Otherwise, the hole could still go out
+        // of the outer shape where it touches it: each element of the hole
+        // touching the outer boundary is split where it touches it, and each
+        // piece must be inside the outer shape (or on its boundary).
+        for (const ShapeElement& element: hole.elements) {
+            IntersectionTree::IntersectOutput intersect_output = outline_tree.intersect(element, false);
+            if (intersect_output.element_ids.empty())
+                continue;
+            std::vector<Point> points = {element.start, element.end};
+            for (ElementPos outline_element_pos: intersect_output.element_ids) {
+                ShapeElementIntersectionsOutput intersections = compute_intersections(
+                        element,
+                        this->shape.elements[outline_element_pos]);
+                for (const ShapeElement& overlapping_part: intersections.overlapping_parts) {
+                    points.push_back(overlapping_part.start);
+                    points.push_back(overlapping_part.end);
+                }
+                for (const Point& point: intersections.improper_intersections)
+                    points.push_back(point);
+                for (const Point& point: intersections.proper_intersections)
+                    points.push_back(point);
+            }
+            std::sort(
+                    points.begin(),
+                    points.end(),
+                    [&element](const Point& point_1, const Point& point_2)
+                    {
+                        return element.length(point_1) < element.length(point_2);
+                    });
+            for (ElementPos pos = 0; pos + 1 < (ElementPos)points.size(); ++pos) {
+                if (equal(points[pos], points[pos + 1]))
+                    continue;
+                Point point = element.find_point_between(points[pos], points[pos + 1]);
+                if (!this->shape.contains(point)) {
+                    std::cout << this->to_string(1) << std::endl;
+                    std::cout << "hole " << hole_pos << " is not inside the outer shape." << std::endl;
+                    return false;
+                }
+            }
         }
     }
 
