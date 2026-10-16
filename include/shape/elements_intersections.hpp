@@ -5,6 +5,16 @@
 namespace shape
 {
 
+/**
+ * Compute the intersection point of the infinite line through p11 and p12
+ * with the infinite line through p21 and p22.
+ *
+ * The boolean returned is false if the lines are parallel (within
+ * tolerance), including when they are the same line.
+ *
+ * If the intersection point is equal (within tolerance) to one of the four
+ * input points, this input point is returned exactly.
+ */
 std::pair<bool, Point> compute_line_intersection(
         const Point& p11,
         const Point& p12,
@@ -36,18 +46,42 @@ std::vector<Point> compute_circle_circle_intersections(
         const Point& center_2,
         LengthDbl radius_2);
 
+/**
+ * Output of compute_intersections for two elements.
+ *
+ * The intersection of the two elements is the union of the overlapping
+ * parts and of the intersection points. An intersection point is never on an
+ * overlapping part.
+ */
 struct ShapeElementIntersectionsOutput
 {
+    /**
+     * Parts of non-null length shared by both elements.
+     *
+     * Their direction is unspecified.
+     */
     std::vector<ShapeElement> overlapping_parts;
 
+    /**
+     * Points where the elements touch without crossing: an endpoint of one
+     * element on the other element, or a tangency.
+     */
     std::vector<Point> improper_intersections;
 
+    /**
+     * Points where the elements cross, strictly inside both of them.
+     */
     std::vector<Point> proper_intersections;
 
 
     std::string to_string(Counter indentation) const;
 };
 
+/**
+ * Compute the intersection of two elements, with the tolerance.
+ *
+ * See ShapeElementIntersectionsOutput.
+ */
 ShapeElementIntersectionsOutput compute_intersections(
         const ShapeElement& element_1,
         const ShapeElement& element_2);
