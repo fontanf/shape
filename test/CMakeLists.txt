@@ -12,6 +12,7 @@ target_sources(Shape_shape_test PRIVATE
     clean_test.cpp
     trapezoidation_test.cpp
     intersection_tree_test.cpp
+    equalize_test.cpp
     boolean_operations_test.cpp
     offset_test.cpp
     supports_test.cpp
