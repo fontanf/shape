@@ -435,6 +435,7 @@ std::vector<ShapePoint> shape::compute_strict_intersections(
                     }
                     status = 0;
                 }
+                current_point = point;
             }
         }
     }
