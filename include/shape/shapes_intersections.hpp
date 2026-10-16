@@ -79,6 +79,16 @@ inline bool intersect(
 }
 
 /**
+ * Write the inputs of intersect to a JSON file in the format of the test
+ * fixtures in data/tests/shapes_intersections/intersect_shape_shape_element/.
+ */
+void intersect_export_inputs(
+        const std::string& file_path,
+        const Shape& shape,
+        const ShapeElement& element,
+        bool strict = false);
+
+/**
  * Compute the points where an element meets the boundary of a shape, sorted
  * from the start of the element.
  *
@@ -134,7 +144,8 @@ bool intersect(
         bool strict = false);
 
 /**
- * Write the inputs of intersect to a JSON file.
+ * Write the inputs of intersect to a JSON file in the format of the test
+ * fixtures in data/tests/shapes_intersections/intersect_shape_shape/.
  */
 void intersect_export_inputs(
         const std::string& file_path,
@@ -152,7 +163,9 @@ std::vector<PathShapeIntersectionPoint> compute_intersections(
         bool only_min_max = false);
 
 /**
- * Write the inputs of compute_intersections to a JSON file.
+ * Write the inputs of compute_intersections to a JSON file in the format of
+ * the test fixtures in
+ * data/tests/shapes_intersections/compute_intersections_path_shape/.
  */
 void compute_intersections_export_inputs(
         const std::string& file_path,
@@ -173,7 +186,9 @@ std::vector<PathShapeIntersectionPoint> compute_strict_intersections(
         bool only_first = false);
 
 /**
- * Write the inputs of compute_strict_intersections to a JSON file.
+ * Write the inputs of compute_strict_intersections to a JSON file in the
+ * format of the test fixtures in
+ * data/tests/shapes_intersections/compute_strict_intersections_path_shape/.
  */
 void compute_strict_intersections_export_inputs(
         const std::string& file_path,
@@ -210,7 +225,9 @@ inline bool intersect(
 }
 
 /**
- * Write the inputs of intersect to a JSON file.
+ * Write the inputs of intersect to a JSON file in the format of the test
+ * fixtures in
+ * data/tests/shapes_intersections/intersect_shape_with_holes_shape_element/.
  */
 void intersect_export_inputs(
         const std::string& file_path,
@@ -236,7 +253,9 @@ inline bool intersect(
 }
 
 /**
- * Write the inputs of intersect to a JSON file.
+ * Write the inputs of intersect to a JSON file in the format of the test
+ * fixtures in
+ * data/tests/shapes_intersections/intersect_shape_with_holes_shape/.
  */
 void intersect_export_inputs(
         const std::string& file_path,
@@ -254,7 +273,9 @@ bool intersect(
         bool strict = false);
 
 /**
- * Write the inputs of intersect to a JSON file.
+ * Write the inputs of intersect to a JSON file in the format of the test
+ * fixtures in
+ * data/tests/shapes_intersections/intersect_shape_with_holes_shape_with_holes/.
  */
 void intersect_export_inputs(
         const std::string& file_path,
