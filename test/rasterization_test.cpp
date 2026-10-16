@@ -271,6 +271,50 @@ INSTANTIATE_TEST_SUITE_P(
             },
             RasterizationTestParams::read_json(
                     (fs::path("data") / "tests" / "rasterization" / "0.json").string()),
+            {
+                // The tip (1, 1) of the notch is on a column line: the
+                // boundary touches it without crossing it.
+                "NotchTipOnColumnLine",
+                {build_shape({{0, 0}, {3, 0}, {3, 2}, {0, 2}, {0, 1}, {1, 1}})},
+                1,
+                1,
+            }, {
+                "NotchTipOnColumnLineSlantedSide",
+                {build_shape({{0, 0}, {3, 0}, {3, 2}, {-0.5, 2}, {0, 1}, {1, 1}})},
+                1,
+                1,
+            }, {
+                "NotchTipOnColumnLineNoHorizontalEdge",
+                {build_shape({{0, 0}, {3, 0}, {3, 2}, {-0.5, 2}, {0, 0.8}, {1, 1}, {0.2, 0}})},
+                1,
+                1,
+            }, {
+                // The hole doesn't cross any column line.
+                "HoleInsideOneColumn",
+                {build_rectangle(0, 3, 0, 5), {build_rectangle(1.2, 1.8, 1.2, 3.8)}},
+                1,
+                1,
+            }, {
+                // The hole touches the column line x = 1 at (1, 2.5) without
+                // crossing it.
+                "HoleTouchingColumnLine",
+                {build_rectangle(0, 3, 0, 5), {build_shape({{1, 2.5}, {1.5, 1.2}, {1.8, 2.5}, {1.5, 3.8}})}},
+                1,
+                1,
+            }, {
+                // The tip (1.5, 1) of a notch of the outer shape touches the
+                // bottom of the hole: in the column, both end at the same
+                // height.
+                "HoleTouchingOuterShape",
+                {build_shape({{0, 0}, {1, 0}, {1.5, 1}, {2, 0}, {4, 0}, {4, 4}, {0, 4}}), {build_rectangle(1, 3, 1, 3)}},
+                1,
+                1,
+            },
+            // The hole touches the column line x = 0 at its vertex (0, -1),
+            // and in column -1, a part of the hole ends lower than another
+            // part of the hole.
+            RasterizationTestParams::read_json(
+                    (fs::path("data") / "tests" / "rasterization" / "1.json").string()),
         }),
         [](const testing::TestParamInfo<RasterizationTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
