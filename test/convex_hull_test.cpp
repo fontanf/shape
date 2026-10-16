@@ -2,7 +2,12 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
+
+#include <fstream>
+
 using namespace shape;
+namespace fs = boost::filesystem;
 
 struct ConvexHullTestParams
 {
@@ -10,6 +15,25 @@ struct ConvexHullTestParams
     bool expect_throw = false;
     // Only meaningful if !expect_throw.
     Shape expected_output;
+
+
+    static ConvexHullTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        ConvexHullTestParams test_params;
+        test_params.shape = Shape::from_json(json["shape"]);
+        test_params.expected_output = Shape::from_json(json["expected_output"]);
+        return test_params;
+    }
 };
 
 void PrintTo(const ConvexHullTestParams& params, std::ostream* os)
@@ -101,6 +125,8 @@ INSTANTIATE_TEST_SUITE_P(
                 false,
                 build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
             },
+            ConvexHullTestParams::read_json(
+                    (fs::path("data") / "tests" / "convex_hull" / "0.json").string()),
         }),
         [](const testing::TestParamInfo<ConvexHullTest::ParamType>& info) {
             return std::to_string(info.index);
