@@ -7,18 +7,32 @@
 namespace shape
 {
 
+/**
+ * Spatial index over a set of shapes with holes, elements and points, to
+ * find quickly which of them intersect a given object, or each other.
+ *
+ * Intersections are the ones of the functions of shapes_intersections.hpp
+ * (see the conventions there), with the same 'strict' parameter, and the
+ * results are positions in the vectors given to the constructor.
+ */
 class IntersectionTree
 {
 
 public:
 
-    /** Constructor. */
+    /**
+     * Constructor.
+     *
+     * The tree keeps references to 'shapes', 'elements' and 'points': they
+     * must outlive it and must not be modified while it is used.
+     */
     IntersectionTree(
             const std::vector<ShapeWithHoles>& shapes,
             const std::vector<ShapeElement>& elements,
             const std::vector<Point>& points);
 
 
+    /** Positions of the objects of the tree intersecting a given object. */
     struct IntersectOutput
     {
         std::vector<ShapePos> shape_ids;
@@ -28,22 +42,48 @@ public:
         std::vector<ShapePos> point_ids;
     };
 
-    /** Check if a given shape intersects one of the tree shapes. */
+    /**
+     * Find the shapes, elements and points of the tree intersecting a given
+     * shape with holes.
+     *
+     * A point intersects the shape if the shape contains it (strictly if
+     * 'strict' is true).
+     */
     IntersectOutput intersect(
             const ShapeWithHoles& shape,
             bool strict) const;
 
-    /** Check if a given shape intersects one of the tree shapes. */
+    /**
+     * Find the shapes, elements and points of the tree intersecting a given
+     * shape.
+     *
+     * A point intersects the shape if the shape contains it (strictly if
+     * 'strict' is true).
+     */
     IntersectOutput intersect(
             const Shape& shape,
             bool strict) const;
 
-    /** Check if a given element intersects one of the tree shapes. */
+    /**
+     * Find the shapes, elements and points of the tree intersecting a given
+     * element.
+     *
+     * If 'strict' is true, an element of the tree intersects the given
+     * element only if they cross each other (see
+     * ShapeElementIntersectionsOutput::proper_intersections), and no point
+     * is returned.
+     */
     IntersectOutput intersect(
             const ShapeElement& element,
             bool strict) const;
 
-    /** Check if a given element intersects one of the tree shapes. */
+    /**
+     * Find the shapes, elements and points of the tree intersecting a given
+     * point: the shapes containing it (strictly if 'strict' is true), the
+     * elements containing it and the points equal to it.
+     *
+     * If 'strict' is true, no element and no point is returned.
+     */
     IntersectOutput intersect(
             const Point& point,
             bool strict) const;
@@ -52,10 +92,17 @@ public:
     /** Get all the pairs of intersecting shapes in the tree. */
     std::vector<std::pair<ShapePos, ShapePos>> compute_intersecting_shapes(bool strict) const;
 
-    /** Get all the pairs of intersecting shape elements in the tree. */
+    /**
+     * Get all the pairs of intersecting elements in the tree, with their
+     * intersections.
+     *
+     * If 'strict' is true, only the pairs of elements crossing each other
+     * (see ShapeElementIntersectionsOutput::proper_intersections) are
+     * returned.
+     */
     std::vector<ElementElementIntersection> compute_intersecting_elements(bool strict) const;
 
-    /** Get all the pairs of equal points in the tree. */
+    /** Get all the pairs of equal points (within tolerance) in the tree. */
     std::vector<std::pair<ElementPos, ElementPos>> compute_equal_points() const;
 
 private:
