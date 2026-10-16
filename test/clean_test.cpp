@@ -6,6 +6,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 
 using namespace shape;
@@ -95,8 +97,136 @@ INSTANTIATE_TEST_SUITE_P(
                 "PathStartAlignedWithEnd",
                 build_path({{0, 0}, {1, 0}, {1, 1}, {-2, 0}, {-1, -1}}),
                 build_path({{0, 0}, {1, 0}, {1, 1}, {-2, 0}, {-1, -1}}),
+            }, {
+                // The path still ends at the end of its last element when
+                // the start of this element is removed.
+                "AlignedVertexAtPathEnd",
+                build_path({{0, 0}, {1, 0}, {2, 5}, {3, 5}, {4, 5}}),
+                build_path({{0, 0}, {1, 0}, {2, 5}, {4, 5}}),
             }}),
         [](const testing::TestParamInfo<RemoveAlignedVerticesTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
+/** Points of a circle of center (0, radius), from its bottom anticlockwise. */
+std::vector<BuildShapeElement> build_circle_bottom_points(
+        LengthDbl radius,
+        LengthDbl spacing,
+        ElementPos number_of_points)
+{
+    std::vector<BuildShapeElement> points;
+    for (ElementPos pos = 0; pos < number_of_points; ++pos) {
+        Angle angle = -M_PI / 2 + pos * spacing / radius;
+        points.push_back({radius * std::cos(angle), radius + radius * std::sin(angle)});
+    }
+    return points;
+}
+
+/**
+ * Shape below a slightly curved line made of many vertices, starting at its
+ * vertex 'first_point_pos'.
+ */
+Shape build_slightly_curved_shape(
+        LengthDbl radius,
+        LengthDbl spacing,
+        ElementPos number_of_points,
+        ElementPos first_point_pos = 0)
+{
+    std::vector<BuildShapeElement> points = build_circle_bottom_points(
+            radius,
+            spacing,
+            number_of_points);
+    points.push_back({points.back().x, 1});
+    points.push_back({points.front().x, 1});
+    std::rotate(points.begin(), points.begin() + first_point_pos, points.end());
+    return build_shape(points);
+}
+
+struct RemoveAlignedVerticesToleranceTestParams
+{
+    std::string name;
+    Shape shape;
+};
+
+void PrintTo(const RemoveAlignedVerticesToleranceTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+}
+
+class RemoveAlignedVerticesToleranceTest: public testing::TestWithParam<RemoveAlignedVerticesToleranceTestParams> { };
+
+TEST_P(RemoveAlignedVerticesToleranceTest, RemoveAlignedVerticesTolerance)
+{
+    RemoveAlignedVerticesToleranceTestParams test_params = GetParam();
+    Shape cleaned_shape = remove_aligned_vertices(test_params.shape).second;
+    std::cout << cleaned_shape.to_string(0) << std::endl;
+
+    EXPECT_LT(cleaned_shape.elements.size(), test_params.shape.elements.size());
+
+    // Every vertex of the shape must remain on the boundary of the cleaned
+    // shape, up to the tolerance of 'equal' on each coordinate: an element
+    // of the cleaned shape must go through the square of half-side 1e-6
+    // around it.
+    for (const ShapeElement& element: test_params.shape.elements) {
+        const Point& vertex = element.start;
+        bool found = false;
+        for (const ShapeElement& cleaned_element: cleaned_shape.elements) {
+            // Clip the element by the square.
+            double t_min = 0;
+            double t_max = 1;
+            for (int axis = 0; axis < 2; ++axis) {
+                double start = (axis == 0)? cleaned_element.start.x: cleaned_element.start.y;
+                double end = (axis == 0)? cleaned_element.end.x: cleaned_element.end.y;
+                double center = (axis == 0)? vertex.x: vertex.y;
+                double low = center - 1e-6 - 1e-12;
+                double high = center + 1e-6 + 1e-12;
+                if (start == end) {
+                    if (start < low || start > high)
+                        t_max = -1;
+                    continue;
+                }
+                double t_1 = (low - start) / (end - start);
+                double t_2 = (high - start) / (end - start);
+                t_min = (std::max)(t_min, (std::min)(t_1, t_2));
+                t_max = (std::min)(t_max, (std::max)(t_1, t_2));
+            }
+            if (t_min <= t_max) {
+                found = true;
+                break;
+            }
+        }
+        EXPECT_TRUE(found) << "vertex " << vertex.to_string();
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        ,
+        RemoveAlignedVerticesToleranceTest,
+        testing::ValuesIn(std::vector<RemoveAlignedVerticesToleranceTestParams>{
+            {
+                // Each vertex is within the tolerance of the line from the
+                // first one to the next one, but not of the line from the
+                // first one to the last one.
+                "SlightlyCurvedLine",
+                build_slightly_curved_shape(500, 0.01, 11),
+            }, {
+                "LongSlightlyCurvedLine",
+                build_slightly_curved_shape(1000, 0.001, 3001),
+            }, {
+                // The vertices removed together must not be on both sides
+                // of the first vertex of the shape.
+                "LongSlightlyCurvedLineStartingInTheMiddle",
+                build_slightly_curved_shape(1000, 0.001, 3001, 1500),
+            }, {
+                // Removing (1, 0) and (2, 1.9e-6) one after the other leaves
+                // (1, 0) 1.4e-6 away from the line from (0, 0) to
+                // (3, 4.2e-6), within sqrt(2) * 1e-6, but 1.4e-6 away from it
+                // on the y-axis.
+                "NearlyHorizontalLine",
+                build_shape({{0, 0}, {1, 0}, {2, 1.9e-6}, {3, 4.2e-6}, {3, 10}, {0, 10}}),
+            }}),
+        [](const testing::TestParamInfo<RemoveAlignedVerticesToleranceTest::ParamType>& info) {
             return info.param.name;
         });
 

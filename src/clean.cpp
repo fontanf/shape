@@ -11,6 +11,10 @@
 #include <fstream>
 #endif
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 //#include <iostream>
 
 using namespace shape;
@@ -94,61 +98,148 @@ std::pair<bool, Shape> shape::remove_aligned_vertices(
     if (shape.elements.size() <= 3)
         return {false, shape};
 
+    // The start of an element is removed if the line from the start of the
+    // last element kept to the end of the element goes within the tolerance
+    // of it, and of every vertex removed since the last element kept, that
+    // is, through the square of half-side 1e-6 around each of them, in which
+    // 'equal' considers points equal to it. Checking only the vertex removed
+    // would allow removing vertices one after the other along a slightly
+    // curved line, moving the result away from the shape by much more than
+    // the tolerance.
+    // The directions from the start of the last element kept going through
+    // the square of a vertex form an interval of angles, so only the bounds
+    // of the intersection of the intervals of the vertices removed since the
+    // last element kept are needed. The angles are measured from the
+    // direction of the first of these vertices.
+    Angle infinity = std::numeric_limits<Angle>::infinity();
+    auto relative_angle = [](
+            const Point& reference_direction,
+            const Point& direction)
+    {
+        return std::atan2(
+                cross_product(reference_direction, direction),
+                dot_product(reference_direction, direction));
+    };
+    auto compute_interval = [infinity, &relative_angle](
+            const Point& apex,
+            const Point& reference_direction,
+            const Point& vertex) -> std::pair<Angle, Angle>
+    {
+        if (equal(apex, vertex))
+            return {-infinity, infinity};
+        // Seen from outside of the square, its corners are within a quarter
+        // turn of its center.
+        Point center_direction = vertex - apex;
+        Angle center_angle = relative_angle(reference_direction, center_direction);
+        Angle offset_min = infinity;
+        Angle offset_max = -infinity;
+        for (LengthDbl dx: {-1e-6, 1e-6}) {
+            for (LengthDbl dy: {-1e-6, 1e-6}) {
+                Point corner = {vertex.x + dx, vertex.y + dy};
+                Angle offset = relative_angle(center_direction, corner - apex);
+                offset_min = (std::min)(offset_min, offset);
+                offset_max = (std::max)(offset_max, offset);
+            }
+        }
+        return {center_angle + offset_min, center_angle + offset_max};
+    };
+
+    // For a closed shape, start from a vertex which can't be removed, even
+    // considering only its two elements, so that the vertices removed
+    // together are never on both sides of the start.
+    ElementPos number_of_elements = shape.elements.size();
+    ElementPos start_pos = 0;
+    if (!shape.is_path) {
+        for (ElementPos element_pos = 0;
+                element_pos < number_of_elements;
+                ++element_pos) {
+            const ShapeElement& element_prev = shape.elements[(element_pos + number_of_elements - 1) % number_of_elements];
+            const ShapeElement& element = shape.elements[element_pos];
+            if (element_prev.type != ShapeElementType::LineSegment
+                    || element.type != ShapeElementType::LineSegment
+                    || equal(element.end, element_prev.start)) {
+                start_pos = element_pos;
+                break;
+            }
+            Point reference_direction = element.start - element_prev.start;
+            std::pair<Angle, Angle> interval = compute_interval(
+                    element_prev.start,
+                    reference_direction,
+                    element.start);
+            Angle angle = relative_angle(reference_direction, element.end - element_prev.start);
+            if (angle < interval.first || angle > interval.second) {
+                start_pos = element_pos;
+                break;
+            }
+        }
+    }
+
     ElementPos number_of_elements_removed = 0;
     Shape shape_new;
     shape_new.is_path = shape.is_path;
+    // Position in 'shape_new' of the first element kept before 'start_pos',
+    // to restore the order of the elements at the end.
+    ElementPos new_first_pos = 0;
 
-    ElementPos element_prev_pos = shape.elements.size() - 1;
-    for (ElementPos element_cur_pos = 0;
-            element_cur_pos < (ElementPos)shape.elements.size();
-            ++element_cur_pos) {
-
-        //std::cout << "element_cur_pos " << element_cur_pos << std::endl;
-        ElementPos element_next_pos = element_cur_pos + 1;
-        const ShapeElement& element_prev = shape.elements[element_prev_pos];
+    ElementPos element_prev_pos = -1;
+    Point reference_direction = {1, 0};
+    Angle angle_min = -infinity;
+    Angle angle_max = infinity;
+    for (ElementPos counter = 0;
+            counter < number_of_elements;
+            ++counter) {
+        ElementPos element_cur_pos = (start_pos + counter) % number_of_elements;
         const ShapeElement& element_cur = shape.elements[element_cur_pos];
+        //std::cout << "element_cur   " << element_cur_pos << " " << element_cur.to_string() << std::endl;
         bool useless = false;
-        // The first element of a path is not preceded by its last element.
-        if (!(shape.is_path && element_cur_pos == 0)
-                && element_cur.type == ShapeElementType::LineSegment
-                && element_prev.type == ShapeElementType::LineSegment) {
-            //std::cout << "element_prev  " << element_prev_pos << " " << element_prev.to_string() << std::endl;
-            //std::cout << "element_cur   " << element_cur_pos << " " << element_cur.to_string() << std::endl;
-            if (element_prev.start.x == element_cur.start.x
-                    && element_cur.start.x == element_cur.end.x) {
-                //std::cout << "useless " << element_cur.to_string() << std::endl;
-                useless = true;
-            } else if (element_prev.start.y == element_cur.start.y
-                    && element_cur.start.y == element_cur.end.y) {
-                //std::cout << "useless " << element_cur.to_string() << std::endl;
-                useless = true;
-            } else {
-                Point normal;
-                normal.x = element_cur.end.y - element_prev.start.y;
-                normal.y = element_prev.start.x - element_cur.end.x;
-                Point p = element_cur.start + normal;
-                auto intersection = compute_line_intersection(
+        Point reference_direction_new = reference_direction;
+        std::pair<Angle, Angle> interval_new;
+        // The first vertex is kept.
+        if (counter > 0) {
+            const ShapeElement& element_prev = shape.elements[element_prev_pos];
+            if (element_prev.type == ShapeElementType::LineSegment
+                    && element_cur.type == ShapeElementType::LineSegment
+                    && !equal(element_cur.end, element_prev.start)) {
+                if (element_prev_pos == (element_cur_pos + number_of_elements - 1) % number_of_elements)
+                    reference_direction_new = element_cur.start - element_prev.start;
+                std::pair<Angle, Angle> interval = compute_interval(
                         element_prev.start,
-                        element_cur.end,
-                        element_cur.start,
-                        p);
-                if (intersection.first
-                        && equal(element_cur.start, intersection.second)) {
+                        reference_direction_new,
+                        element_cur.start);
+                interval_new = {
+                    (std::max)(angle_min, interval.first),
+                    (std::min)(angle_max, interval.second)};
+                Angle angle = relative_angle(
+                        reference_direction_new,
+                        element_cur.end - element_prev.start);
+                if (angle >= interval_new.first && angle <= interval_new.second)
                     useless = true;
-                }
             }
         }
-        if (!useless || shape.elements.size() - number_of_elements_removed <= 3) {
+        if (!useless || number_of_elements - number_of_elements_removed <= 3) {
             if (!shape_new.elements.empty())
                 shape_new.elements.back().end = element_cur.start;
+            if (element_cur_pos < start_pos && new_first_pos == 0)
+                new_first_pos = shape_new.elements.size();
             shape_new.elements.push_back(element_cur);
             element_prev_pos = element_cur_pos;
+            angle_min = -infinity;
+            angle_max = infinity;
         } else {
+            //std::cout << "useless " << element_cur.to_string() << std::endl;
+            shape_new.elements.back().end = element_cur.end;
+            reference_direction = reference_direction_new;
+            angle_min = interval_new.first;
+            angle_max = interval_new.second;
             number_of_elements_removed++;
         }
     }
     if (!shape.is_path)
         shape_new.elements.back().end = shape_new.elements.front().start;
+    std::rotate(
+            shape_new.elements.begin(),
+            shape_new.elements.begin() + new_first_pos,
+            shape_new.elements.end());
 
     return {(number_of_elements_removed > 0), shape_new};
 }
