@@ -398,6 +398,77 @@ INSTANTIATE_TEST_SUITE_P(
                     GeneralizedTrapezoid(4, 6, 0, 6, 0, 6),
                 },
                 "HoleSplittingShapeTouchingAtPoint",
+            }, {
+                // Holes touching each other at a vertex.
+                {
+                    build_shape({{0, 0}, {6, 0}, {6, 6}, {0, 6}}),
+                    {
+                        build_shape({{1, 1}, {3, 1}, {3, 3}}),
+                        build_shape({{3, 3}, {5, 3}, {5, 5}}),
+                    }
+                }, {
+                    GeneralizedTrapezoid(5, 6, 0, 6, 0, 6),
+                    GeneralizedTrapezoid(3, 5, 0, 3, 0, 5),
+                    GeneralizedTrapezoid(3, 5, 5, 6, 5, 6),
+                    GeneralizedTrapezoid(1, 3, 0, 1, 0, 3),
+                    GeneralizedTrapezoid(1, 3, 3, 6, 3, 6),
+                    GeneralizedTrapezoid(0, 1, 0, 6, 0, 6),
+                },
+                "HolesTouchingAtVertex",
+            }, {
+                // A vertex of a hole touching an edge of another hole.
+                {
+                    build_shape({{0, 0}, {6, 0}, {6, 6}, {0, 6}}),
+                    {
+                        build_shape({{1, 1}, {3, 1}, {3, 3}}),
+                        build_shape({{2, 2}, {2, 4}, {1, 3}}),
+                    }
+                }, {
+                    GeneralizedTrapezoid(4, 6, 0, 6, 0, 6),
+                    GeneralizedTrapezoid(3, 4, 0, 1, 0, 2),
+                    GeneralizedTrapezoid(3, 4, 2, 6, 2, 6),
+                    GeneralizedTrapezoid(2, 3, 0, 2, 0, 1),
+                    GeneralizedTrapezoid(2, 3, 2, 2, 2, 3),
+                    GeneralizedTrapezoid(1, 2, 0, 1, 0, 2),
+                    GeneralizedTrapezoid(1, 3, 3, 6, 3, 6),
+                    GeneralizedTrapezoid(0, 1, 0, 6, 0, 6),
+                },
+                "HoleVertexTouchingHoleEdge",
+            }, {
+                // The tip (2, 9) of a notch of the outline touches the tip of
+                // a hole: both sides of the open trapezoid between them end
+                // at this point.
+                {
+                    build_shape({{18, 0}, {18, 12}, {0, 12}, {0, 10}, {2, 9}, {0, 8}, {0, 0}}),
+                    {
+                        build_shape({{2, 2}, {2, 4}, {0, 3}}),
+                        build_shape({{4, 8}, {4, 10}, {2, 9}}),
+                    }
+                }, {
+                    GeneralizedTrapezoid(10, 12, 0, 18, 0, 18),
+                    GeneralizedTrapezoid(9, 10, 2, 2, 0, 4),
+                    GeneralizedTrapezoid(8, 9, 0, 4, 2, 2),
+                    GeneralizedTrapezoid(8, 10, 4, 18, 4, 18),
+                    GeneralizedTrapezoid(4, 8, 0, 18, 0, 18),
+                    GeneralizedTrapezoid(3, 4, 0, 0, 0, 2),
+                    GeneralizedTrapezoid(2, 3, 0, 2, 0, 0),
+                    GeneralizedTrapezoid(2, 4, 2, 18, 2, 18),
+                    GeneralizedTrapezoid(0, 2, 0, 18, 0, 18),
+                },
+                "HoleTipTouchingOutlineTipSideways",
+            }, {
+                // The bottom of the hole is made of two aligned horizontal
+                // edges.
+                {
+                    build_shape({{0, 0}, {6, 0}, {6, 6}, {0, 6}}),
+                    {build_shape({{2, 2}, {3, 2}, {4, 2}, {4, 4}, {2, 4}})}
+                }, {
+                    GeneralizedTrapezoid(4, 6, 0, 6, 0, 6),
+                    GeneralizedTrapezoid(2, 4, 0, 2, 0, 2),
+                    GeneralizedTrapezoid(2, 4, 4, 6, 4, 6),
+                    GeneralizedTrapezoid(0, 2, 0, 6, 0, 6),
+                },
+                "HoleWithAlignedHorizontalVertices",
             },
         }),
         [](const testing::TestParamInfo<TrapezoidationTest::ParamType>& info) {
