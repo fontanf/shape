@@ -49,6 +49,14 @@ INSTANTIATE_TEST_SUITE_P(
                 "DuplicateVertexPath",
                 build_path({{0, 0}, {0, 0}, {100, 0}}),
                 build_path({{0, 0}, {100, 0}}),
+            }, {
+                "SingleLineSegmentPath",
+                build_path({{0, 0}, {100, 0}}),
+                build_path({{0, 0}, {100, 0}}),
+            }, {
+                "CirclePath",
+                []() { Shape circle = build_circle(100); circle.is_path = true; return circle; }(),
+                []() { Shape circle = build_circle(100); circle.is_path = true; return circle; }(),
             }}),
         [](const testing::TestParamInfo<RemoveRedundantVerticesTest::ParamType>& info) {
             return info.param.name;
