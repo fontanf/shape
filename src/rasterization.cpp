@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <limits>
 #ifdef RASTERIZATION_ENABLE_DEBUG
 #include <iostream>
 #endif
@@ -106,8 +107,6 @@ void fill_columns_intersections(
     for (const ShapePoint& point: intersection_points)
         std::cout << point.element_pos << " " << point.point.to_string() << std::endl;
 #endif
-    if (intersection_points.empty())
-        return;
     // Sort intersection points by their length on the element.
     std::sort(
             intersection_points.begin(),
@@ -118,6 +117,65 @@ void fill_columns_intersections(
             {
                 return shape.is_strictly_closer_to_path_start(point_1, point_2);
             });
+    // A vertex on a column line is found as the end of an element and as the
+    // start of the next one; keep it once.
+    std::vector<ShapePoint> unique_points;
+    for (const ShapePoint& point: intersection_points)
+        if (unique_points.empty() || !equal(point.point, unique_points.back().point))
+            unique_points.push_back(point);
+    if (unique_points.size() > 1
+            && equal(unique_points.front().point, unique_points.back().point)) {
+        unique_points.pop_back();
+    }
+    // Remove the points where the shape touches a column line without
+    // crossing it, i.e. where the parts of the boundary before and after
+    // the point are in the same column. Otherwise, these two parts would end
+    // at the same height, and the region above them couldn't be deduced from
+    // both.
+    std::vector<ColumnId> part_columns(unique_points.size());
+    for (ElementPos point_pos = 0;
+            point_pos < (ElementPos)unique_points.size();
+            ++point_pos) {
+        const ShapePoint& point_prev = unique_points[(point_pos + unique_points.size() - 1) % unique_points.size()];
+        const ShapePoint& point = unique_points[point_pos];
+        Point point_between = shape.find_point_between(point_prev, point).point;
+        CellId cell = find_cell(cell_width, cell_height, point_between);
+        if (equal(point_between.x, cell.column * cell_width)
+                || equal(point_between.x, (cell.column + 1) * cell_width)) {
+            // This part is on a column line.
+            part_columns[point_pos] = std::numeric_limits<ColumnId>::min();
+        } else {
+            part_columns[point_pos] = cell.column;
+        }
+    }
+    intersection_points.clear();
+    for (ElementPos point_pos = 0;
+            point_pos < (ElementPos)unique_points.size();
+            ++point_pos) {
+        ColumnId column_before = part_columns[point_pos];
+        ColumnId column_after = part_columns[(point_pos + 1) % unique_points.size()];
+        if (column_before != std::numeric_limits<ColumnId>::min()
+                && column_before == column_after) {
+            continue;
+        }
+        intersection_points.push_back(unique_points[point_pos]);
+    }
+    if (intersection_points.empty()) {
+        // The shape is between two consecutive column lines. The region
+        // around it is outside the shape, or inside the outer shape for a
+        // hole.
+        AxisAlignedBoundingBox aabb = shape.compute_min_max();
+        ColumnId column = find_cell(
+                cell_width,
+                cell_height,
+                {(aabb.x_min + aabb.x_max) / 2, aabb.y_min}).column;
+        ColumnIntersection column_intersection;
+        column_intersection.y_min = aabb.y_min;
+        column_intersection.y_max = aabb.y_max;
+        column_intersection.is_above_inside = is_hole;
+        column_intersections[column - column_intersections_offset].push_back(column_intersection);
+        return;
+    }
     // For each pair of consecutive intersection points, add the cells to which
     // the point inbetween belongs to.
     ShapePoint point_prev = intersection_points.back();
@@ -285,12 +343,21 @@ RasterizedGrid shape::rasterization(
                 }
                 for (RowId row = (std::max)(row_lo, row_hi_prev + 1); row <= row_hi; ++row)
                     mark_border(column, row);
-                row_hi_prev = row_hi;
-                if (column_intersection.y_max > y_max_prev) {
+                row_hi_prev = (std::max)(row_hi_prev, row_hi);
+                // A part of the boundary ending lower than the highest one
+                // so far doesn't change the region above the highest one.
+                // Two parts ending at the same height either don't touch,
+                // and the region above them is the same, or touch and are
+                // parts of the outer shape and of a hole, or of two holes
+                // (the parts of a shape touching a column line are merged in
+                // fill_columns_intersections). The region between them is
+                // then inside the shape, so the region above them is inside
+                // the shape only if it is for both.
+                if (strictly_greater(column_intersection.y_max, y_max_prev)) {
                     is_above_inside_prev = column_intersection.is_above_inside;
                     y_max_prev = column_intersection.y_max;
-                } else {
-                    is_above_inside_prev = is_above_inside_prev & column_intersection.is_above_inside;
+                } else if (equal(column_intersection.y_max, y_max_prev)) {
+                    is_above_inside_prev = is_above_inside_prev && column_intersection.is_above_inside;
                 }
             }
         }

@@ -1539,20 +1539,14 @@ ShapePoint Shape::find_point_between(
         // The shape is a full circle; go through its start.
         ShapeElement arc = element_1.extract(point_1.point, point_2.point);
         return {point_1.element_pos, arc.middle()};
-    } else if (!equal(point_1.point, element_1.end)) {
-        // If point_2 is the end of the element of point_1 (at the start of
-        // the next element), the points between them are on this element.
-        if (equal(point_2.point, element_1.end))
-            return {point_1.element_pos, element_1.find_point_between(point_1.point, element_1.end)};
-        return {point_1.element_pos, element_1.end};
-    } else {
-        ElementPos element_next_pos = (point_1.element_pos + 1) % (ElementPos)this->elements.size();
-        const ShapeElement& element_next = this->elements[element_next_pos];
-        LengthDbl l_next = (point_2.element_pos == element_next_pos)?
-            element_next.length(point_2.point):
-            element_next.length();
-        return {element_next_pos, element_next.point(l_next / 2)};
     }
+    if (!equal(point_1.point, element_1.end))
+        return {point_1.element_pos, element_1.find_point_between(point_1.point, element_1.end)};
+
+    // point_1 is at the end of its element; continue from the start of the
+    // next element.
+    ElementPos element_next_pos = (point_1.element_pos + 1) % (ElementPos)this->elements.size();
+    return find_point_between({element_next_pos, this->elements[element_next_pos].start}, point_2);
 }
 
 Point ShapeElement::tangent(
