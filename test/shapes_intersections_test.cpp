@@ -335,6 +335,98 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct ComputeStrictIntersectionsShapeElementTestParams
+{
+    std::string name;
+    ShapeElement element;
+    Shape shape;
+    bool only_first;
+    std::vector<ShapePoint> expected_output;
+};
+
+void PrintTo(const ComputeStrictIntersectionsShapeElementTestParams& params, std::ostream* os)
+{
+    *os << "element " << params.element.to_string() << "\n";
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "only_first " << params.only_first << "\n";
+    *os << "expected_output\n";
+    for (const ShapePoint& intersection: params.expected_output) {
+        *os << "element_pos " << intersection.element_pos
+            << " point " << intersection.point.to_string() << "\n";
+    }
+}
+
+class ComputeStrictIntersectionsShapeElementTest: public testing::TestWithParam<ComputeStrictIntersectionsShapeElementTestParams> { };
+
+TEST_P(ComputeStrictIntersectionsShapeElementTest, ComputeStrictIntersectionsShapeElement)
+{
+    ComputeStrictIntersectionsShapeElementTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+
+    std::vector<ShapePoint> output = compute_strict_intersections(
+            test_params.element,
+            test_params.shape,
+            test_params.only_first);
+    std::cout << "output" << std::endl;
+    for (const ShapePoint& intersection: output) {
+        std::cout << "element_pos " << intersection.element_pos
+            << " point " << intersection.point.to_string() << std::endl;
+    }
+
+    ASSERT_EQ(output.size(), test_params.expected_output.size());
+    for (ElementPos pos = 0; pos < (ElementPos)output.size(); ++pos) {
+        EXPECT_EQ(output[pos].element_pos, test_params.expected_output[pos].element_pos);
+        EXPECT_TRUE(equal(output[pos].point, test_params.expected_output[pos].point));
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ComputeStrictIntersectionsShapeElementTest,
+        testing::ValuesIn(std::vector<ComputeStrictIntersectionsShapeElementTestParams>{
+            {
+                "SegmentCrossingSquare",
+                build_line_segment({-1, 0.5}, {2, 0.5}),
+                build_square(1),
+                false,
+                {{3, {0, 0.5}}, {1, {1, 0.5}}},
+            }, {
+                "SegmentCrossingSquareOnlyFirst",
+                build_line_segment({-1, 0.5}, {2, 0.5}),
+                build_square(1),
+                true,
+                {{3, {0, 0.5}}},
+            }, {
+                "SegmentGoingOutOfSquare",
+                build_line_segment({0.5, 0.5}, {2, 0.5}),
+                build_square(1),
+                false,
+                {{1, {1, 0.5}}},
+            }, {
+                "SegmentGoingIntoSquare",
+                build_line_segment({-1, 0.5}, {0.5, 0.5}),
+                build_square(1),
+                false,
+                {{3, {0, 0.5}}},
+            }, {
+                "SegmentTouchingVertex",
+                build_line_segment({-1, 1}, {1, -1}),
+                build_square(1),
+                false,
+                {},
+            }, {
+                "SegmentAlongEdge",
+                build_line_segment({-1, 0}, {2, 0}),
+                build_square(1),
+                false,
+                {},
+            },
+        }),
+        [](const testing::TestParamInfo<ComputeStrictIntersectionsShapeElementTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
 struct ComputeIntersectionsPathShapeTestParams
 {
     std::string name;
