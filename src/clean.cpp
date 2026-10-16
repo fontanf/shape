@@ -31,20 +31,18 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
     Shape shape_new;
     shape_new.is_path = shape.is_path;
 
-    ElementPos element_prev_pos = shape.elements.size() - 1;
     for (ElementPos element_cur_pos = 0;
             element_cur_pos < (ElementPos)shape.elements.size();
             ++element_cur_pos) {
 
         //std::cout << "element_cur_pos " << element_cur_pos << std::endl;
-        ElementPos element_next_pos = element_cur_pos + 1;
-        const ShapeElement& element_prev = shape.elements[element_prev_pos];
         const ShapeElement& element = shape.elements[element_cur_pos];
-        const ShapeElement& element_next = (element_next_pos < shape.elements.size())?
-            shape.elements[element_next_pos]:
-            shape_new.elements.front();
+        // A full circle starts and ends at the same point, but it doesn't
+        // have a null length.
         bool useless = false;
-        if (equal(element.start.x, element.end.x)
+        if (!(element.type == ShapeElementType::CircularArc
+                    && element.orientation == ShapeElementOrientation::Full)
+                && equal(element.start.x, element.end.x)
                 && equal(element.start.y, element.end.y)) {
             useless = true;
         }
@@ -52,7 +50,6 @@ std::pair<bool, Shape> shape::remove_redundant_vertices(
             if (!shape_new.elements.empty())
                 shape_new.elements.back().end = element.start;
             shape_new.elements.push_back(element);
-            element_prev_pos = element_cur_pos;
         } else {
             number_of_elements_removed++;
         }

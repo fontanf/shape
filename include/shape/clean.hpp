@@ -7,7 +7,7 @@ namespace shape
 
 /**
  * Remove the elements of a shape whose start and end are equal (within
- * tolerance).
+ * tolerance), except full circles.
  *
  * The end of the element before each removed element is moved to the start
  * of the element after it, so that the shape stays connected.
