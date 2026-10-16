@@ -1,6 +1,10 @@
+//#define CONVEX_HULL_DEBUG
+
 #include "shape/convex_hull.hpp"
 
+#ifdef CONVEX_HULL_DEBUG
 #include "shape/writer.hpp"
+#endif
 
 //#include <iostream>
 
@@ -111,10 +115,12 @@ Shape shape::convex_hull(
                 std::sqrt(shape.compute_area()))) {
         //std::cout << shape.to_string(0) << std::endl;
         //std::cout << convex_hull_shape.to_string(0) << std::endl;
+#ifdef CONVEX_HULL_DEBUG
         Writer()
             .add_shape(shape)
             .add_shape(convex_hull_shape)
             .write_json("convex_hull.json");
+#endif
         throw std::runtime_error(
                 FUNC_SIGNATURE + "; "
                 "shape.compute_area(): " + std::to_string(shape.compute_area()) + "; "
