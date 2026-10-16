@@ -250,6 +250,28 @@ struct IntersectShapeWithHolesShapeElementTestParams
     ShapeElement element;
     bool strict = false;
     bool expected_output;
+
+
+    static IntersectShapeWithHolesShapeElementTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        IntersectShapeWithHolesShapeElementTestParams test_params;
+        test_params.name = file_path;
+        test_params.shape = ShapeWithHoles::from_json(json["shape_with_holes"]);
+        test_params.element = ShapeElement::from_json(json["element"]);
+        test_params.strict = json["strict"];
+        test_params.expected_output = json["expected_output"];
+        return test_params;
+    }
 };
 
 void PrintTo(const IntersectShapeWithHolesShapeElementTestParams& params, std::ostream* os)
@@ -304,16 +326,12 @@ INSTANTIATE_TEST_SUITE_P(
                 build_circle(1).elements.front(),
                 true,
                 false,
-            }, {
-                "CircleAroundHoleStrict",
-                {build_rectangle(-4, 4, -4, 4), {build_rectangle(-1, 1, -1, 1)}},
-                build_circle(2).elements.front(),
-                true,
-                true,
             },
+            IntersectShapeWithHolesShapeElementTestParams::read_json(
+                    (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_with_holes_shape_element" / "0.json").string()),
         }),
         [](const testing::TestParamInfo<IntersectShapeWithHolesShapeElementTest::ParamType>& info) {
-            return info.param.name;
+            return fs::path(info.param.name).stem().string();
         });
 
 
@@ -516,19 +534,11 @@ INSTANTIATE_TEST_SUITE_P(
         Shape,
         ComputeStrictIntersectionsPathShapeTest,
         testing::ValuesIn(std::vector<ComputeStrictIntersectionsPathShapeTestParams>{
-            {
-                "ArcLineArcCrossesTriangle",
-                build_path({
-                        build_circular_arc({64, 0}, {192, 128}, {192, 0}, ShapeElementOrientation::Clockwise),
-                        build_line_segment({192, 128}, {704, 128}),
-                        build_circular_arc({704, 128}, {832, 2.842170943040401e-14}, {704, 2.842170943040401e-14}, ShapeElementOrientation::Clockwise)}),
-                build_shape({{384, 320}, {448, -192}, {448, 832}}),
-                true,
-                {{1, 0, {408, 128}}},
-            },
+            ComputeStrictIntersectionsPathShapeTestParams::read_json(
+                    (fs::path("data") / "tests" / "shapes_intersections" / "compute_strict_intersections_path_shape" / "0.json").string()),
         }),
         [](const testing::TestParamInfo<ComputeStrictIntersectionsPathShapeTest::ParamType>& info) {
-            return info.param.name;
+            return fs::path(info.param.name).stem().string();
         });
 
 
@@ -861,17 +871,9 @@ INSTANTIATE_TEST_SUITE_P(
         Shape,
         IntersectShapeWithHolesShapeWithHolesTest,
         testing::ValuesIn(std::vector<IntersectShapeWithHolesShapeWithHolesTestParams>{
-            {
-                "ShapeInHole",
-                {build_shape({{100, 200}, {200, 200}, {200, 400}, {100, 400}})},
-                {
-                    build_shape({{500, 500}, {0, 500}, {0, 0}, {500, 0}}),
-                    {build_shape({{100, 100}, {400, 100}, {400, 400}, {100, 400}})}
-                },
-                true,
-                false,
-            }
+            IntersectShapeWithHolesShapeWithHolesTestParams::read_json(
+                    (fs::path("data") / "tests" / "shapes_intersections" / "intersect_shape_with_holes_shape_with_holes" / "0.json").string()),
         }),
         [](const testing::TestParamInfo<IntersectShapeWithHolesShapeWithHolesTest::ParamType>& info) {
-            return info.param.name;
+            return fs::path(info.param.name).stem().string();
         });

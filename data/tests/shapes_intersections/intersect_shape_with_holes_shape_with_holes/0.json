@@ -1,0 +1,157 @@
+{
+    "description": "Shape inside the hole of a shape with holes (strict).",
+    "shape_with_holes_1": {
+        "elements": [
+            {
+                "end": {
+                    "x": 200.0,
+                    "y": 200.0
+                },
+                "start": {
+                    "x": 100.0,
+                    "y": 200.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 200.0,
+                    "y": 400.0
+                },
+                "start": {
+                    "x": 200.0,
+                    "y": 200.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 100.0,
+                    "y": 400.0
+                },
+                "start": {
+                    "x": 200.0,
+                    "y": 400.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 100.0,
+                    "y": 200.0
+                },
+                "start": {
+                    "x": 100.0,
+                    "y": 400.0
+                },
+                "type": "LineSegment"
+            }
+        ],
+        "is_path": false,
+        "type": "general"
+    },
+    "shape_with_holes_2": {
+        "elements": [
+            {
+                "end": {
+                    "x": 0.0,
+                    "y": 500.0
+                },
+                "start": {
+                    "x": 500.0,
+                    "y": 500.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "start": {
+                    "x": 0.0,
+                    "y": 500.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 500.0,
+                    "y": 0.0
+                },
+                "start": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 500.0,
+                    "y": 500.0
+                },
+                "start": {
+                    "x": 500.0,
+                    "y": 0.0
+                },
+                "type": "LineSegment"
+            }
+        ],
+        "holes": [
+            {
+                "elements": [
+                    {
+                        "end": {
+                            "x": 400.0,
+                            "y": 100.0
+                        },
+                        "start": {
+                            "x": 100.0,
+                            "y": 100.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 400.0,
+                            "y": 400.0
+                        },
+                        "start": {
+                            "x": 400.0,
+                            "y": 100.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 100.0,
+                            "y": 400.0
+                        },
+                        "start": {
+                            "x": 400.0,
+                            "y": 400.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 100.0,
+                            "y": 100.0
+                        },
+                        "start": {
+                            "x": 100.0,
+                            "y": 400.0
+                        },
+                        "type": "LineSegment"
+                    }
+                ],
+                "is_path": false,
+                "type": "general"
+            }
+        ],
+        "is_path": false,
+        "type": "general"
+    },
+    "strict": true,
+    "expected_output": false
+}

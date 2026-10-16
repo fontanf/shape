@@ -1,0 +1,123 @@
+{
+    "description": "Circle around the hole of a shape with holes (strict).",
+    "element": {
+        "center": {
+            "x": 0.0,
+            "y": 0.0
+        },
+        "end": {
+            "x": 2.0,
+            "y": 0.0
+        },
+        "orientation": "Full",
+        "start": {
+            "x": 2.0,
+            "y": 0.0
+        },
+        "type": "CircularArc"
+    },
+    "shape_with_holes": {
+        "elements": [
+            {
+                "end": {
+                    "x": 4.0,
+                    "y": -4.0
+                },
+                "start": {
+                    "x": -4.0,
+                    "y": -4.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 4.0,
+                    "y": 4.0
+                },
+                "start": {
+                    "x": 4.0,
+                    "y": -4.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": -4.0,
+                    "y": 4.0
+                },
+                "start": {
+                    "x": 4.0,
+                    "y": 4.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": -4.0,
+                    "y": -4.0
+                },
+                "start": {
+                    "x": -4.0,
+                    "y": 4.0
+                },
+                "type": "LineSegment"
+            }
+        ],
+        "holes": [
+            {
+                "elements": [
+                    {
+                        "end": {
+                            "x": 1.0,
+                            "y": -1.0
+                        },
+                        "start": {
+                            "x": -1.0,
+                            "y": -1.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 1.0,
+                            "y": 1.0
+                        },
+                        "start": {
+                            "x": 1.0,
+                            "y": -1.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": -1.0,
+                            "y": 1.0
+                        },
+                        "start": {
+                            "x": 1.0,
+                            "y": 1.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": -1.0,
+                            "y": -1.0
+                        },
+                        "start": {
+                            "x": -1.0,
+                            "y": 1.0
+                        },
+                        "type": "LineSegment"
+                    }
+                ],
+                "is_path": false,
+                "type": "general"
+            }
+        ],
+        "is_path": false,
+        "type": "general"
+    },
+    "strict": true,
+    "expected_output": true
+}

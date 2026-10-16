@@ -1,0 +1,102 @@
+{
+    "description": "Path made of an arc, a line segment and an arc crossing a triangle.",
+    "only_first": true,
+    "path": {
+        "elements": [
+            {
+                "center": {
+                    "x": 192.0,
+                    "y": 0.0
+                },
+                "end": {
+                    "x": 192.0,
+                    "y": 128.0
+                },
+                "orientation": "Clockwise",
+                "start": {
+                    "x": 64.0,
+                    "y": 0.0
+                },
+                "type": "CircularArc"
+            },
+            {
+                "end": {
+                    "x": 704.0,
+                    "y": 128.0
+                },
+                "start": {
+                    "x": 192.0,
+                    "y": 128.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "center": {
+                    "x": 704.0,
+                    "y": 2.842170943040401e-14
+                },
+                "end": {
+                    "x": 832.0,
+                    "y": 2.842170943040401e-14
+                },
+                "orientation": "Clockwise",
+                "start": {
+                    "x": 704.0,
+                    "y": 128.0
+                },
+                "type": "CircularArc"
+            }
+        ],
+        "is_path": true,
+        "type": "general"
+    },
+    "shape": {
+        "elements": [
+            {
+                "end": {
+                    "x": 448.0,
+                    "y": -192.0
+                },
+                "start": {
+                    "x": 384.0,
+                    "y": 320.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 448.0,
+                    "y": 832.0
+                },
+                "start": {
+                    "x": 448.0,
+                    "y": -192.0
+                },
+                "type": "LineSegment"
+            },
+            {
+                "end": {
+                    "x": 384.0,
+                    "y": 320.0
+                },
+                "start": {
+                    "x": 448.0,
+                    "y": 832.0
+                },
+                "type": "LineSegment"
+            }
+        ],
+        "is_path": false,
+        "type": "general"
+    },
+    "expected_output": [
+        {
+            "path_element_pos": 1,
+            "shape_element_pos": 0,
+            "point": {
+                "x": 408,
+                "y": 128
+            }
+        }
+    ]
+}

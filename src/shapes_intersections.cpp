@@ -1150,6 +1150,20 @@ void shape::compute_strict_intersections_export_inputs(
 
 void shape::intersect_export_inputs(
         const std::string& file_path,
+        const Shape& shape,
+        const ShapeElement& element,
+        bool strict)
+{
+    std::ofstream file{file_path};
+    nlohmann::json json;
+    json["shape"] = shape.to_json();
+    json["element"] = element.to_json();
+    json["strict"] = strict;
+    file << std::setw(4) << json << std::endl;
+}
+
+void shape::intersect_export_inputs(
+        const std::string& file_path,
         const ShapeWithHoles& shape_with_holes,
         const ShapeElement& element,
         bool strict)
