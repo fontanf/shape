@@ -499,8 +499,10 @@ bool shape::strictly_lesser_angle(
         return true;
     if (vector_1.y < 0 && vector_2.y >= 0)
         return false;
+    // Both vectors are horizontal: a vector going right has angle 0 and a
+    // vector going left has angle pi, whatever their lengths.
     if (vector_1.y == 0 && vector_2.y == 0)
-        return (vector_1.x > vector_2.x);
+        return (vector_1.x >= 0 && vector_2.x < 0);
     // The products are compared rather than subtracted: with a fused
     // multiply-add, the difference of the products would be nonzero for two
     // equal vectors, and a vector could be strictly lesser than itself.

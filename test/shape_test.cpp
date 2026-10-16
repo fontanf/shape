@@ -81,6 +81,16 @@ INSTANTIATE_TEST_SUITE_P(
                 {0.89070897486398548, -0.4545740006827802},
                 false,
             },
+            // Two horizontal vectors in the same direction have the same
+            // angle, whatever their lengths.
+            {{2, 0}, {1, 0}, false},
+            {{1, 0}, {2, 0}, false},
+            {{-2, 0}, {-1, 0}, false},
+            {{-1, 0}, {-2, 0}, false},
+            // A horizontal vector going right has angle 0, and one going left
+            // has angle pi.
+            {{1, 0}, {-2, 0}, true},
+            {{-2, 0}, {1, 0}, false},
         }),
         [](const testing::TestParamInfo<StrictlyLesserAngleTest::ParamType>& info) {
             return std::to_string(info.index);

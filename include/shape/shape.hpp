@@ -316,6 +316,14 @@ int counter_clockwise(
         const Point& point_2,
         const Point& point_3);
 
+/**
+ * Return true iff the angle of 'vector_1' is strictly smaller than the
+ * angle of 'vector_2', the angles being measured anticlockwise from the
+ * x-axis in [0, 2 * pi[.
+ *
+ * The comparison is exact, without tolerance, and doesn't depend on the
+ * lengths of the vectors.
+ */
 bool strictly_lesser_angle(
         const Point& vector_1,
         const Point& vector_2);

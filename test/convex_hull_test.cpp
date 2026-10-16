@@ -94,6 +94,12 @@ INSTANTIATE_TEST_SUITE_P(
                         {24.499879567359496, -148.94909807684283},
                         {160.84969528197314, 162.07757174225461},
                         {-281.52374304048334, -251.03896141876899}}),
+            }, {
+                // Several vertices aligned horizontally with the lowest
+                // vertex: the furthest one, (2, 0), is a vertex of the hull.
+                build_shape({{0, 0}, {1, 0}, {2, 0}, {2, 2}, {1, 1}, {0, 2}}),
+                false,
+                build_shape({{0, 0}, {2, 0}, {2, 2}, {0, 2}}),
             },
         }),
         [](const testing::TestParamInfo<ConvexHullTest::ParamType>& info) {
