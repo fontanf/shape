@@ -2,6 +2,8 @@
 
 #include "shape/intersection_tree.hpp"
 
+#include <queue>
+
 //#include <iostream>
 
 using namespace shape;
@@ -45,55 +47,53 @@ std::vector<Point> shape::equalize_points(
         graph[p.second].push_back(p.first);
     }
 
-    // For each connected component, build a point.
-    ElementPos node_id = 0;
-    std::vector<uint8_t> visited(unique_points.size(), 0);
+    // Greedily build clusters. Each cluster is made of a representative
+    // point and all its unassigned neighbors, and all its points are moved to
+    // the representative. The representative is the unassigned point with
+    // the largest number of unassigned neighbors. Thus, each point is moved
+    // to a point equal to it, and the representatives are pairwise not equal,
+    // since a point equal to a representative is assigned to its cluster
+    // before it can become a representative itself.
+    // Unlike merging the connected components of the graph, this doesn't
+    // move points arbitrarily far when they form chains of equal points.
+    std::vector<ElementPos> degrees(unique_points.size());
+    std::priority_queue<std::pair<ElementPos, ElementPos>> queue;
+    for (ElementPos node_id = 0;
+            node_id < (ElementPos)unique_points.size();
+            ++node_id) {
+        degrees[node_id] = graph[node_id].size();
+        queue.push({degrees[node_id], -node_id});
+    }
+    std::vector<uint8_t> assigned(unique_points.size(), 0);
     std::vector<Point> new_points = points;
-    std::vector<ElementPos> current_component;
-    Point current_component_center = {0, 0};
-    for (;;) {
-        while (node_id < unique_points.size()
-                && visited[node_id]) {
-            node_id++;
-        }
-        if (node_id == unique_points.size())
-            break;
-
-        const Point& point = unique_points[node_id];
-        visited[node_id] = 1;
-        current_component = {node_id};
-        current_component_center = unique_points[node_id];
-        std::vector<ElementPos> stack = {node_id};
-        while (!stack.empty()) {
-            ElementPos node_id_cur = stack.back();
-            stack.pop_back();
-            for (ElementPos neighbor: graph[node_id_cur]) {
-                if (visited[neighbor])
-                    continue;
-                stack.push_back(neighbor);
-                visited[neighbor] = 1;
-                current_component.push_back(neighbor);
-                current_component_center = current_component_center + unique_points[neighbor];
-                //std::cout << "new_points[neighbor] " << new_points[neighbor].to_string()
-                //    << " -> " << point.to_string() << std::endl;
-            }
-        }
-        current_component_center = 1.0 / current_component.size() * current_component_center;
-
-        Point current_component_point = {0, 0};
-        LengthDbl length_best = std::numeric_limits<LengthDbl>::infinity();
-        for (ElementPos point_pos: current_component) {
-            const Point& point = unique_points[point_pos];
-            LengthDbl length = distance(point, current_component_center);
-            if (length_best > length) {
-                length_best = length;
-                current_component_point = point;
-            }
+    while (!queue.empty()) {
+        ElementPos degree = queue.top().first;
+        ElementPos node_id = -queue.top().second;
+        queue.pop();
+        if (assigned[node_id])
+            continue;
+        // The degree of the node decreased since it was pushed; push it
+        // again with its current degree.
+        if (degree != degrees[node_id]) {
+            queue.push({degrees[node_id], -node_id});
+            continue;
         }
 
-        for (ElementPos point_pos: current_component)
+        const Point& representative = unique_points[node_id];
+        std::vector<ElementPos> cluster = {node_id};
+        assigned[node_id] = 1;
+        for (ElementPos neighbor: graph[node_id]) {
+            if (assigned[neighbor])
+                continue;
+            assigned[neighbor] = 1;
+            cluster.push_back(neighbor);
+        }
+        for (ElementPos point_pos: cluster) {
+            for (ElementPos neighbor: graph[point_pos])
+                degrees[neighbor]--;
             for (ElementPos orig_point_pos: unique_to_orig[point_pos])
-                new_points[orig_point_pos] = current_component_point;
+                new_points[orig_point_pos] = representative;
+        }
     }
 
     //std::cout << "equal_points end" << std::endl;
