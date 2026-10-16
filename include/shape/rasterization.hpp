@@ -8,6 +8,12 @@ namespace shape
 using RowId = int64_t;
 using ColumnId = int64_t;
 
+/**
+ * Position of a cell of a grid of cells of width 'cell_width' and height
+ * 'cell_height' whose origin is (0, 0): cell (column, row) is the rectangle
+ * [column * cell_width, (column + 1) * cell_width]
+ * x [row * cell_height, (row + 1) * cell_height] (see cell_to_shape).
+ */
 struct CellId
 {
     ColumnId column = 0;
@@ -68,12 +74,21 @@ struct RasterizedGrid
  * cell's coverage is 0.0 (outside), 1.0 (entirely inside) or in between
  * (intersecting the shape's boundary), and its shape attribute holds the
  * part of the original shape that lies within that cell.
+ *
+ * The cells are the ones of the grid of origin (0, 0) described in CellId,
+ * so the grid starts at the cell containing the bottom-left corner of the
+ * bounding box, not at that corner. 'cell_width' and 'cell_height' must be
+ * strictly positive.
  */
 RasterizedGrid rasterization(
         const ShapeWithHoles& shape,
         LengthDbl cell_width,
         LengthDbl cell_height);
 
+/**
+ * Write the inputs of rasterization to a JSON file in the format of the test
+ * fixtures in data/tests/rasterization/.
+ */
 void rasterization_export_inputs(
         const std::string& file_path,
         const ShapeWithHoles& shape,
@@ -89,7 +104,8 @@ Shape cell_to_shape(
         LengthDbl cell_height);
 
 /**
- * Convert a list of cell positions into shapes with holes.
+ * Convert a list of cell positions into shapes with holes: the union of the
+ * rectangles of the cells.
  */
 MultiShapeWithHoles cells_to_shapes(
         const std::vector<CellId>& cells,
