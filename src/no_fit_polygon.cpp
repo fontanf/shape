@@ -4,6 +4,7 @@
 #include "shape/clean.hpp"
 #include "shape/equalize.hpp"
 #include "shape/basic_shapes.hpp"
+#include "shape/offset.hpp"
 
 #include <algorithm>
 #include <string>
@@ -720,7 +721,33 @@ MultiShapeWithHoles shape::no_fit_polygon(
         std::vector<ShapeWithHoles> nfp_parts;
         nfp_parts.reserve(orbiting_parts.size());
         for (const BasicShape& orbiting_part: orbiting_parts) {
-            Shape convex_nfp = no_fit_polygon(fixed_part.shape, orbiting_part.shape);
+            // The NFP is fixed_part + (-orbiting_part). If one of them is a
+            // disk, it is the other one inflated by the radius of the disk,
+            // shifted by the center of the disk.
+            Shape convex_nfp;
+            if (fixed_part.type == BasicShapeType::Circle
+                    && orbiting_part.type == BasicShapeType::Circle) {
+                convex_nfp = build_circle(fixed_part.circle_radius + orbiting_part.circle_radius);
+                convex_nfp.shift(
+                        fixed_part.circle_center.x - orbiting_part.circle_center.x,
+                        fixed_part.circle_center.y - orbiting_part.circle_center.y);
+            } else if (fixed_part.type == BasicShapeType::Circle) {
+                convex_nfp = inflate(
+                        orbiting_part.shape.rotate(180),
+                        fixed_part.circle_radius).shape;
+                convex_nfp.shift(
+                        fixed_part.circle_center.x,
+                        fixed_part.circle_center.y);
+            } else if (orbiting_part.type == BasicShapeType::Circle) {
+                convex_nfp = inflate(
+                        fixed_part.shape,
+                        orbiting_part.circle_radius).shape;
+                convex_nfp.shift(
+                        -orbiting_part.circle_center.x,
+                        -orbiting_part.circle_center.y);
+            } else {
+                convex_nfp = no_fit_polygon(fixed_part.shape, orbiting_part.shape);
+            }
             nfp_parts.push_back({convex_nfp, {}});
         }
         for (const ShapeWithHoles& swh: compute_union(nfp_parts).shapes_with_holes)
