@@ -3,9 +3,13 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
+
 #include <cmath>
+#include <fstream>
 
 using namespace shape;
+namespace fs = boost::filesystem;
 
 
 struct TryExtendToIntersectionTestParams
@@ -462,15 +466,58 @@ INSTANTIATE_TEST_SUITE_P(
 struct SimplifyTestParams
 {
     std::string name;
-    Shape shape;
+    std::vector<SimplifyInputShape> shapes;
     AreaDbl maximum_approximation_area;
-    ElementPos expected_number_of_elements;
+    ElementPos minimum_number_of_vertices = 4;
+    ElementPos minimum_average_number_of_elements = 8;
+    // Number of elements of the outline of each simplified shape. Not
+    // checked if empty.
+    std::vector<ElementPos> expected_numbers_of_elements;
+
+
+    /**
+     * Read the inputs written by simplify_export_inputs, and optionally the
+     * "expected_numbers_of_elements".
+     */
+    static SimplifyTestParams read_json(
+            const std::string& file_path)
+    {
+        std::ifstream file(file_path);
+        if (!file.good()) {
+            throw std::runtime_error(
+                    FUNC_SIGNATURE + ": "
+                    "unable to open file \"" + file_path + "\".");
+        }
+
+        nlohmann::json json;
+        file >> json;
+        SimplifyTestParams test_params;
+        test_params.name = fs::path(file_path).stem().string();
+        for (auto& json_shape: json["shapes"]) {
+            SimplifyInputShape shape;
+            shape.shape = ShapeWithHoles::from_json(json_shape["shape"]);
+            shape.copies = json_shape["copies"];
+            test_params.shapes.push_back(shape);
+        }
+        test_params.maximum_approximation_area = json["maximum_approximation_area"];
+        test_params.minimum_number_of_vertices = json["minimum_number_of_vertices"];
+        test_params.minimum_average_number_of_elements = json["minimum_average_number_of_elements"];
+        if (json.contains("expected_numbers_of_elements")) {
+            for (auto& json_number: json["expected_numbers_of_elements"])
+                test_params.expected_numbers_of_elements.push_back(json_number);
+        }
+        return test_params;
+    }
 };
 
 void PrintTo(const SimplifyTestParams& params, std::ostream* os)
 {
-    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "shapes (" << params.shapes.size() << ")\n";
+    for (const SimplifyInputShape& shape: params.shapes)
+        *os << "- copies " << shape.copies << " " << shape.shape.to_string(1) << "\n";
     *os << "maximum_approximation_area " << params.maximum_approximation_area << "\n";
+    *os << "minimum_number_of_vertices " << params.minimum_number_of_vertices << "\n";
+    *os << "minimum_average_number_of_elements " << params.minimum_average_number_of_elements << "\n";
 }
 
 class SimplifyTest: public testing::TestWithParam<SimplifyTestParams> { };
@@ -480,20 +527,35 @@ TEST_P(SimplifyTest, Simplify)
     SimplifyTestParams test_params = GetParam();
     PrintTo(test_params, &std::cout);
     std::vector<ShapeWithHoles> output = simplify(
-            {{{test_params.shape}, 1}},
-            test_params.maximum_approximation_area);
-    ASSERT_EQ(output.size(), 1);
-    std::cout << "output " << output.front().to_string(1) << std::endl;
+            test_params.shapes,
+            test_params.maximum_approximation_area,
+            test_params.minimum_number_of_vertices,
+            test_params.minimum_average_number_of_elements);
+    ASSERT_EQ(output.size(), test_params.shapes.size());
 
-    EXPECT_EQ((ElementPos)output.front().shape.elements.size(), test_params.expected_number_of_elements);
-    // The simplified shape contains the shape, and its area is greater by at
-    // most the maximum approximation area.
-    AreaDbl area_outside = 0.0;
-    for (const ShapeWithHoles& part: compute_difference(ShapeWithHoles{test_params.shape}, output.front()).shapes_with_holes)
-        area_outside += part.compute_area();
-    EXPECT_TRUE(equal(area_outside, 0.0));
+    // Each simplified shape contains its shape, and the areas added, counted
+    // once for each copy, sum up to at most the maximum approximation area.
+    AreaDbl approximation_area = 0.0;
+    for (ShapePos shape_pos = 0;
+            shape_pos < (ShapePos)output.size();
+            ++shape_pos) {
+        const SimplifyInputShape& input_shape = test_params.shapes[shape_pos];
+        const ShapeWithHoles& output_shape = output[shape_pos];
+        std::cout << "output " << shape_pos << " " << output_shape.to_string(1) << std::endl;
+        if (!test_params.expected_numbers_of_elements.empty()) {
+            EXPECT_EQ(
+                    (ElementPos)output_shape.shape.elements.size(),
+                    test_params.expected_numbers_of_elements[shape_pos]);
+        }
+        AreaDbl area_outside = 0.0;
+        for (const ShapeWithHoles& part: compute_difference(input_shape.shape, output_shape).shapes_with_holes)
+            area_outside += part.compute_area();
+        EXPECT_TRUE(equal(area_outside, 0.0)) << "shape " << shape_pos;
+        approximation_area += input_shape.copies
+            * (output_shape.compute_area() - input_shape.shape.compute_area());
+    }
     EXPECT_FALSE(strictly_greater(
-                output.front().compute_area() - test_params.shape.compute_area(),
+                approximation_area,
                 test_params.maximum_approximation_area));
 }
 
@@ -506,14 +568,16 @@ INSTANTIATE_TEST_SUITE_P(
                 // approximation area (simplify stops once the shape has at
                 // most 8 elements).
                 "Notches",
-                build_shape({
+                {{{build_shape({
                         {0, 0}, {20, 0}, {20, 10},
                         {17, 10}, {16, 9}, {15, 10},
                         {11, 10}, {10, 9}, {9, 10},
                         {5, 10}, {4, 9}, {3, 10},
-                        {0, 10}}),
+                        {0, 10}})}, 1}},
                 2.5,
+                4,
                 8,
+                {8},
             }, {
                 // The vertices (500, 0) and (600, 100.0001) are almost
                 // aligned with their neighbors, but removing them would move
@@ -521,10 +585,14 @@ INSTANTIATE_TEST_SUITE_P(
                 // these long elements. Only the vertices exactly aligned with
                 // their neighbors are removed.
                 "AlmostAlignedVertices",
-                build_shape({{0, 0}, {500, 0}, {1000, 0.0004}, {1000, 100}, {800, 100}, {600, 100.0001}, {400, 100}, {200, 100}, {100, 100}, {0, 100}}),
+                {{{build_shape({{0, 0}, {500, 0}, {1000, 0.0004}, {1000, 100}, {800, 100}, {600, 100.0001}, {400, 100}, {200, 100}, {100, 100}, {0, 100}})}, 1}},
                 0,
+                4,
                 8,
+                {8},
             },
+            SimplifyTestParams::read_json(
+                    (fs::path("data") / "tests" / "simplification" / "simplify" / "0.json").string()),
         }),
         [](const testing::TestParamInfo<SimplifyTest::ParamType>& info) {
             return info.param.name;
