@@ -133,6 +133,21 @@ void Writer::write_svg(const std::string& file_path) const
     LengthDbl width = (aabb.x_max - aabb.x_min);
     LengthDbl height = (aabb.y_max - aabb.y_min);
 
+    // The points are drawn as disks whose radius is proportional to the size
+    // of the drawing, and the view box is enlarged so that they are entirely
+    // visible.
+    LengthDbl point_radius = (std::max)(width, height) / 50;
+    if (!(point_radius > 0))
+        point_radius = 1;
+    if (!this->points_.empty()) {
+        aabb.x_min -= point_radius;
+        aabb.x_max += point_radius;
+        aabb.y_min -= point_radius;
+        aabb.y_max += point_radius;
+        width = (aabb.x_max - aabb.x_min);
+        height = (aabb.y_max - aabb.y_min);
+    }
+
     std::string s = "<svg viewBox=\""
         + std::to_string(aabb.x_min)
         + " " + std::to_string(-aabb.y_min - height)
@@ -146,7 +161,7 @@ void Writer::write_svg(const std::string& file_path) const
              ++point_pos) {
         const WriterPoint& point = points_[point_pos];
         file << "<g>" << std::endl;
-        file << point.point.to_svg();
+        file << point.point.to_svg(point_radius);
         file << "</g>" << std::endl;
     }
     for (ElementPos element_pos = 0;
