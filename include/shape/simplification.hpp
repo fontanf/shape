@@ -171,6 +171,7 @@ std::vector<ShapeWithHoles> simplify(
         ElementPos minimum_number_of_vertices = 4,
         ElementPos minimum_average_number_of_elements = 8);
 
+/** Write the inputs of simplify to a JSON file. */
 void simplify_export_inputs(
         const std::string& file_path,
         const std::vector<SimplifyInputShape>& shapes,
