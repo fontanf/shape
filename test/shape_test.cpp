@@ -1677,6 +1677,96 @@ INSTANTIATE_TEST_SUITE_P(
             return info.param.name;
         });
 
+struct ShapeCheckTestParams
+{
+    std::string name;
+    Shape shape;
+    bool expected_output;
+};
+
+void PrintTo(const ShapeCheckTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(1) << "\n";
+    *os << "expected_output " << params.expected_output << "\n";
+}
+
+class ShapeCheckTest: public testing::TestWithParam<ShapeCheckTestParams> { };
+
+TEST_P(ShapeCheckTest, ShapeCheck)
+{
+    ShapeCheckTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    EXPECT_EQ(test_params.shape.check(), test_params.expected_output);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        ShapeCheckTest,
+        testing::ValuesIn(std::vector<ShapeCheckTestParams>{
+            {
+                "Square",
+                build_square(1),
+                true,
+            }, {
+                "Path",
+                build_path({{0, 0}, {1, 0}, {1, 1}}),
+                true,
+            }, {
+                "Circle",
+                build_circle(1),
+                true,
+            }, {
+                // The end of the first element is equal to the start of the
+                // second one within tolerance.
+                "SquareWithGapWithinTolerance",
+                build_shape({
+                        build_line_segment({0, 0}, {1, 0}),
+                        build_line_segment({1, 1e-7}, {1, 1}),
+                        build_line_segment({1, 1}, {0, 1}),
+                        build_line_segment({0, 1}, {0, 0})}),
+                true,
+            }, {
+                // The end of the first element isn't the start of the second
+                // one, although the shape is closed and doesn't intersect
+                // itself.
+                "DisconnectedSquare",
+                build_shape({
+                        build_line_segment({0, 0}, {1, 0}),
+                        build_line_segment({1, 0.5}, {1, 1}),
+                        build_line_segment({1, 1}, {0, 1}),
+                        build_line_segment({0, 1}, {0, 0})}),
+                false,
+            }, {
+                "DisconnectedPath",
+                build_path({
+                        build_line_segment({0, 0}, {1, 0}),
+                        build_line_segment({2, 0}, {3, 0})}),
+                false,
+            }, {
+                "NotClosed",
+                build_shape({
+                        build_line_segment({0, 0}, {1, 0}),
+                        build_line_segment({1, 0}, {1, 1}),
+                        build_line_segment({1, 1}, {0, 1})}),
+                false,
+            }, {
+                "Clockwise",
+                build_square(1).reverse(),
+                false,
+            }, {
+                "SelfIntersecting",
+                build_shape({{0, 0}, {1, 1}, {1, 0}, {0, 1}}),
+                false,
+            }, {
+                "Empty",
+                Shape(),
+                false,
+            },
+        }),
+        [](const testing::TestParamInfo<ShapeCheckTest::ParamType>& info) {
+            return info.param.name;
+        });
+
 struct ShapeEqualTestParams
 {
     std::string name;

@@ -42,7 +42,7 @@ The center of a circular arc isn't required to be exactly at the same distance f
 
 `Shape::check` and `ShapeWithHoles::check` check that:
 
-- a shape has at least one element and is closed (within tolerance) unless it is a path;
+- a shape has at least one element, the end of each element is the start of the next one, and it is closed unless it is a path (within tolerance);
 - its boundary doesn't intersect itself, apart from consecutive elements sharing their common vertex;
 - its area isn't negative, i.e. it is anticlockwise;
 - the outline of a shape with holes isn't a path, and each hole is valid and inside the outline.
