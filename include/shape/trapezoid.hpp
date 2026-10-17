@@ -306,6 +306,16 @@ public:
         return std::max(x2br - x1bl, x2tr - x1tl);
     }
 
+    /**
+     * Same as compute_right_shift, but moving the generalized trapezoid along
+     * the direction of slope 'a', towards increasing x: return by how much
+     * its x must increase (its y increasing by 'a' times as much) for it to be
+     * right next to the other generalized trapezoid, that is, the largest
+     * shift at which a vertex of one of them meets a side of the other.
+     *
+     * Return 0 if no such shift exists. 'a' must be non-zero; use
+     * compute_right_shift for a horizontal move.
+     */
     inline LengthDbl compute_top_right_shift(
             const GeneralizedTrapezoid& trapezoid,
             double a) const
@@ -591,6 +601,10 @@ public:
         return shape;
     }
 
+    /**
+     * Return the SVG of the generalized trapezoid, with the y-axis going up,
+     * its coordinates multiplied by 'factor', filled with 'color'.
+     */
     std::string to_svg(
             const std::string color = "purple",
             double factor = 10) const
