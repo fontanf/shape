@@ -79,18 +79,15 @@ nlohmann::json Point::to_json() const
     return json;
 }
 
-std::string Point::to_svg() const
+std::string Point::to_svg(LengthDbl radius) const
 {
-    std::string s = "<path d=\"";
-    s += "M" + std::to_string(this->x) + "," + std::to_string(this->y);
-    s += "\""
-        " stroke=\"black\""
-        " stroke-width=\"0.1\"";
-    //if (!fill_color.empty()) {
-    //    s += " fill=\"" + fill_color + "\""
-    //        " fill-opacity=\"0.2\"";
-    //}
-    s += "/>\n";
+    // A path made of a single point isn't drawn: draw a disk instead.
+    std::string s = "<circle"
+        " cx=\"" + std::to_string(this->x) + "\""
+        " cy=\"" + std::to_string(-this->y) + "\""
+        " r=\"" + std::to_string(radius) + "\""
+        " fill=\"black\""
+        "/>\n";
     return s;
 }
 

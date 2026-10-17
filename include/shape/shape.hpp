@@ -125,7 +125,11 @@ struct Point
 
     nlohmann::json to_json() const;
 
-    std::string to_svg() const;
+    /**
+     * Return the SVG of a disk of radius 'radius' centered at the point,
+     * with the y-axis going up.
+     */
+    std::string to_svg(LengthDbl radius = 1) const;
 };
 
 inline bool operator==(
