@@ -311,6 +311,25 @@ INSTANTIATE_TEST_SUITE_P(
                 {{{build_shape({{3, 3}, {-1, 3}, {-1, 1}, {0, 1}, {0, -1}, {2, -1}, {2, 1}, {3, 1}}), {}}}},
                 "TShapeAndUnitSquare",
             },
+            // Disks are basic shapes on their own: their NFP with another
+            // basic shape is that shape inflated by their radius. Only the
+            // oracle check is done.
+            {  // Disk fixed, L-shape orbiting.
+                {build_circle(2).shift(1, 1), {}},
+                {build_shape({{0, 0}, {2, 0}, {2, 1}, {1, 1}, {1, 2}, {0, 2}}), {}},
+                {},
+                "DiskAndLShape",
+            }, {  // L-shape fixed, disk orbiting.
+                {build_shape({{0, 0}, {4, 0}, {4, 2}, {2, 2}, {2, 4}, {0, 4}}), {}},
+                {build_circle(1).shift(0.5, -0.5), {}},
+                {},
+                "LShapeAndDisk",
+            }, {  // Two disks.
+                {build_circle(2).shift(1, 1), {}},
+                {build_circle(1).shift(-1, 0.5), {}},
+                {},
+                "TwoDisks",
+            },
             // Regression test for fontanf/packingsolver#558 (test cases 1
             // and 3): the two shapes in 000.json are a real sawtooth strip
             // item (fine repetitive teeth), scaled the way packingsolver

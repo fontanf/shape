@@ -166,7 +166,38 @@ BasicShapesDecomposition shape::decompose_into_basic_shapes(
 {
     BasicShapesDecomposition output;
 
+    // A disk is a basic shape on its own.
+    if (shape.shape.is_circle() && shape.holes.empty()) {
+        const ShapeElement& circle = shape.shape.elements.front();
+        BasicShape circle_basic_shape;
+        circle_basic_shape.type = BasicShapeType::Circle;
+        circle_basic_shape.shape = shape.shape;
+        circle_basic_shape.circle_center = circle.center;
+        circle_basic_shape.circle_radius = circle.radius();
+        output.basic_shapes.push_back(circle_basic_shape);
+        return output;
+    }
+
     ShapeWithHoles remaining = shape;
+
+    // An outline which is a full circle, around holes, is split into two
+    // half circles, which are then cut into circular segments like the other
+    // convex arcs.
+    if (remaining.shape.is_circle()) {
+        const ShapeElement circle = remaining.shape.elements.front();
+        Point antipode = 2 * circle.center - circle.start;
+        remaining.shape.elements = {
+            build_circular_arc(
+                    circle.start,
+                    antipode,
+                    circle.center,
+                    ShapeElementOrientation::Anticlockwise),
+            build_circular_arc(
+                    antipode,
+                    circle.start,
+                    circle.center,
+                    ShapeElementOrientation::Anticlockwise)};
+    }
 
     cut_circular_segments(remaining, -1, ShapeElementOrientation::Anticlockwise, output.basic_shapes);
     for (Counter loop_idx = 0; loop_idx < (Counter)remaining.holes.size(); ++loop_idx) {
