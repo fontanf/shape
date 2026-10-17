@@ -965,10 +965,11 @@ struct Shape
             const ShapePoint& point_2) const;
 
     /**
-     * Check if the shape is valid: it has at least one element, it is closed
-     * (within tolerance) unless it is a path, its boundary doesn't intersect
-     * itself (see intersect(const Shape&)), and its area isn't negative
-     * (within tolerance), i.e. it is anticlockwise.
+     * Check if the shape is valid: it has at least one element, the end of
+     * each element is the start of the next one (within tolerance), it is
+     * closed (within tolerance) unless it is a path, its boundary doesn't
+     * intersect itself (see intersect(const Shape&)), and its area isn't
+     * negative (within tolerance), i.e. it is anticlockwise.
      *
      * The reason why the shape isn't valid is written to the standard output.
      */

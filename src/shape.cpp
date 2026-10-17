@@ -1848,6 +1848,19 @@ bool Shape::check() const
     if (elements.empty())
         return false;
 
+    // Check that the end of each element is the start of the next one.
+    for (ElementPos element_pos = 0;
+            element_pos + 1 < (ElementPos)this->elements.size();
+            ++element_pos) {
+        if (!equal(
+                    this->elements[element_pos].end,
+                    this->elements[element_pos + 1].start)) {
+            std::cout << this->to_string(1) << std::endl;
+            std::cout << "shape is not connected at element " << element_pos << "." << std::endl;
+            return false;
+        }
+    }
+
     // If the shape is not a path, check that it is closed.
     if (!this->is_path) {
         if (!equal(this->elements.back().end, this->elements.front().start)) {
