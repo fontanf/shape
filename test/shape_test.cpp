@@ -97,6 +97,55 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
 
+struct PowerOfTwoTestParams
+{
+    LengthDbl value;
+    LengthDbl expected_largest_power_of_two_lesser_or_equal;
+    LengthDbl expected_smallest_power_of_two_greater_or_equal;
+};
+
+void PrintTo(const PowerOfTwoTestParams& params, std::ostream* os)
+{
+    *os << "value " << params.value << "\n";
+    *os << "expected_largest_power_of_two_lesser_or_equal " << params.expected_largest_power_of_two_lesser_or_equal << "\n";
+    *os << "expected_smallest_power_of_two_greater_or_equal " << params.expected_smallest_power_of_two_greater_or_equal << "\n";
+}
+
+class PowerOfTwoTest: public testing::TestWithParam<PowerOfTwoTestParams> { };
+
+TEST_P(PowerOfTwoTest, PowerOfTwo)
+{
+    PowerOfTwoTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+    // Powers of two are exact in floating-point arithmetic.
+    EXPECT_EQ(
+            largest_power_of_two_lesser_or_equal(test_params.value),
+            test_params.expected_largest_power_of_two_lesser_or_equal);
+    EXPECT_EQ(
+            smallest_power_of_two_greater_or_equal(test_params.value),
+            test_params.expected_smallest_power_of_two_greater_or_equal);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        PowerOfTwoTest,
+        testing::ValuesIn(std::vector<PowerOfTwoTestParams>{
+            {0.25, 0.25, 0.25},
+            {0.3, 0.25, 0.5},
+            {0.5, 0.5, 0.5},
+            {0.75, 0.5, 1},
+            {1, 1, 1},
+            {3, 2, 4},
+            {4, 4, 4},
+            {5, 4, 8},
+            {1000, 512, 1024},
+            {1024, 1024, 1024},
+        }),
+        [](const testing::TestParamInfo<PowerOfTwoTest::ParamType>& info) {
+            return std::to_string(info.index);
+        });
+
+
 struct ShapeElementLengthTestParams
 {
     ShapeElement element;
