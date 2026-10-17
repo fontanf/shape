@@ -94,6 +94,11 @@ public:
         left_side_decreasing_not_vertical_ = false;
         left_side_increasing_not_vertical_ = false;
         a_left_ = 0;
+        // The widths and the area change with the left side, as computed in
+        // the constructor.
+        width_top_ = x_top_right() - x_top_left();
+        width_bottom_ = x_bottom_right() - x_bottom_left();
+        area_ = (width_top() + width_bottom()) * height() / 2.0;
     }
 
     void set_top_covered(bool top_covered) { top_covered_ = top_covered; }
