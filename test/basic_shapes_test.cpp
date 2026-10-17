@@ -1,6 +1,8 @@
 #include "shape/basic_shapes.hpp"
 
+#include "shape/boolean_operations.hpp"
 #include "shape/elements_intersections.hpp"
+#include "shape/offset.hpp"
 
 #include <gtest/gtest.h>
 
@@ -183,3 +185,161 @@ TEST(BasicShapesTest, HoleArcSubdividedToAvoidTouchingAnotherHolesVertex)
     }
     EXPECT_TRUE(found_segment);
 }
+
+
+struct DecomposeIntoBasicShapesTestParams
+{
+    std::string name;
+    ShapeWithHoles shape;
+    bool expect_throw = false;
+    // Only meaningful if !expect_throw.
+    Counter expected_number_of_convex_polygons = 0;
+    Counter expected_number_of_circular_segments = 0;
+    Counter expected_number_of_circles = 0;
+};
+
+void PrintTo(const DecomposeIntoBasicShapesTestParams& params, std::ostream* os)
+{
+    *os << "shape " << params.shape.to_string(0) << "\n";
+    *os << "expect_throw " << params.expect_throw << "\n";
+    if (!params.expect_throw) {
+        *os << "expected_number_of_convex_polygons " << params.expected_number_of_convex_polygons << "\n";
+        *os << "expected_number_of_circular_segments " << params.expected_number_of_circular_segments << "\n";
+        *os << "expected_number_of_circles " << params.expected_number_of_circles << "\n";
+    }
+}
+
+class DecomposeIntoBasicShapesTest: public testing::TestWithParam<DecomposeIntoBasicShapesTestParams> { };
+
+TEST_P(DecomposeIntoBasicShapesTest, DecomposeIntoBasicShapes)
+{
+    DecomposeIntoBasicShapesTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+
+    if (test_params.expect_throw) {
+        EXPECT_THROW(decompose_into_basic_shapes(test_params.shape), std::invalid_argument);
+        return;
+    }
+
+    std::vector<BasicShape> basic_shapes = decompose_into_basic_shapes(test_params.shape).basic_shapes;
+    std::cout << "basic shapes (" << basic_shapes.size() << ")" << std::endl;
+    for (const BasicShape& basic_shape: basic_shapes)
+        std::cout << "- " << basic_shape.shape.to_string(2) << std::endl;
+
+    Counter number_of_convex_polygons = 0;
+    Counter number_of_circular_segments = 0;
+    Counter number_of_circles = 0;
+    AreaDbl area = 0;
+    for (const BasicShape& basic_shape: basic_shapes) {
+        // Each basic shape is a valid, anticlockwise, convex shape.
+        EXPECT_TRUE(basic_shape.shape.check());
+        EXPECT_TRUE(basic_shape.shape.is_convex());
+        area += basic_shape.shape.compute_area();
+
+        switch (basic_shape.type) {
+        case BasicShapeType::ConvexPolygon: {
+            number_of_convex_polygons++;
+            for (const ShapeElement& element: basic_shape.shape.elements)
+                EXPECT_EQ(element.type, ShapeElementType::LineSegment);
+            break;
+        } case BasicShapeType::CircularSegment: {
+            number_of_circular_segments++;
+            // An arc of less than 180 degrees closed by its chord.
+            ASSERT_EQ(basic_shape.shape.elements.size(), 2);
+            const ShapeElement& arc = basic_shape.shape.elements[0];
+            const ShapeElement& chord = basic_shape.shape.elements[1];
+            ASSERT_EQ(arc.type, ShapeElementType::CircularArc);
+            EXPECT_EQ(arc.orientation, ShapeElementOrientation::Anticlockwise);
+            EXPECT_LT(arc.length() / arc.radius(), M_PI);
+            EXPECT_EQ(chord.type, ShapeElementType::LineSegment);
+            EXPECT_TRUE(equal(arc.center, basic_shape.circle_center));
+            EXPECT_TRUE(equal(arc.radius(), basic_shape.circle_radius));
+            break;
+        } case BasicShapeType::Circle: {
+            number_of_circles++;
+            ASSERT_TRUE(basic_shape.shape.is_circle());
+            const ShapeElement& circle = basic_shape.shape.elements.front();
+            EXPECT_TRUE(equal(circle.center, basic_shape.circle_center));
+            EXPECT_TRUE(equal(circle.radius(), basic_shape.circle_radius));
+            break;
+        }
+        }
+    }
+    EXPECT_EQ(number_of_convex_polygons, test_params.expected_number_of_convex_polygons);
+    EXPECT_EQ(number_of_circular_segments, test_params.expected_number_of_circular_segments);
+    EXPECT_EQ(number_of_circles, test_params.expected_number_of_circles);
+
+    // The basic shapes are inside the shape, their interiors are pairwise
+    // disjoint, and their areas sum up to the one of the shape, so their
+    // union is the shape.
+    EXPECT_TRUE(equal(area, test_params.shape.compute_area()));
+    for (ElementPos pos_1 = 0; pos_1 < (ElementPos)basic_shapes.size(); ++pos_1) {
+        const Shape& shape_1 = basic_shapes[pos_1].shape;
+        AreaDbl outside_area = 0;
+        for (const ShapeWithHoles& part: compute_difference({shape_1}, test_params.shape).shapes_with_holes)
+            outside_area += part.compute_area();
+        EXPECT_TRUE(equal(outside_area, 0.0)) << "basic shape " << pos_1;
+        for (ElementPos pos_2 = pos_1 + 1; pos_2 < (ElementPos)basic_shapes.size(); ++pos_2) {
+            const Shape& shape_2 = basic_shapes[pos_2].shape;
+            AreaDbl overlap_area = 0;
+            for (const ShapeWithHoles& part: compute_intersection({shape_1}, {shape_2}).shapes_with_holes)
+                overlap_area += part.compute_area();
+            EXPECT_TRUE(equal(overlap_area, 0.0)) << "basic shapes " << pos_1 << " and " << pos_2;
+        }
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        DecomposeIntoBasicShapesTest,
+        testing::ValuesIn(std::vector<DecomposeIntoBasicShapesTestParams>{
+            {
+                "Square",
+                {build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}})},
+                false, 1, 0, 0,
+            }, {
+                "TriangleWithInflatedHypotenuse",
+                {build_shape({{0, 0}, {1, 0}, {0, 0, 1}, {0, 1}})},
+                false, 1, 1, 0,
+            }, {
+                // The arc of 270 degrees is subdivided.
+                "ArcOf270Degrees",
+                {build_shape({{1, 0}, {0, 0, 1}, {-1, 0}, {0, 0, 1}, {0, -1}})},
+                false, 1, 3, 0,
+            }, {
+                "RoundedSquare",
+                inflate(build_square(10), 2),
+                false, 1, 4, 0,
+            }, {
+                "HoleWithMaterialBulgingIntoIt",
+                {
+                    build_shape({{0, 0}, {10, 0}, {10, 10}, {0, 10}}),
+                    {build_shape({{3, 3}, {7, 3}, {7, 7}, {5, 8, -1}, {3, 7}})},
+                },
+                false, 4, 1, 0,
+            }, {
+                // A disk is a basic shape on its own.
+                "Disk",
+                {build_circle(2).shift(3, 1)},
+                false, 0, 0, 1,
+            }, {
+                // An outline which is a full circle around a hole is cut into
+                // circular segments.
+                "DiskAroundSquareHole",
+                {build_circle(4), {build_rectangle(-1, 1, -1, 1)}},
+                false, 4, 4, 0,
+            }, {
+                // A hole which is a full circle is concave from the
+                // material's side.
+                "SquareAroundCircleHole",
+                {build_rectangle(-4, 4, -4, 4), {build_circle(1)}},
+                true,
+            }, {
+                "SquareWithConcaveArc",
+                {build_shape({{0, 0}, {10, 0}, {10, 10}, {5, 10, -1}, {0, 10}})},
+                true,
+            },
+        }),
+        [](const testing::TestParamInfo<DecomposeIntoBasicShapesTest::ParamType>& info) {
+            return info.param.name;
+        });
