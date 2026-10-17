@@ -183,3 +183,48 @@ TEST(BasicShapesTest, HoleArcSubdividedToAvoidTouchingAnotherHolesVertex)
     }
     EXPECT_TRUE(found_segment);
 }
+
+TEST(BasicShapesTest, DiskIsACircle)
+{
+    Shape s = build_circle(2);
+    s.shift(3, 1);
+    BasicShapesDecomposition decomp = decompose_into_basic_shapes(s);
+
+    ASSERT_EQ(decomp.basic_shapes.size(), 1);
+    const BasicShape& circle = decomp.basic_shapes.front();
+    EXPECT_EQ(circle.type, BasicShapeType::Circle);
+    EXPECT_TRUE(circle.shape.is_circle());
+    EXPECT_NEAR(circle.circle_center.x, 3.0, 1e-9);
+    EXPECT_NEAR(circle.circle_center.y, 1.0, 1e-9);
+    EXPECT_NEAR(circle.circle_radius, 2.0, 1e-9);
+}
+
+TEST(BasicShapesTest, FullCircleOutlineAroundAHole)
+{
+    // A disk of radius 4 with a square hole: the outline is cut into
+    // circular segments of less than 180 degrees around convex polygons.
+    ShapeWithHoles s = {build_circle(4), {build_rectangle(-1, 1, -1, 1)}};
+    BasicShapesDecomposition decomp = decompose_into_basic_shapes(s);
+
+    AreaDbl area = 0;
+    Counter number_of_segments = 0;
+    for (const BasicShape& basic_shape: decomp.basic_shapes) {
+        EXPECT_NE(basic_shape.type, BasicShapeType::Circle);
+        EXPECT_TRUE(basic_shape.shape.is_convex());
+        area += basic_shape.shape.compute_area();
+        if (basic_shape.type != BasicShapeType::CircularSegment)
+            continue;
+        number_of_segments++;
+        const ShapeElement& arc = basic_shape.shape.elements[0];
+        EXPECT_LT(arc.length() / arc.radius(), M_PI);
+    }
+    EXPECT_GE(number_of_segments, 2);
+    EXPECT_NEAR(area, s.compute_area(), 1e-6);
+}
+
+TEST(BasicShapesTest, FullCircleHoleThrows)
+{
+    // A hole which is a full circle is concave from the material's side.
+    ShapeWithHoles s = {build_rectangle(-4, 4, -4, 4), {build_circle(1)}};
+    EXPECT_THROW(decompose_into_basic_shapes(s), std::invalid_argument);
+}
