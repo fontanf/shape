@@ -5,6 +5,15 @@
 namespace shape
 {
 
+/**
+ * Collect points, elements and shapes, and write them to an SVG or a JSON
+ * file, to visualize them while debugging.
+ *
+ * Each object can be given a label. The functions adding several objects at
+ * once give each of them the label followed by its position in the list, or
+ * no label if 'label' is empty. The functions adding objects return the
+ * writer, so that the calls can be chained.
+ */
 class Writer
 {
 
@@ -42,8 +51,27 @@ public:
             const std::vector<ShapeWithHoles>& shapes_with_holes,
             const std::string& label = "");
 
+    /**
+     * Write the objects to an SVG file, with the y-axis going up.
+     *
+     * The points are drawn as disks whose radius is proportional to the size
+     * of the drawing. The labels aren't written. Nothing is written if
+     * 'file_path' is empty.
+     *
+     * Throw std::runtime_error if the file can't be opened.
+     */
     void write_svg(const std::string& file_path) const;
 
+    /**
+     * Write the objects to a JSON file, which scripts/visualize.py can
+     * display.
+     *
+     * The objects are written in the lists "points", "elements", "shapes"
+     * and "shapes_with_holes", each object with its label. Nothing is written
+     * if 'file_path' is empty.
+     *
+     * Throw std::runtime_error if the file can't be opened.
+     */
     void write_json(const std::string& file_path) const;
 
 private:
