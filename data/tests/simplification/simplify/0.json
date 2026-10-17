@@ -1,0 +1,335 @@
+{
+    "description": "Two notched shapes, the first one with 3 copies: filling one of its notches of area 1 costs 3, more than the maximum approximation area of 2.5, while filling both notches of area 0.5 of the second one costs 1.",
+    "maximum_approximation_area": 2.5,
+    "minimum_average_number_of_elements": 0,
+    "minimum_number_of_vertices": 4,
+    "shapes": [
+        {
+            "copies": 3,
+            "shape": {
+                "elements": [
+                    {
+                        "end": {
+                            "x": 20.0,
+                            "y": 0.0
+                        },
+                        "start": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 20.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 20.0,
+                            "y": 0.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 17.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 20.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 16.0,
+                            "y": 9.0
+                        },
+                        "start": {
+                            "x": 17.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 15.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 16.0,
+                            "y": 9.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 11.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 15.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 10.0,
+                            "y": 9.0
+                        },
+                        "start": {
+                            "x": 11.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 9.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 10.0,
+                            "y": 9.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 5.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 9.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 4.0,
+                            "y": 9.0
+                        },
+                        "start": {
+                            "x": 5.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 3.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 4.0,
+                            "y": 9.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 0.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 3.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "start": {
+                            "x": 0.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    }
+                ],
+                "is_path": false,
+                "type": "general"
+            }
+        },
+        {
+            "copies": 1,
+            "shape": {
+                "elements": [
+                    {
+                        "end": {
+                            "x": 30.0,
+                            "y": 0.0
+                        },
+                        "start": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 30.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 30.0,
+                            "y": 0.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 25.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 30.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 24.5,
+                            "y": 9.0
+                        },
+                        "start": {
+                            "x": 25.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 24.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 24.5,
+                            "y": 9.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 15.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 24.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 14.5,
+                            "y": 9.0
+                        },
+                        "start": {
+                            "x": 15.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 14.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 14.5,
+                            "y": 9.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 0.0,
+                            "y": 10.0
+                        },
+                        "start": {
+                            "x": 14.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    },
+                    {
+                        "end": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "start": {
+                            "x": 0.0,
+                            "y": 10.0
+                        },
+                        "type": "LineSegment"
+                    }
+                ],
+                "holes": [
+                    {
+                        "elements": [
+                            {
+                                "end": {
+                                    "x": 25.0,
+                                    "y": 3.0
+                                },
+                                "start": {
+                                    "x": 5.0,
+                                    "y": 3.0
+                                },
+                                "type": "LineSegment"
+                            },
+                            {
+                                "end": {
+                                    "x": 25.0,
+                                    "y": 6.0
+                                },
+                                "start": {
+                                    "x": 25.0,
+                                    "y": 3.0
+                                },
+                                "type": "LineSegment"
+                            },
+                            {
+                                "end": {
+                                    "x": 5.0,
+                                    "y": 6.0
+                                },
+                                "start": {
+                                    "x": 25.0,
+                                    "y": 6.0
+                                },
+                                "type": "LineSegment"
+                            },
+                            {
+                                "end": {
+                                    "x": 5.0,
+                                    "y": 3.0
+                                },
+                                "start": {
+                                    "x": 5.0,
+                                    "y": 6.0
+                                },
+                                "type": "LineSegment"
+                            }
+                        ],
+                        "is_path": false,
+                        "type": "general"
+                    }
+                ],
+                "is_path": false,
+                "type": "general"
+            }
+        }
+    ],
+    "expected_numbers_of_elements": [
+        13,
+        4
+    ]
+}
