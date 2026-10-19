@@ -15,6 +15,7 @@ target_sources(Shape_shape PRIVATE
     offset.cpp
     simplification.cpp
     approximation.cpp
+    rectangular_approximation.cpp
     supports.cpp
     rasterization.cpp
     no_fit_polygon.cpp
