@@ -18,6 +18,7 @@ target_sources(Shape_shape_test PRIVATE
     supports_test.cpp
     approximation_test.cpp
     simplification_test.cpp
+    rectangular_approximation_test.cpp
     convex_partition_test.cpp
     basic_shapes_test.cpp
     rasterization_test.cpp
