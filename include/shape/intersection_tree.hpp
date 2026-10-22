@@ -146,6 +146,15 @@ private:
             NodeId node_id,
             const std::vector<ShapePos>& shape_ids);
 
+    /**
+     * Return false if the bounding boxes of two shapes show that they can't
+     * intersect.
+     */
+    bool shapes_may_intersect(
+            const AxisAlignedBoundingBox& aabb_1,
+            const AxisAlignedBoundingBox& aabb_2,
+            bool strict) const;
+
     /** Get the number of shapes. */
     ShapePos number_of_shapes() const { if (shapes_ == nullptr) return 0; return shapes_->size(); }
 
@@ -175,6 +184,9 @@ private:
     const std::vector<Point>* points_ = nullptr;
 
     bool small_ = false;
+
+    /** Bounding boxes of the shapes. */
+    std::vector<AxisAlignedBoundingBox> shapes_min_max_;
 
     mutable optimizationtools::IndexedSet potentially_intersecting_shapes_;
 

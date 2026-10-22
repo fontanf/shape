@@ -1,6 +1,7 @@
 //#define SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
 
 #include "shape/shapes_intersections.hpp"
+#include "shape/boolean_operations.hpp"
 
 #ifdef SHAPES_INTERSECTIONS_TEST_ENABLE_DEBUG
 #include "shape/writer.hpp"
@@ -11,6 +12,7 @@
 #include <boost/filesystem.hpp>
 
 #include <fstream>
+#include <random>
 
 //#include "test_params.hpp"
 
@@ -969,3 +971,78 @@ INSTANTIATE_TEST_SUITE_P(
         [](const testing::TestParamInfo<IntersectShapeWithHolesShapeWithHolesTest::ParamType>& info) {
             return fs::path(info.param.name).stem().string();
         });
+
+TEST(IntersectShapeWithHolesShapeWithHolesRandom, StrictPolygonsSameAsBooleanIntersection)
+{
+    // Random pairs of polygons with holes on a grid, so that touching edges,
+    // shared vertices and colinear overlapping edges are frequent: the strict
+    // intersection test gives the same result as the boolean intersection.
+    std::vector<ShapeWithHoles> templates;
+    // Rectangle.
+    templates.push_back({build_shape({{0, 0}, {4, 0}, {4, 2}, {0, 2}}), {}});
+    // Square with a hole.
+    templates.push_back({
+            build_shape({{0, 0}, {3, 0}, {3, 3}, {0, 3}}),
+            {build_shape({{1, 1}, {2, 1}, {2, 2}, {1, 2}})}});
+    // L.
+    templates.push_back({build_shape({{0, 0}, {3, 0}, {3, 1}, {1, 1}, {1, 3}, {0, 3}}), {}});
+    // U.
+    templates.push_back({build_shape({{0, 0}, {3, 0}, {3, 3}, {2, 3}, {2, 1}, {1, 1}, {1, 3}, {0, 3}}), {}});
+    // Triangles.
+    templates.push_back({build_shape({{0, 0}, {3, 0}, {0, 3}}), {}});
+    templates.push_back({build_shape({{0, 0}, {2, 0}, {1, 2}}), {}});
+    // Comb.
+    templates.push_back({build_shape({
+                {0, 0}, {5, 0}, {5, 2}, {4, 2}, {4, 1}, {3, 1}, {3, 2},
+                {2, 2}, {2, 1}, {1, 1}, {1, 2}, {0, 2}}), {}});
+    // Frame.
+    templates.push_back({
+            build_shape({{0, 0}, {5, 0}, {5, 5}, {0, 5}}),
+            {build_shape({{1, 1}, {4, 1}, {4, 4}, {1, 4}})}});
+    // Square with two holes.
+    templates.push_back({
+            build_shape({{0, 0}, {4, 0}, {4, 3}, {0, 3}}),
+            {build_shape({{1, 1}, {2, 1}, {2, 2}, {1, 2}}),
+            build_shape({{2.5, 1}, {3.5, 1}, {3, 2}})}});
+    // Unit square and diamond.
+    templates.push_back({build_shape({{0, 0}, {1, 0}, {1, 1}, {0, 1}}), {}});
+    templates.push_back({build_shape({{1, 0}, {2, 1}, {1, 2}, {0, 1}}), {}});
+
+    std::mt19937_64 generator(0);
+    std::uniform_int_distribution<int> template_distribution(0, templates.size() - 1);
+    std::uniform_int_distribution<int> rotation_distribution(0, 3);
+    std::uniform_int_distribution<int> shift_distribution(-10, 10);
+    auto random_shape = [&]()
+    {
+        ShapeWithHoles shape_with_holes = templates[template_distribution(generator)].rotate(
+                90 * rotation_distribution(generator));
+        shape_with_holes.shift(
+                0.5 * shift_distribution(generator),
+                0.5 * shift_distribution(generator));
+        return shape_with_holes;
+    };
+
+    Counter number_of_intersecting_pairs = 0;
+    Counter number_of_mismatches = 0;
+    for (Counter pair_pos = 0; pair_pos < 20000; ++pair_pos) {
+        ShapeWithHoles shape_with_holes_1 = random_shape();
+        ShapeWithHoles shape_with_holes_2 = random_shape();
+        bool expected_output = !compute_intersection(
+                {shape_with_holes_1, shape_with_holes_2}).shapes_with_holes.empty();
+        bool output = intersect(shape_with_holes_1, shape_with_holes_2, true);
+        if (expected_output)
+            number_of_intersecting_pairs++;
+        if (output != expected_output) {
+            number_of_mismatches++;
+            if (number_of_mismatches <= 5) {
+                std::cout << "mismatch: output " << output
+                    << " expected " << expected_output << std::endl
+                    << shape_with_holes_1.to_json().dump() << std::endl
+                    << shape_with_holes_2.to_json().dump() << std::endl;
+            }
+        }
+    }
+    std::cout << "intersecting pairs " << number_of_intersecting_pairs
+        << " mismatches " << number_of_mismatches << std::endl;
+    EXPECT_EQ(number_of_mismatches, 0);
+}
