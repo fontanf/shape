@@ -5,6 +5,7 @@
 #include "shape/elements_intersections.hpp"
 #include "shape/boolean_operations.hpp"
 #include "shape/intersection_tree.hpp"
+#include "shape/convex_hull.hpp"
 #ifdef SHAPES_INTERSECTIONS_DEBUG
 #include "shape/writer.hpp"
 #endif
@@ -12,6 +13,7 @@
 #ifdef SHAPES_INTERSECTIONS_DEBUG
 #include <iostream>
 #endif
+#include <algorithm>
 #include <fstream>
 
 using namespace shape;
@@ -1071,6 +1073,241 @@ bool shape::intersect(
     return false;
 }
 
+namespace
+{
+
+/** Return true iff all the elements of a shape with holes are line segments. */
+bool is_polygon_with_holes(const ShapeWithHoles& shape_with_holes)
+{
+    if (shape_with_holes.shape.is_path || !shape_with_holes.shape.is_polygon())
+        return false;
+    for (const Shape& hole: shape_with_holes.holes)
+        if (!hole.is_polygon())
+            return false;
+    return true;
+}
+
+/**
+ * Return true iff the boxes intersect, or are closer than the tolerance.
+ */
+bool aabbs_may_intersect(
+        const AxisAlignedBoundingBox& aabb_1,
+        const AxisAlignedBoundingBox& aabb_2)
+{
+    return !strictly_lesser(aabb_1.x_max, aabb_2.x_min)
+        && !strictly_lesser(aabb_2.x_max, aabb_1.x_min)
+        && !strictly_lesser(aabb_1.y_max, aabb_2.y_min)
+        && !strictly_lesser(aabb_2.y_max, aabb_1.y_min);
+}
+
+/**
+ * Return true iff an edge of the convex polygon 'hull_1' (anticlockwise)
+ * separates it from the convex polygon 'hull_2': all the vertices of
+ * 'hull_2' are on the line through the edge or on its outer side.
+ */
+bool separated_by_an_edge(
+        const Shape& hull_1,
+        const Shape& hull_2)
+{
+    for (const ShapeElement& edge: hull_1.elements) {
+        bool separated = true;
+        for (const ShapeElement& element_2: hull_2.elements) {
+            const Point& vertex = element_2.start;
+            LengthDbl cross = (edge.end.x - edge.start.x) * (vertex.y - edge.start.y)
+                - (edge.end.y - edge.start.y) * (vertex.x - edge.start.x);
+            if (cross > 0) {
+                separated = false;
+                break;
+            }
+        }
+        if (separated)
+            return true;
+    }
+    return false;
+}
+
+/** Parameter of the projection of 'point' on a line segment, 0 at its start, 1 at its end. */
+double projection_parameter(
+        const ShapeElement& line_segment,
+        const Point& point)
+{
+    LengthDbl delta_x = line_segment.end.x - line_segment.start.x;
+    LengthDbl delta_y = line_segment.end.y - line_segment.start.y;
+    LengthDbl squared_length = delta_x * delta_x + delta_y * delta_y;
+    if (squared_length == 0.0)
+        return 0.0;
+    return ((point.x - line_segment.start.x) * delta_x
+            + (point.y - line_segment.start.y) * delta_y) / squared_length;
+}
+
+/**
+ * Return true iff a part of the boundary of 'shape_with_holes_1' (its outline
+ * or its holes) is strictly inside 'shape_with_holes_2', considering only the
+ * parts of the boundary inside 'window'.
+ *
+ * Both shapes must be made of line segments.
+ *
+ * Each edge of 'shape_with_holes_1' is split at its contacts with the
+ * boundary of 'shape_with_holes_2'; between two consecutive contacts, the edge
+ * is either entirely strictly inside 'shape_with_holes_2', or entirely
+ * outside, or on its boundary: testing the middle of each part is enough.
+ *
+ * Two consecutive edges without contacts, whose common vertex isn't on the
+ * boundary of 'shape_with_holes_2', are on the same side of it: the middle of
+ * only one of them is tested.
+ */
+bool boundary_strictly_inside(
+        const ShapeWithHoles& shape_with_holes_1,
+        const ShapeWithHoles& shape_with_holes_2,
+        const AxisAlignedBoundingBox& window)
+{
+    // Edges of 'shape_with_holes_2' in the window.
+    std::vector<const ShapeElement*> edges_2;
+    std::vector<AxisAlignedBoundingBox> edges_2_aabbs;
+    for (ShapePos shape_pos = -1;
+            shape_pos < (ShapePos)shape_with_holes_2.holes.size();
+            ++shape_pos) {
+        const Shape& shape_2 = (shape_pos == -1)?
+            shape_with_holes_2.shape:
+            shape_with_holes_2.holes[shape_pos];
+        for (const ShapeElement& edge_2: shape_2.elements) {
+            AxisAlignedBoundingBox aabb = edge_2.min_max();
+            if (!aabbs_may_intersect(aabb, window))
+                continue;
+            edges_2.push_back(&edge_2);
+            edges_2_aabbs.push_back(aabb);
+        }
+    }
+
+    std::vector<double> contacts;
+    for (ShapePos shape_pos = -1;
+            shape_pos < (ShapePos)shape_with_holes_1.holes.size();
+            ++shape_pos) {
+        const Shape& shape_1 = (shape_pos == -1)?
+            shape_with_holes_1.shape:
+            shape_with_holes_1.holes[shape_pos];
+        // 'true' iff the previous edge has no contact, its end isn't on the
+        // boundary of 'shape_with_holes_2', and it is strictly inside
+        // ('chain_inside') or outside it.
+        bool chain_valid = false;
+        bool chain_inside = false;
+        for (const ShapeElement& edge_1: shape_1.elements) {
+            AxisAlignedBoundingBox edge_1_aabb = edge_1.min_max();
+            if (!aabbs_may_intersect(edge_1_aabb, window)) {
+                chain_valid = false;
+                continue;
+            }
+
+            contacts.clear();
+            contacts.push_back(0.0);
+            contacts.push_back(1.0);
+            bool end_on_boundary = false;
+            for (ElementPos edge_2_pos = 0;
+                    edge_2_pos < (ElementPos)edges_2.size();
+                    ++edge_2_pos) {
+                if (!aabbs_may_intersect(edge_1_aabb, edges_2_aabbs[edge_2_pos]))
+                    continue;
+                ShapeElementIntersectionsOutput intersections = compute_intersections(
+                        edge_1,
+                        *edges_2[edge_2_pos]);
+                for (const ShapeElement& overlapping_part: intersections.overlapping_parts) {
+                    for (const Point& point: {overlapping_part.start, overlapping_part.end}) {
+                        contacts.push_back(projection_parameter(edge_1, point));
+                        if (equal(point, edge_1.end))
+                            end_on_boundary = true;
+                    }
+                }
+                for (const std::vector<Point>* points: {
+                        &intersections.improper_intersections,
+                        &intersections.proper_intersections}) {
+                    for (const Point& point: *points) {
+                        contacts.push_back(projection_parameter(edge_1, point));
+                        if (equal(point, edge_1.end))
+                            end_on_boundary = true;
+                    }
+                }
+            }
+
+            // Edge without contact: entirely on one side.
+            if (contacts.size() == 2) {
+                bool inside = chain_inside;
+                if (!chain_valid) {
+                    Point middle = {
+                        (edge_1.start.x + edge_1.end.x) / 2,
+                        (edge_1.start.y + edge_1.end.y) / 2};
+                    inside = shape_with_holes_2.contains(middle, true);
+                }
+                if (inside)
+                    return true;
+                chain_inside = inside;
+                chain_valid = !end_on_boundary;
+                continue;
+            }
+            chain_valid = false;
+
+            // Test the middle of each part of the edge.
+            std::sort(contacts.begin(), contacts.end());
+            LengthDbl length = edge_1.length();
+            for (Counter contact_pos = 0;
+                    contact_pos + 1 < (Counter)contacts.size();
+                    ++contact_pos) {
+                double ratio_start = (std::max)(0.0, contacts[contact_pos]);
+                double ratio_end = (std::min)(1.0, contacts[contact_pos + 1]);
+                if (!strictly_greater((ratio_end - ratio_start) * length, 0.0))
+                    continue;
+                double ratio_middle = (ratio_start + ratio_end) / 2;
+                Point middle = {
+                    edge_1.start.x + ratio_middle * (edge_1.end.x - edge_1.start.x),
+                    edge_1.start.y + ratio_middle * (edge_1.end.y - edge_1.start.y)};
+                if (shape_with_holes_2.contains(middle, true))
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Return true iff the interiors of two shapes with holes made of line
+ * segments intersect.
+ */
+bool intersect_polygons_with_holes_strictly(
+        const ShapeWithHoles& shape_with_holes_1,
+        const ShapeWithHoles& shape_with_holes_2)
+{
+    AxisAlignedBoundingBox aabb_1 = shape_with_holes_1.shape.compute_min_max();
+    AxisAlignedBoundingBox aabb_2 = shape_with_holes_2.shape.compute_min_max();
+    if (!intersect(aabb_1, aabb_2))
+        return false;
+
+    // Separated convex hulls of the outlines.
+    Shape hull_1 = convex_hull(shape_with_holes_1.shape);
+    Shape hull_2 = convex_hull(shape_with_holes_2.shape);
+    if (separated_by_an_edge(hull_1, hull_2) || separated_by_an_edge(hull_2, hull_1))
+        return false;
+
+    // A part of a boundary strictly inside the other shape: the interiors
+    // intersect near it.
+    AxisAlignedBoundingBox window;
+    window.x_min = (std::max)(aabb_1.x_min, aabb_2.x_min);
+    window.x_max = (std::min)(aabb_1.x_max, aabb_2.x_max);
+    window.y_min = (std::max)(aabb_1.y_min, aabb_2.y_min);
+    window.y_max = (std::min)(aabb_1.y_max, aabb_2.y_max);
+    if (boundary_strictly_inside(shape_with_holes_1, shape_with_holes_2, window))
+        return true;
+    if (boundary_strictly_inside(shape_with_holes_2, shape_with_holes_1, window))
+        return true;
+
+    // Otherwise, the interiors are either disjoint or equal.
+    if (shape_with_holes_2.contains(shape_with_holes_1.find_point_strictly_inside(), true))
+        return true;
+    if (shape_with_holes_1.contains(shape_with_holes_2.find_point_strictly_inside(), true))
+        return true;
+    return false;
+}
+
+}
+
 bool shape::intersect(
         const ShapeWithHoles& shape_with_holes_1,
         const ShapeWithHoles& shape_with_holes_2,
@@ -1102,6 +1339,13 @@ bool shape::intersect(
         if (shape_with_holes_2.contains(shape_with_holes_1.shape.elements.front().start))
             return true;
         return false;
+    }
+
+    if (is_polygon_with_holes(shape_with_holes_1)
+            && is_polygon_with_holes(shape_with_holes_2)) {
+        return intersect_polygons_with_holes_strictly(
+                shape_with_holes_1,
+                shape_with_holes_2);
     }
 
     return !compute_intersection({shape_with_holes_1, shape_with_holes_2}).shapes_with_holes.empty();
