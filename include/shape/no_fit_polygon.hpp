@@ -34,6 +34,43 @@ Shape no_fit_polygon(
         const Shape& orbiting_shape);
 
 /**
+ * Output of no_fit_polygon for two general shapes.
+ *
+ * The positions of the orbiting shape making the two shapes overlap are the
+ * points strictly inside 'nfp', except the points of 'feasible_elements' and
+ * 'feasible_points'.
+ */
+struct NoFitPolygonOutput
+{
+    /**
+     * Regions of the NFP.
+     *
+     * It follows the output conventions of the boolean operations (see
+     * boolean_operations.hpp).
+     */
+    MultiShapeWithHoles nfp;
+
+    /**
+     * Elements strictly inside 'nfp' whose points are positions without
+     * overlap.
+     *
+     * For example, when the orbiting shape fits exactly the width of a
+     * slot or of a hole of the fixed shape, it can still slide along a line
+     * segment there.
+     */
+    std::vector<ShapeElement> feasible_elements;
+
+    /**
+     * Points strictly inside 'nfp' and not on 'feasible_elements' which are
+     * positions without overlap.
+     *
+     * For example, when the orbiting shape fits exactly a hole of the fixed
+     * shape.
+     */
+    std::vector<Point> feasible_points;
+};
+
+/**
  * Compute the No-Fit Polygon (NFP) of two general (possibly non-convex)
  * shapes with holes.
  *
@@ -43,10 +80,11 @@ Shape no_fit_polygon(
  * fixed shape, without overlap, are holes of the NFP.
  *
  * The result may consist of several disconnected components or contain holes,
- * hence the return type is a MultiShapeWithHoles. It follows the output
- * conventions of the boolean operations (see boolean_operations.hpp).
+ * hence it is a MultiShapeWithHoles. The positions without overlap of null
+ * area, which it can't represent, are given separately (see
+ * NoFitPolygonOutput).
  */
-MultiShapeWithHoles no_fit_polygon(
+NoFitPolygonOutput no_fit_polygon(
         const ShapeWithHoles& fixed_shape,
         const ShapeWithHoles& orbiting_shape);
 
