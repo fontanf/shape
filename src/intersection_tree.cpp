@@ -533,12 +533,9 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
     return output;
 }
 
-IntersectionTree::IntersectOutput IntersectionTree::intersect(
-        const Point& point,
-        bool strict) const
+void IntersectionTree::compute_potentially_intersecting(
+        const Point& point) const
 {
-    IntersectOutput output;
-
     if (small_) {
         potentially_intersecting_shapes_.fill();
         potentially_intersecting_elements_.fill();
@@ -577,8 +574,14 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
             }
         }
     }
+}
 
-    std::vector<ShapePos> intersecting_shapes;
+IntersectionTree::IntersectOutput IntersectionTree::intersect(
+        const Point& point,
+        bool strict) const
+{
+    IntersectOutput output;
+    compute_potentially_intersecting(point);
     for (ShapePos shape_id: potentially_intersecting_shapes_)
         if (this->shape(shape_id).contains(point, strict))
             output.shape_ids.push_back(shape_id);
@@ -591,6 +594,21 @@ IntersectionTree::IntersectOutput IntersectionTree::intersect(
                 output.point_ids.push_back(point_id);
     }
     return output;
+}
+
+ShapePos IntersectionTree::find_shape(
+        const Point& point,
+        bool strict,
+        const std::function<bool(ShapePos)>& condition) const
+{
+    compute_potentially_intersecting(point);
+    for (ShapePos shape_id: potentially_intersecting_shapes_) {
+        if ((condition == nullptr || condition(shape_id))
+                && this->shape(shape_id).contains(point, strict)) {
+            return shape_id;
+        }
+    }
+    return -1;
 }
 
 std::vector<std::pair<ShapePos, ShapePos>> IntersectionTree::compute_intersecting_shapes(bool strict) const

@@ -4,6 +4,8 @@
 
 #include "optimizationtools/containers/indexed_set.hpp"
 
+#include <functional>
+
 namespace shape
 {
 
@@ -89,6 +91,21 @@ public:
             bool strict) const;
 
 
+    /**
+     * Find a shape of the tree containing a given point (strictly if
+     * 'strict' is true) and for which 'condition' is true.
+     *
+     * Return its position, or -1 if there is none. It stops at the first
+     * shape found, so it is faster than intersect(point, strict) when many
+     * shapes contain the point. 'condition' is evaluated before checking
+     * that the shape contains the point, so that a cheap condition saves
+     * this check.
+     */
+    ShapePos find_shape(
+            const Point& point,
+            bool strict,
+            const std::function<bool(ShapePos)>& condition = nullptr) const;
+
     /** Get all the pairs of intersecting shapes in the tree. */
     std::vector<std::pair<ShapePos, ShapePos>> compute_intersecting_shapes(bool strict) const;
 
@@ -141,6 +158,12 @@ private:
         std::vector<ElementPos> element_ids;
         std::vector<ElementPos> point_ids;
     };
+
+    /**
+     * Fill the potentially intersecting shapes, elements and points with
+     * the ones of the leaves of the tree which may contain a given point.
+     */
+    void compute_potentially_intersecting(const Point& point) const;
 
     void build_node_rec(
             NodeId node_id,

@@ -205,7 +205,7 @@ TEST_P(NoFitPolygonGeneralTest, NoFitPolygonGeneral)
 
     std::vector<ShapeWithHoles> nfp = no_fit_polygon(
             test_params.fixed_shape,
-            test_params.orbiting_shape).shapes_with_holes;
+            test_params.orbiting_shape).nfp.shapes_with_holes;
 
     std::cout << "nfp (" << nfp.size() << " component(s))" << std::endl;
     for (const ShapeWithHoles& component: nfp)
@@ -394,6 +394,172 @@ INSTANTIATE_TEST_SUITE_P(
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// General overload, feasible elements and points: positions without overlap
+// of null area strictly inside the NFP.
+////////////////////////////////////////////////////////////////////////////////
+
+struct NoFitPolygonFeasibleTestParams
+{
+    ShapeWithHoles fixed_shape;
+    ShapeWithHoles orbiting_shape;
+    std::vector<ShapeElement> expected_feasible_elements;
+    std::vector<Point> expected_feasible_points;
+    std::string name;
+};
+
+void PrintTo(const NoFitPolygonFeasibleTestParams& params, std::ostream* os)
+{
+    *os << "fixed_shape " << params.fixed_shape.to_string(0) << "\n";
+    *os << "orbiting_shape " << params.orbiting_shape.to_string(0) << "\n";
+}
+
+class NoFitPolygonFeasibleTest:
+    public testing::TestWithParam<NoFitPolygonFeasibleTestParams> { };
+
+TEST_P(NoFitPolygonFeasibleTest, NoFitPolygonFeasible)
+{
+    NoFitPolygonFeasibleTestParams test_params = GetParam();
+    PrintTo(test_params, &std::cout);
+
+    NoFitPolygonOutput output = no_fit_polygon(
+            test_params.fixed_shape,
+            test_params.orbiting_shape);
+    for (const ShapeElement& element: output.feasible_elements)
+        std::cout << "feasible element " << element.to_string() << std::endl;
+    for (const Point& point: output.feasible_points)
+        std::cout << "feasible point " << point.to_string() << std::endl;
+
+    // Expected elements and points, in any order and, for the elements, in
+    // any direction.
+    ASSERT_EQ(
+            output.feasible_elements.size(),
+            test_params.expected_feasible_elements.size());
+    for (const ShapeElement& expected_element: test_params.expected_feasible_elements) {
+        bool found = false;
+        for (const ShapeElement& element: output.feasible_elements) {
+            if (equal(element, expected_element)
+                    || equal(element.reverse(), expected_element)) {
+                found = true;
+            }
+        }
+        EXPECT_TRUE(found) << "missing feasible element " << expected_element.to_string();
+    }
+    ASSERT_EQ(
+            output.feasible_points.size(),
+            test_params.expected_feasible_points.size());
+    for (const Point& expected_point: test_params.expected_feasible_points) {
+        bool found = false;
+        for (const Point& point: output.feasible_points)
+            if (equal(point, expected_point))
+                found = true;
+        EXPECT_TRUE(found) << "missing feasible point " << expected_point.to_string();
+    }
+
+    auto overlap = [&test_params](const Point& position)
+    {
+        ShapeWithHoles translated_orbiting = test_params.orbiting_shape;
+        translated_orbiting.shift(position.x, position.y);
+        return intersect(test_params.fixed_shape, translated_orbiting, true);
+    };
+    auto inside_nfp = [&output](const Point& point)
+    {
+        for (const ShapeWithHoles& component: output.nfp.shapes_with_holes)
+            if (component.contains(point, true))
+                return true;
+        return false;
+    };
+    auto on_feasible_element = [&output](const Point& point)
+    {
+        for (const ShapeElement& element: output.feasible_elements)
+            if (element.contains(point))
+                return true;
+        return false;
+    };
+
+    // Oracle check: the feasible positions are strictly inside the NFP and
+    // don't make the shapes overlap, and the positions strictly inside the
+    // NFP around them do.
+    std::vector<Point> positions = output.feasible_points;
+    for (const ShapeElement& element: output.feasible_elements) {
+        positions.push_back(element.middle());
+        positions.push_back(element.middle(element.start, element.middle()));
+        positions.push_back(element.middle(element.middle(), element.end));
+    }
+    for (const Point& position: positions) {
+        EXPECT_TRUE(inside_nfp(position))
+            << "Feasible position " << position.to_string() << " isn't strictly inside the NFP.";
+        EXPECT_FALSE(overlap(position))
+            << "Feasible position " << position.to_string() << " makes the shapes overlap.";
+        for (double dx: {-0.01, 0.0, 0.01}) {
+            for (double dy: {-0.01, 0.0, 0.01}) {
+                Point neighbor = {position.x + dx, position.y + dy};
+                if ((dx == 0.0 && dy == 0.0)
+                        || !inside_nfp(neighbor)
+                        || on_feasible_element(neighbor)) {
+                    continue;
+                }
+                EXPECT_TRUE(overlap(neighbor))
+                    << "Position " << neighbor.to_string() << " is strictly inside the NFP, "
+                    << "not feasible, but doesn't make the shapes overlap.";
+            }
+        }
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+        Shape,
+        NoFitPolygonFeasibleTest,
+        testing::ValuesIn(std::vector<NoFitPolygonFeasibleTestParams>{
+            {  // Square in a square hole of the same size: a single position.
+                {build_rectangle(0, 3, 0, 3), {build_rectangle(1, 2, 1, 2)}},
+                {build_rectangle(0, 1, 0, 1), {}},
+                {},
+                {{1, 1}},
+                "SquareInSquareHoleExactFit",
+            }, {  // Square in a slightly larger square hole: a hole of the NFP.
+                {build_rectangle(0, 3, 0, 3), {build_rectangle(0.9, 2.1, 0.9, 2.1)}},
+                {build_rectangle(0, 1, 0, 1), {}},
+                {},
+                {},
+                "SquareInSquareHoleLooseFit",
+            }, {  // Square in a rectangular hole of the same height.
+                {build_rectangle(0, 4, 0, 3), {build_rectangle(1, 3, 1, 2)}},
+                {build_rectangle(0, 1, 0, 1), {}},
+                {build_line_segment({1, 1}, {2, 1})},
+                {},
+                "SquareInRectangularHoleExactHeight",
+            }, {  // Square in a slot of the same width, open at the top.
+                {build_shape({{0, 0}, {3, 0}, {3, 3}, {2, 3}, {2, 1}, {1, 1}, {1, 3}, {0, 3}}), {}},
+                {build_rectangle(0, 1, 0, 1), {}},
+                {build_line_segment({1, 1}, {1, 3})},
+                {},
+                "SquareInSlotExactWidth",
+            }, {  // Square in a notch of the same width, open at the bottom.
+                {build_shape({{0, 0}, {1, 0}, {1, 1}, {2, 1}, {2, 0}, {3, 0}, {3, 2}, {0, 2}}), {}},
+                {build_rectangle(0, 1, 0, 1), {}},
+                {build_line_segment({1, -1}, {1, 0})},
+                {},
+                "SquareInNotchExactWidth",
+            }, {  // Disk in a square hole of the same width.
+                {build_rectangle(-3, 3, -3, 3), {build_rectangle(-1, 1, -1, 1)}},
+                {build_circle(1), {}},
+                {},
+                {{0, 0}},
+                "DiskInSquareHoleExactFit",
+            }, {  // Disk in a slot of the same width, open at the top.
+                {build_shape({{0, 0}, {6, 0}, {6, 4}, {4, 4}, {4, 1}, {2, 1}, {2, 4}, {0, 4}}), {}},
+                {build_circle(1), {}},
+                {build_line_segment({3, 2}, {3, 4})},
+                {},
+                "DiskInSlotExactWidth",
+            },
+        }),
+        [](const testing::TestParamInfo<NoFitPolygonFeasibleTest::ParamType>& info) {
+            return info.param.name;
+        });
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Convex overload with circular arcs (decompose_into_basic_shapes' circular
 // segments: one CircularArc element closed by its chord).
 //
@@ -564,7 +730,7 @@ TEST(NoFitPolygonGeneralArcTest, RoundedCornerSquare)
     ShapeWithHoles fixed_shape{rounded, {}};
     ShapeWithHoles orbiting_shape{build_rectangle(0, 1, 0, 1), {}};
 
-    MultiShapeWithHoles nfp = no_fit_polygon(fixed_shape, orbiting_shape);
+    MultiShapeWithHoles nfp = no_fit_polygon(fixed_shape, orbiting_shape).nfp;
     std::cout << "nfp (" << nfp.shapes_with_holes.size() << " component(s))" << std::endl;
     for (const ShapeWithHoles& component: nfp.shapes_with_holes)
         std::cout << "  " << component.to_string(0) << std::endl;

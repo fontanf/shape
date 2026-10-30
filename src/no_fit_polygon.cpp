@@ -5,6 +5,7 @@
 #include "shape/equalize.hpp"
 #include "shape/basic_shapes.hpp"
 #include "shape/offset.hpp"
+#include "shape/intersection_tree.hpp"
 
 #include <algorithm>
 #include <string>
@@ -702,7 +703,369 @@ Shape shape::no_fit_polygon(
     return remove_aligned_vertices(result_shape).second;
 }
 
-MultiShapeWithHoles shape::no_fit_polygon(
+namespace
+{
+
+/**
+ * Merge the line segments of 'line_segments' which continue each other, at
+ * points where no other line segment of 'line_segments' ends.
+ */
+std::vector<ShapeElement> merge_continuing_line_segments(
+        std::vector<ShapeElement> line_segments)
+{
+    auto number_of_ends = [&line_segments](const Point& point)
+    {
+        ElementPos number_of_ends = 0;
+        for (const ShapeElement& line_segment: line_segments) {
+            if (equal(line_segment.start, point))
+                number_of_ends++;
+            if (equal(line_segment.end, point))
+                number_of_ends++;
+        }
+        return number_of_ends;
+    };
+
+    for (bool merged = true; merged; ) {
+        merged = false;
+        for (ElementPos pos_1 = 0;
+                pos_1 < (ElementPos)line_segments.size() && !merged;
+                ++pos_1) {
+            for (ElementPos pos_2 = pos_1 + 1;
+                    pos_2 < (ElementPos)line_segments.size() && !merged;
+                    ++pos_2) {
+                // Orient both line segments so that the first one ends where
+                // the second one starts.
+                ShapeElement line_segment_1 = line_segments[pos_1];
+                ShapeElement line_segment_2 = line_segments[pos_2];
+                if (equal(line_segment_1.start, line_segment_2.start)
+                        || equal(line_segment_1.start, line_segment_2.end)) {
+                    line_segment_1 = line_segment_1.reverse();
+                }
+                if (equal(line_segment_1.end, line_segment_2.end))
+                    line_segment_2 = line_segment_2.reverse();
+                if (!equal(line_segment_1.end, line_segment_2.start))
+                    continue;
+                if (number_of_ends(line_segment_1.end) != 2)
+                    continue;
+                ShapeElement merged_line_segment = build_line_segment(
+                        line_segment_1.start,
+                        line_segment_2.end);
+                if (!merged_line_segment.contains(line_segment_1.end))
+                    continue;
+                line_segments[pos_1] = merged_line_segment;
+                line_segments.erase(line_segments.begin() + pos_2);
+                merged = true;
+            }
+        }
+    }
+    return line_segments;
+}
+
+/**
+ * Compute the feasible elements and points of an NFP (see
+ * NoFitPolygonOutput) from the convex NFPs whose union is 'output.nfp'.
+ *
+ * The positions making the shapes overlap are the points strictly inside one
+ * of the convex NFPs. The feasible elements and points are the other points
+ * strictly inside 'output.nfp'. So they are on the boundaries of the convex
+ * NFPs, and:
+ * - Around a point of a feasible element, there are positions making the
+ *   shapes overlap on both sides, so it is on the boundaries of two convex
+ *   NFPs on both sides of it. Thus, the feasible elements are on the parts of
+ *   the boundaries of two convex NFPs which overlap in opposite directions.
+ *   The convex NFPs being convex, these parts are line segments.
+ * - Around a feasible point, all the positions make the shapes overlap, so
+ *   it is on the boundaries of several convex NFPs, at an intersection of
+ *   them.
+ */
+void compute_feasible_elements_and_points(
+        const std::vector<ShapeWithHoles>& convex_nfps,
+        NoFitPolygonOutput& output)
+{
+    IntersectionTree convex_nfps_tree(convex_nfps, {}, {});
+    std::vector<AxisAlignedBoundingBox> convex_nfps_min_max;
+    for (const ShapeWithHoles& convex_nfp: convex_nfps)
+        convex_nfps_min_max.push_back(convex_nfp.compute_min_max());
+    // Return true iff the bounding box of a convex NFP strictly contains a
+    // bounding box, a cheap necessary condition for the convex NFP to
+    // strictly contain what is inside this bounding box.
+    auto min_max_strictly_contains = [&convex_nfps_min_max](
+            ShapePos convex_nfp_pos,
+            const AxisAlignedBoundingBox& aabb)
+    {
+        const AxisAlignedBoundingBox& convex_nfp_aabb = convex_nfps_min_max[convex_nfp_pos];
+        return strictly_lesser(convex_nfp_aabb.x_min, aabb.x_min)
+            && strictly_greater(convex_nfp_aabb.x_max, aabb.x_max)
+            && strictly_lesser(convex_nfp_aabb.y_min, aabb.y_min)
+            && strictly_greater(convex_nfp_aabb.y_max, aabb.y_max);
+    };
+    // The boundaries of the convex NFPs may be slightly outside of
+    // 'output.nfp', so a feasible element or point must be checked to be
+    // strictly inside it.
+    IntersectionTree nfp_tree(output.nfp.shapes_with_holes, {}, {});
+    auto is_feasible = [&](const Point& point)
+    {
+        AxisAlignedBoundingBox point_aabb = {point.x, point.x, point.y, point.y};
+        auto condition = [&](ShapePos convex_nfp_pos)
+        {
+            return min_max_strictly_contains(convex_nfp_pos, point_aabb);
+        };
+        return convex_nfps_tree.find_shape(point, true, condition) == -1
+            && nfp_tree.find_shape(point, true) != -1;
+    };
+
+    // Boundary elements of the convex NFPs. A full circle is split into two
+    // half circles, so that every element has distinct ends.
+    std::vector<ShapeElement> elements;
+    std::vector<ShapePos> elements_convex_nfp_pos;
+    for (ShapePos convex_nfp_pos = 0;
+            convex_nfp_pos < (ShapePos)convex_nfps.size();
+            ++convex_nfp_pos) {
+        for (const ShapeElement& element: convex_nfps[convex_nfp_pos].shape.elements) {
+            if (element.type == ShapeElementType::CircularArc
+                    && element.orientation == ShapeElementOrientation::Full) {
+                Point antipode = 2 * element.center - element.start;
+                elements.push_back(build_circular_arc(
+                            element.start,
+                            antipode,
+                            element.center,
+                            ShapeElementOrientation::Anticlockwise));
+                elements_convex_nfp_pos.push_back(convex_nfp_pos);
+                elements.push_back(build_circular_arc(
+                            antipode,
+                            element.start,
+                            element.center,
+                            ShapeElementOrientation::Anticlockwise));
+                elements_convex_nfp_pos.push_back(convex_nfp_pos);
+            } else {
+                elements.push_back(element);
+                elements_convex_nfp_pos.push_back(convex_nfp_pos);
+            }
+        }
+    }
+
+    // Make the vertices of different convex NFPs which are equal within
+    // tolerance exactly equal, so that their intersections are consistent
+    // (see compute_splitted_elements in boolean_operations.cpp).
+    {
+        std::vector<Point*> equalize_to_orig;
+        std::vector<Point> equalize_input;
+        for (ShapeElement& element: elements) {
+            equalize_input.push_back(element.start);
+            equalize_to_orig.push_back(&element.start);
+            equalize_input.push_back(element.end);
+            equalize_to_orig.push_back(&element.end);
+        }
+        std::vector<Point> equalize_output = equalize_points(equalize_input);
+        for (ElementPos pos = 0; pos < (ElementPos)equalize_output.size(); ++pos)
+            *equalize_to_orig[pos] = equalize_output[pos];
+        for (ShapeElement& element: elements) {
+            if (element.type == ShapeElementType::CircularArc)
+                element.center = element.recompute_center();
+        }
+    }
+
+    // Remove the elements strictly inside the union of the other convex
+    // NFPs: none of their points is feasible, and the feasible elements and
+    // points are not on their intersections with the other elements, since
+    // these intersections are strictly inside this union.
+    //
+    // To check it, go along the element: while the current point is
+    // strictly inside a convex NFP, go to the first point where the element
+    // reaches the boundary of this convex NFP. The element is strictly
+    // inside the union if its end is reached this way.
+    auto is_strictly_inside_convex_nfps = [&](const ShapeElement& element)
+    {
+        Point current_point = element.start;
+        for (;;) {
+            AxisAlignedBoundingBox point_aabb = {
+                current_point.x, current_point.x,
+                current_point.y, current_point.y};
+            auto condition = [&](ShapePos convex_nfp_pos)
+            {
+                return min_max_strictly_contains(convex_nfp_pos, point_aabb);
+            };
+            ShapePos convex_nfp_pos = convex_nfps_tree.find_shape(
+                    current_point,
+                    true,
+                    condition);
+            if (convex_nfp_pos == -1)
+                return false;
+            ShapeElement remaining_element = element.extract(current_point, element.end);
+            LengthDbl current_length = element.length(current_point);
+            bool found = false;
+            Point next_point;
+            LengthDbl next_length = 0;
+            for (const ShapeElement& convex_nfp_element: convex_nfps[convex_nfp_pos].shape.elements) {
+                ShapeElementIntersectionsOutput intersections
+                    = compute_intersections(remaining_element, convex_nfp_element);
+                std::vector<Point> points;
+                for (const ShapeElement& overlapping_part: intersections.overlapping_parts) {
+                    points.push_back(overlapping_part.start);
+                    points.push_back(overlapping_part.end);
+                }
+                for (const Point& point: intersections.improper_intersections)
+                    points.push_back(point);
+                for (const Point& point: intersections.proper_intersections)
+                    points.push_back(point);
+                for (const Point& point: points) {
+                    LengthDbl length = element.length(point);
+                    if (!found || length < next_length) {
+                        found = true;
+                        next_point = point;
+                        next_length = length;
+                    }
+                }
+            }
+            // The rest of the element is strictly inside the convex NFP.
+            if (!found)
+                return true;
+            // Guarantee progress.
+            if (equal(next_point, current_point)
+                    || !(next_length > current_length)) {
+                return false;
+            }
+            current_point = next_point;
+        }
+    };
+    {
+        std::vector<ShapeElement> remaining_elements;
+        std::vector<ShapePos> remaining_elements_convex_nfp_pos;
+        for (ElementPos element_pos = 0;
+                element_pos < (ElementPos)elements.size();
+                ++element_pos) {
+            const ShapeElement& element = elements[element_pos];
+            if (is_strictly_inside_convex_nfps(element))
+                continue;
+            remaining_elements.push_back(element);
+            remaining_elements_convex_nfp_pos.push_back(elements_convex_nfp_pos[element_pos]);
+        }
+        elements = remaining_elements;
+        elements_convex_nfp_pos = remaining_elements_convex_nfp_pos;
+    }
+
+    // Intersections of the elements of different convex NFPs.
+    std::vector<ElementElementIntersection> intersections;
+    {
+        IntersectionTree elements_tree({}, elements, {});
+        for (ElementElementIntersection& intersection:
+                elements_tree.compute_intersecting_elements(false)) {
+            if (elements_convex_nfp_pos[intersection.element_id_1]
+                    != elements_convex_nfp_pos[intersection.element_id_2]) {
+                intersections.push_back(std::move(intersection));
+            }
+        }
+    }
+    std::vector<std::vector<Point>> elements_intersections(elements.size());
+    std::vector<Point> candidate_points;
+    for (const ElementElementIntersection& intersection: intersections) {
+        std::vector<Point> points;
+        for (const ShapeElement& overlapping_part: intersection.intersections.overlapping_parts) {
+            points.push_back(overlapping_part.start);
+            points.push_back(overlapping_part.end);
+        }
+        for (const Point& point: intersection.intersections.improper_intersections)
+            points.push_back(point);
+        for (const Point& point: intersection.intersections.proper_intersections)
+            points.push_back(point);
+        for (const Point& point: points) {
+            elements_intersections[intersection.element_id_1].push_back(point);
+            elements_intersections[intersection.element_id_2].push_back(point);
+            candidate_points.push_back(point);
+        }
+    }
+
+    // Feasible elements: the parts of the overlapping parts in opposite
+    // directions between the intersections of the elements, whose middle
+    // is feasible.
+    std::vector<ShapeElement> feasible_elements;
+    for (const ElementElementIntersection& intersection: intersections) {
+        const ShapeElement& element_1 = elements[intersection.element_id_1];
+        const ShapeElement& element_2 = elements[intersection.element_id_2];
+        if (element_1.type != ShapeElementType::LineSegment
+                || element_2.type != ShapeElementType::LineSegment
+                || dot_product(
+                    element_1.end - element_1.start,
+                    element_2.end - element_2.start) >= 0) {
+            continue;
+        }
+        for (const ShapeElement& overlapping_part: intersection.intersections.overlapping_parts) {
+            std::vector<Point> points;
+            for (ElementPos element_pos: {intersection.element_id_1, intersection.element_id_2})
+                for (const Point& point: elements_intersections[element_pos])
+                    if (overlapping_part.contains(point))
+                        points.push_back(point);
+            std::sort(
+                    points.begin(),
+                    points.end(),
+                    [&overlapping_part](
+                        const Point& point_1,
+                        const Point& point_2)
+                    {
+                        return overlapping_part.length(point_1) < overlapping_part.length(point_2);
+                    });
+            std::vector<ShapeElement> pieces;
+            Point piece_start = overlapping_part.start;
+            for (const Point& point: points) {
+                if (equal(point, piece_start) || equal(point, overlapping_part.end))
+                    continue;
+                pieces.push_back(build_line_segment(piece_start, point));
+                piece_start = point;
+            }
+            pieces.push_back(build_line_segment(piece_start, overlapping_part.end));
+            for (const ShapeElement& piece: pieces) {
+                candidate_points.push_back(piece.start);
+                candidate_points.push_back(piece.end);
+                if (!is_feasible(piece.middle()))
+                    continue;
+                bool found = false;
+                for (const ShapeElement& feasible_element: feasible_elements) {
+                    if (equal(feasible_element, piece)
+                            || equal(feasible_element, piece.reverse())) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    feasible_elements.push_back(piece);
+            }
+        }
+    }
+    output.feasible_elements = merge_continuing_line_segments(feasible_elements);
+
+    // Feasible points.
+    std::sort(
+            candidate_points.begin(),
+            candidate_points.end(),
+            [](const Point& point_1, const Point& point_2)
+            {
+                return point_1.x < point_2.x
+                    || (point_1.x == point_2.x && point_1.y < point_2.y);
+            });
+    candidate_points.erase(
+            std::unique(candidate_points.begin(), candidate_points.end()),
+            candidate_points.end());
+    IntersectionTree feasible_elements_tree({}, output.feasible_elements, {});
+    for (const Point& point: candidate_points) {
+        if (!is_feasible(point))
+            continue;
+        if (!feasible_elements_tree.intersect(point, false).element_ids.empty())
+            continue;
+        bool found = false;
+        for (const Point& feasible_point: output.feasible_points) {
+            if (equal(feasible_point, point)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            output.feasible_points.push_back(point);
+    }
+}
+
+}  // namespace
+
+NoFitPolygonOutput shape::no_fit_polygon(
         const ShapeWithHoles& fixed_shape,
         const ShapeWithHoles& orbiting_shape)
 {
@@ -716,6 +1079,7 @@ MultiShapeWithHoles shape::no_fit_polygon(
     // fixed_part), so this collapses most of the overlap within small
     // groups before the final union only has to merge the (typically far
     // fewer) per-group results.
+    std::vector<ShapeWithHoles> convex_nfps;
     std::vector<ShapeWithHoles> group_unions;
     for (const BasicShape& fixed_part: fixed_parts) {
         std::vector<ShapeWithHoles> nfp_parts;
@@ -749,10 +1113,14 @@ MultiShapeWithHoles shape::no_fit_polygon(
                 convex_nfp = no_fit_polygon(fixed_part.shape, orbiting_part.shape);
             }
             nfp_parts.push_back({convex_nfp, {}});
+            convex_nfps.push_back({convex_nfp, {}});
         }
         for (const ShapeWithHoles& swh: compute_union(nfp_parts).shapes_with_holes)
             group_unions.push_back(swh);
     }
 
-    return compute_union(group_unions);
+    NoFitPolygonOutput output;
+    output.nfp = compute_union(group_unions);
+    compute_feasible_elements_and_points(convex_nfps, output);
+    return output;
 }
