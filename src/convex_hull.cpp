@@ -56,7 +56,7 @@ Shape shape::convex_hull(
         points.push_back(shape_element.start);
     }
 
-    std::stable_sort(
+    std::sort(
             points.begin(),
             points.end(),
             [&point_least_y](

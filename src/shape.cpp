@@ -1445,7 +1445,7 @@ Point Shape::find_point_strictly_inside() const
                     touches.push_back({x_max, false});
                 }
             }
-            std::stable_sort(
+            std::sort(
                     touches.begin(),
                     touches.end(),
                     [](const RayCrossing& touch_1, const RayCrossing& touch_2)
@@ -1743,7 +1743,7 @@ Shape Shape::replace(const std::vector<PathReplacement>& paths) const
 
     std::vector<ShapePos> sorted_paths(paths.size());
     std::iota(sorted_paths.begin(), sorted_paths.end(), 0);
-    std::stable_sort(
+    std::sort(
             sorted_paths.begin(),
             sorted_paths.end(),
             [this, &paths](
@@ -2243,7 +2243,7 @@ bool ShapeWithHoles::check() const
                 for (const Point& point: intersections.proper_intersections)
                     points.push_back(point);
             }
-            std::stable_sort(
+            std::sort(
                     points.begin(),
                     points.end(),
                     [&element](const Point& point_1, const Point& point_2)
@@ -2382,7 +2382,7 @@ Point ShapeWithHoles::find_point_strictly_inside() const
                     }
                 }
             }
-            std::stable_sort(
+            std::sort(
                     touches.begin(),
                     touches.end(),
                     [](const RayCrossing& touch_1, const RayCrossing& touch_2)
