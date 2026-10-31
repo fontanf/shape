@@ -650,7 +650,7 @@ std::vector<std::pair<ShapePos, ShapePos>> IntersectionTree::compute_intersectin
     }
 
     // Remove duplicates.
-    std::sort(potentially_intersecting_shapes.begin(), potentially_intersecting_shapes.end());
+    std::stable_sort(potentially_intersecting_shapes.begin(), potentially_intersecting_shapes.end());
     potentially_intersecting_shapes.erase(
             unique(potentially_intersecting_shapes.begin(), potentially_intersecting_shapes.end()),
             potentially_intersecting_shapes.end());
@@ -722,7 +722,7 @@ std::vector<ElementElementIntersection> IntersectionTree::compute_intersecting_e
     }
 
     // Remove duplicates.
-    std::sort(potentially_intersecting_elements.begin(), potentially_intersecting_elements.end());
+    std::stable_sort(potentially_intersecting_elements.begin(), potentially_intersecting_elements.end());
     potentially_intersecting_elements.erase(
             unique(potentially_intersecting_elements.begin(), potentially_intersecting_elements.end()),
             potentially_intersecting_elements.end());
@@ -799,7 +799,7 @@ std::vector<std::pair<ElementPos, ElementPos>> IntersectionTree::compute_equal_p
 
     // Remove duplicates.
     //std::cout << "remove duplicates..." << std::endl;
-    std::sort(potentially_equal_points.begin(), potentially_equal_points.end());
+    std::stable_sort(potentially_equal_points.begin(), potentially_equal_points.end());
     potentially_equal_points.erase(
             unique(potentially_equal_points.begin(), potentially_equal_points.end()),
             potentially_equal_points.end());

@@ -108,14 +108,14 @@ void fill_columns_intersections(
         std::cout << point.element_pos << " " << point.point.to_string() << std::endl;
 #endif
     // Sort intersection points by their length on the element.
-    std::sort(
+    std::stable_sort(
             intersection_points.begin(),
             intersection_points.end(),
             [&shape](
                 const ShapePoint& point_1,
                 const ShapePoint& point_2)
             {
-                return shape.is_strictly_closer_to_path_start(point_1, point_2);
+                return shape.is_exactly_closer_to_path_start(point_1, point_2);
             });
     // A vertex on a column line is found as the end of an element and as the
     // start of the next one; keep it once.
@@ -304,7 +304,7 @@ RasterizedGrid shape::rasterization(
 
             // Sort intersections by ascending min(y_in, y_out).
             std::vector<ColumnIntersection> sorted_intersections = column_inters;
-            std::sort(
+            std::stable_sort(
                     sorted_intersections.begin(),
                     sorted_intersections.end(),
                     [](

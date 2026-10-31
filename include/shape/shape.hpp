@@ -953,6 +953,19 @@ struct Shape
             const ShapePoint& point_2) const;
 
     /**
+     * Same as is_strictly_closer_to_path_start but compare exactly, without
+     * tolerance.
+     *
+     * Unlike is_strictly_closer_to_path_start, it is a strict weak ordering,
+     * so it can be used to sort points: two points within the tolerance of
+     * each other are not equivalent for is_strictly_closer_to_path_start,
+     * but equivalence within tolerance is not transitive.
+     */
+    bool is_exactly_closer_to_path_start(
+            const ShapePoint& point_1,
+            const ShapePoint& point_2) const;
+
+    /**
      * Return a point of the boundary strictly between 'point_1' and
      * 'point_2', going forward from 'point_1' (around the start of the shape
      * if needed, for a closed shape).
