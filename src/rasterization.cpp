@@ -108,7 +108,7 @@ void fill_columns_intersections(
         std::cout << point.element_pos << " " << point.point.to_string() << std::endl;
 #endif
     // Sort intersection points by their length on the element.
-    std::stable_sort(
+    std::sort(
             intersection_points.begin(),
             intersection_points.end(),
             [&shape](
@@ -304,7 +304,7 @@ RasterizedGrid shape::rasterization(
 
             // Sort intersections by ascending min(y_in, y_out).
             std::vector<ColumnIntersection> sorted_intersections = column_inters;
-            std::stable_sort(
+            std::sort(
                     sorted_intersections.begin(),
                     sorted_intersections.end(),
                     [](

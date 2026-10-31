@@ -16,7 +16,7 @@ std::vector<Point> shape::equalize_points(
     std::vector<std::pair<Point, ElementPos>> sorted_points(points.size());
     for (ElementPos pos = 0; pos < (ElementPos)points.size(); ++pos)
         sorted_points[pos] = {points[pos], pos};
-    std::stable_sort(
+    std::sort(
             sorted_points.begin(),
             sorted_points.end(),
             [](const auto& pair_1, const auto pair_2)

@@ -231,7 +231,7 @@ bool shape::intersect(
     intersections.push_back({1, (ElementPos)intersection_points.size()});
     intersection_points.push_back(element.end);
     // Sort intersections.
-    std::stable_sort(
+    std::sort(
             intersections.begin(),
             intersections.end(),
             [&element, &overlapping_parts, &intersection_points](
@@ -319,7 +319,7 @@ std::vector<ShapePoint> shape::compute_intersections(
         return {*p.first, *p.second};
     }
     // Sort intersections.
-    std::stable_sort(
+    std::sort(
         output.begin(),
         output.end(),
         [&element](
@@ -366,7 +366,7 @@ std::vector<ShapePoint> shape::compute_strict_intersections(
         }
     }
     // Sort intersections.
-    std::stable_sort(
+    std::sort(
             intersections.begin(),
             intersections.end(),
             [&element, &overlapping_parts, &intersection_points](
@@ -501,7 +501,7 @@ bool shape::intersect(
         intersection_points.push_back({(ElementPos)shape_1.elements.size() - 1, shape_1.elements.back().end});
     }
     // Sort intersections.
-    std::stable_sort(
+    std::sort(
             intersections.begin(),
             intersections.end(),
             [&shape_1, &overlapping_parts, &intersection_points](
@@ -627,7 +627,7 @@ std::vector<PathShapeIntersectionPoint> shape::compute_intersections(
         return {*p.first, *p.second};
     }
     // Sort intersections.
-    std::stable_sort(
+    std::sort(
         output.begin(),
         output.end(),
         [&path](
@@ -686,7 +686,7 @@ std::vector<PathShapeIntersectionPoint> shape::compute_strict_intersections(
     intersections.push_back({1, (ElementPos)intersection_points.size()});
     intersection_points.push_back({(ElementPos)path.elements.size() - 1, -1, path.elements.back().end});
     // Sort intersections.
-    std::stable_sort(
+    std::sort(
             intersections.begin(),
             intersections.end(),
             [&path, &overlapping_parts, &intersection_points](
@@ -870,7 +870,7 @@ bool shape::intersect(
     intersections.push_back({1, (ElementPos)intersection_points.size()});
     intersection_points.push_back(element.end);
     // Sort intersections.
-    std::stable_sort(
+    std::sort(
             intersections.begin(),
             intersections.end(),
             [&element, &overlapping_parts, &intersection_points](
@@ -990,7 +990,7 @@ bool shape::intersect(
         intersection_points.push_back({(ElementPos)shape.elements.size() - 1, shape.elements.back().end});
     }
     // Sort intersections.
-    std::stable_sort(
+    std::sort(
             intersections.begin(),
             intersections.end(),
             [&shape, &overlapping_parts, &intersection_points](

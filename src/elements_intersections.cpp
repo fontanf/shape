@@ -376,7 +376,7 @@ ShapeElementIntersectionsOutput compute_line_line_intersections(
 
         // If they are aligned, check if they overlap.
         std::array<ElementPos, 4> sorted_points = {0, 1, 2, 3};
-        std::stable_sort(
+        std::sort(
                 sorted_points.begin(),
                 sorted_points.end(),
                 [&points_values](
