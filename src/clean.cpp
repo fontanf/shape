@@ -681,11 +681,13 @@ Shape clean_extreme_slopes_outer_2(
         const Shape& shape_orig,
         std::vector<Shape>& triangles_added)
 {
+#ifdef CLEAN_ENABLE_DEBUG
     if (!shape_orig.check()) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "invalid input shape.");
     }
+#endif
 
     Shape shape = shape_orig;
     ElementPos element_prev_pos = shape.elements.size() - 1;
@@ -901,11 +903,13 @@ Shape clean_extreme_slopes_inner_2(
 ShapeWithHoles shape::clean_extreme_slopes_outer(
         const Shape& shape_orig)
 {
+#ifdef CLEAN_ENABLE_DEBUG
     if (!shape_orig.check()) {
         //write_json({{shape_orig}}, {}, "clean_extreme_slopes_outer_input.json");
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": invalid input shape.");
     }
+#endif
 
     Shape shape = shape_orig;
     std::vector<Shape> triangles_added;
@@ -940,11 +944,13 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
         return u.front();
     }
 
+#ifdef CLEAN_ENABLE_DEBUG
     if (!shape.check()) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "invalid shape after extreme slopes cleaning.");
     }
+#endif
 
     return {shape};
 }
@@ -952,10 +958,12 @@ ShapeWithHoles shape::clean_extreme_slopes_outer(
 std::vector<Shape> shape::clean_extreme_slopes_inner(
         const Shape& shape_orig)
 {
+#ifdef CLEAN_ENABLE_DEBUG
     if (!shape_orig.check()) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": invalid input shape.");
     }
+#endif
 
     Shape shape = shape_orig;
     std::vector<Shape> triangles_removed;
@@ -996,18 +1004,18 @@ std::vector<Shape> shape::clean_extreme_slopes_inner(
         return output;
     }
 
-    if (!shape.check()) {
 #ifdef CLEAN_ENABLE_DEBUG
+    if (!shape.check()) {
         Writer().add_shape(shape_orig).add_shape(shape).write_json("tmp.json");
         std::ofstream file{"clean_extreme_slopes_inner_inputs.json"};
         nlohmann::json json;
         json["shape"] = shape_orig.to_json();
         file << std::setw(4) << json << std::endl;
-#endif
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "invalid shape after extreme slopes cleaning.");
     }
+#endif
 
     return {shape};
 }

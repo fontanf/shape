@@ -1,3 +1,5 @@
+//#define TRAPEZOIDATION_ENABLE_DEBUG
+
 #include "shape/trapezoidation.hpp"
 
 #include "shape/writer.hpp"
@@ -170,11 +172,13 @@ std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
 std::vector<GeneralizedTrapezoid> shape::trapezoidation(
         const ShapeWithHoles& shape_orig)
 {
+#ifdef TRAPEZOIDATION_ENABLE_DEBUG
     if (!shape_orig.check()) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
                 "invalid input shape.");
     }
+#endif
     if (!shape_orig.is_polygon()) {
         throw std::invalid_argument(
                 FUNC_SIGNATURE + ": "
