@@ -654,7 +654,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
         }
 
         // Sort intersection points of this element.
-        std::sort(
+        std::stable_sort(
                 intersections.begin(),
                 intersections.end(),
                 [&element](
@@ -828,7 +828,7 @@ ComputeSplittedElementsOutput compute_splitted_elements(
             ++it) {
         ComponentId component_id = *it;
         auto& splitted_elements = output.components_splitted_elements[component_id];
-        std::sort(splitted_elements.begin(), splitted_elements.end());
+        std::stable_sort(splitted_elements.begin(), splitted_elements.end());
         // Keep a single element for each group of identical elements. The
         // directions in which each shape goes through it are summed: the
         // element kept is from a shape for which this sum is not zero, in
@@ -907,7 +907,7 @@ BooleanOperationGraph compute_graph(
         sorted_element_points.push_back({element_pos, true});
         sorted_element_points.push_back({element_pos, false});
     }
-    std::sort(
+    std::stable_sort(
             sorted_element_points.begin(),
             sorted_element_points.end(),
             [&splitted_elements](
@@ -993,7 +993,7 @@ std::vector<ElementPos> compute_arcs_next(
         }
         l /= 2;
         // Sort the arcs at this node by angle.
-        std::sort(
+        std::stable_sort(
                 node.successors.begin(),
                 node.successors.end(),
                 [&l, &splitted_elements](

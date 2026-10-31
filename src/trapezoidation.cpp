@@ -150,7 +150,7 @@ std::pair<ElementPos, ElementPos> find_trapezoid_containing_vertex(
     std::vector<std::tuple<LengthDbl, LengthDbl, ElementPos>> candidates = strict;
     if (candidates.size() < 2)
         candidates.insert(candidates.end(), on_side.begin(), on_side.end());
-    std::sort(candidates.begin(), candidates.end());
+    std::stable_sort(candidates.begin(), candidates.end());
     std::pair<ElementPos, ElementPos> res = {-1, -1};
     if (candidates.size() >= 1)
         res.first = std::get<2>(candidates[0]);
@@ -380,7 +380,7 @@ std::vector<GeneralizedTrapezoid> shape::trapezoidation(
         return std::make_pair(rank, (rank == 2)? -width: width);
     };
     // Sort.
-    std::sort(
+    std::stable_sort(
             sorted_vertices.begin(),
             sorted_vertices.end(),
             [&shape, &vertex_rank](

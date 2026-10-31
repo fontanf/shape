@@ -109,7 +109,7 @@ std::vector<DirectedElement> split_arc_into_pieces(
         return {arc};
 
     // Order the directions along the arc, and remove the duplicates.
-    std::sort(
+    std::stable_sort(
             split_directions.begin(),
             split_directions.end(),
             [&arc](const Point& direction_1, const Point& direction_2)
@@ -995,7 +995,7 @@ void compute_feasible_elements_and_points(
                 for (const Point& point: elements_intersections[element_pos])
                     if (overlapping_part.contains(point))
                         points.push_back(point);
-            std::sort(
+            std::stable_sort(
                     points.begin(),
                     points.end(),
                     [&overlapping_part](
@@ -1034,7 +1034,7 @@ void compute_feasible_elements_and_points(
     output.feasible_elements = merge_continuing_line_segments(feasible_elements);
 
     // Feasible points.
-    std::sort(
+    std::stable_sort(
             candidate_points.begin(),
             candidate_points.end(),
             [](const Point& point_1, const Point& point_2)
