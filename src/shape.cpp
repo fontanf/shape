@@ -550,6 +550,39 @@ bool ShapeElement::contains(const Point& point) const
     // tolerance) the given point, rather than checking element-type-specific
     // geometric properties (on-line, on-circle, angular cone, ...) whose
     // tolerance behavior is inconsistent close to the element's endpoints.
+    //
+    // The points of a line segment are in the bounding box of its ends, and
+    // the points of a circular arc in the bounding box of its circle, whose
+    // radius is at most |dx| + |dy|: a point farther than the tolerance from
+    // this bounding box is not contained. This cheap check skips the
+    // computations below for most of the elements of a shape, e.g. in
+    // Shape::contains.
+    {
+        AxisAlignedBoundingBox aabb;
+        if (this->type == ShapeElementType::CircularArc) {
+            LengthDbl radius_bound
+                = std::abs(this->start.x - this->center.x)
+                + std::abs(this->start.y - this->center.y);
+            aabb.x_min = this->center.x - radius_bound;
+            aabb.x_max = this->center.x + radius_bound;
+            aabb.y_min = this->center.y - radius_bound;
+            aabb.y_max = this->center.y + radius_bound;
+        } else {
+            aabb.x_min = (std::min)(this->start.x, this->end.x);
+            aabb.x_max = (std::max)(this->start.x, this->end.x);
+            aabb.y_min = (std::min)(this->start.y, this->end.y);
+            aabb.y_max = (std::max)(this->start.y, this->end.y);
+        }
+        // Twice the tolerance, so that the rounding errors of this->point(l)
+        // below can't make a rejected point contained.
+        const LengthDbl margin = 2e-6;
+        if (point.x < aabb.x_min - margin
+                || point.x > aabb.x_max + margin
+                || point.y < aabb.y_min - margin
+                || point.y > aabb.y_max + margin) {
+            return false;
+        }
+    }
     LengthDbl l;
     switch (type) {
     case ShapeElementType::LineSegment: {
