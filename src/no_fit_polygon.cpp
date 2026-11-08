@@ -944,6 +944,49 @@ void compute_feasible_elements_and_points(
         elements_convex_nfp_pos = remaining_elements_convex_nfp_pos;
     }
 
+    // Remove the elements on an element of the boundary of 'output.nfp':
+    // none of their points is strictly inside it, so none is feasible.
+    // Their intersections with the other elements are not needed either:
+    // these intersections are not strictly inside 'output.nfp', and the
+    // overlapping parts in opposite directions have convex NFPs on both
+    // sides, so they only reach the boundary of 'output.nfp' at their ends.
+    {
+        std::vector<ShapeElement> nfp_elements;
+        for (const ShapeWithHoles& shape: output.nfp.shapes_with_holes) {
+            for (const ShapeElement& element: shape.shape.elements)
+                nfp_elements.push_back(element);
+            for (const Shape& hole: shape.holes)
+                for (const ShapeElement& element: hole.elements)
+                    nfp_elements.push_back(element);
+        }
+        IntersectionTree nfp_elements_tree({}, nfp_elements, {});
+        auto is_on_nfp_boundary = [&](const ShapeElement& element)
+        {
+            for (ElementPos nfp_element_pos: nfp_elements_tree.intersect(element.middle(), false).element_ids) {
+                const ShapeElement& nfp_element = nfp_elements[nfp_element_pos];
+                if (nfp_element.type == element.type
+                        && nfp_element.contains(element.start)
+                        && nfp_element.contains(element.end)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        std::vector<ShapeElement> remaining_elements;
+        std::vector<ShapePos> remaining_elements_convex_nfp_pos;
+        for (ElementPos element_pos = 0;
+                element_pos < (ElementPos)elements.size();
+                ++element_pos) {
+            const ShapeElement& element = elements[element_pos];
+            if (is_on_nfp_boundary(element))
+                continue;
+            remaining_elements.push_back(element);
+            remaining_elements_convex_nfp_pos.push_back(elements_convex_nfp_pos[element_pos]);
+        }
+        elements = remaining_elements;
+        elements_convex_nfp_pos = remaining_elements_convex_nfp_pos;
+    }
+
     // Intersections of the elements of different convex NFPs.
     std::vector<ElementElementIntersection> intersections;
     {
