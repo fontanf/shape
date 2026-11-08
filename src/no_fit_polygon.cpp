@@ -874,6 +874,11 @@ void compute_feasible_elements_and_points(
     // strictly inside a convex NFP, go to the first point where the element
     // reaches the boundary of this convex NFP. The element is strictly
     // inside the union if its end is reached this way.
+    //
+    // Consecutive elements of a convex NFP are often strictly inside the
+    // same other convex NFP, so the last convex NFP found is checked first,
+    // before searching the tree.
+    ShapePos last_convex_nfp_pos = -1;
     auto is_strictly_inside_convex_nfps = [&](const ShapeElement& element)
     {
         Point current_point = element.start;
@@ -881,16 +886,24 @@ void compute_feasible_elements_and_points(
             AxisAlignedBoundingBox point_aabb = {
                 current_point.x, current_point.x,
                 current_point.y, current_point.y};
-            auto condition = [&](ShapePos convex_nfp_pos)
-            {
-                return min_max_strictly_contains(convex_nfp_pos, point_aabb);
-            };
-            ShapePos convex_nfp_pos = convex_nfps_tree.find_shape(
-                    current_point,
-                    true,
-                    condition);
+            ShapePos convex_nfp_pos = -1;
+            if (last_convex_nfp_pos != -1
+                    && min_max_strictly_contains(last_convex_nfp_pos, point_aabb)
+                    && convex_nfps[last_convex_nfp_pos].contains(current_point, true)) {
+                convex_nfp_pos = last_convex_nfp_pos;
+            } else {
+                auto condition = [&](ShapePos convex_nfp_pos)
+                {
+                    return min_max_strictly_contains(convex_nfp_pos, point_aabb);
+                };
+                convex_nfp_pos = convex_nfps_tree.find_shape(
+                        current_point,
+                        true,
+                        condition);
+            }
             if (convex_nfp_pos == -1)
                 return false;
+            last_convex_nfp_pos = convex_nfp_pos;
             ShapeElement remaining_element = element.extract(current_point, element.end);
             LengthDbl current_length = element.length(current_point);
             bool found = false;
